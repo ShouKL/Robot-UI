@@ -1,0 +1,28 @@
+Tue Dec  9 15:49:57 2025
+ERROR: Load model error: XML Error: Schema violation: unrecognized attribute: 'actuator'
+Element 'torque', line 0
+
+
+Tue Dec  9 15:50:59 2025
+ERROR: Load model error: XML Error: Schema violation: unrecognized attribute: 'joint'
+Element 'torque', line 0
+
+
+Tue Dec  9 15:52:57 2025
+ERROR: Load model error: Error: unrecognized name 'left_hip_motor' of sensorized object
+Element name 'left_hip_torque', id 16, line 0
+
+Tue Dec  9 17:24:48 2025
+WARNING: Nan, Inf or huge value in QACC at DOF 0. The simulation is unstable. Time = 5.5980.
+
+Tue Dec  9 18:25:28 2025
+WARNING: Nan, Inf or huge value in QACC at DOF 0. The simulation is unstable. Time = 66.6720.
+
+Tue Dec  9 19:19:46 2025
+WARNING: Nan, Inf or huge value in QACC at DOF 0. The simulation is unstable. Time = 66.6720.
+
+Tue Dec  9 20:02:16 2025
+ERROR: Load model error: XML Error: Error: repeated name 'left_hip_motor' in actuator
+Element 'motor', line 0
+
+

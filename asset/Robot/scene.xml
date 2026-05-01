@@ -1,0 +1,30 @@
+<mujoco>
+    <compiler autolimits="true" angle="radian" meshdir="meshes"/>
+    <option timestep="0.002" gravity="0 0 -9.81"
+        density="1025" viscosity="0.0011" integrator="implicitfast" wind="0 0 0"/>
+
+    <visual>
+        <global offheight="2160" offwidth="3840"/>
+        <rgba haze=".3 .3 .3 1"/>
+    </visual>
+
+    <asset>
+    <texture type="skybox" file="./png/desert_sky.png" gridlayout=".U..LFRB.D.." gridsize="3 4"/>
+    <texture name="grid" type="2d" builtin="checker" width="512" height="512" rgb1="0.6 0.6 0.6" rgb2="0.9 0.9 0.9"/>
+    <!-- <texture name="grid" type="2d" file="./png/carbon.png"/> -->
+    <material name="grid" texture="grid" texrepeat="1 1" texuniform="true" rgba=".4 .4 .4 1" reflectance=".1"/>
+    </asset>    
+    <include file="./robot.xml"/>
+    <worldbody>
+        <geom name="boundingboxXmin" type="box" pos="-2 0.0 -0.1" size="0.01 2.0 1" rgba=".5 .5 .9 .25"/>
+        <geom name="boundingboxYmin" type="box" pos="0.0 -2 -0.1" size="2.0 0.01 1" rgba=".5 .5 .9 .25"/>
+        <geom name="boundingboxYmax" type="box" pos="0.0 2 -0.1" size="2.0 0.01 1" rgba=".5 .5 .9 .25"/>
+        <geom name="boundingboxXmax" type="box" pos="2 0.0 -0.1" size="0.01 2.0 1" rgba=".5 .5 .9 .25"/>
+
+        <light directional="true" ambient=".2 .2 .2"  dir="-0.5 0 -1" diffuse=".2 .2 .2" specular=".2 .2 .2" />
+        <light directional="true" ambient=".2 .2 .2" dir="0 -0.5 -1" diffuse=".2 .2 .2" specular=".2 .2 .2" />
+        <light directional="true" ambient=".2 .2 .2" dir="0 0.5 -1" diffuse=".2 .2 .2" specular=".2 .2 .2" />
+        <light directional="true" ambient=".2 .2 .2"  dir="0.5 0 -1" diffuse=".2 .2 .2" specular=".2 .2 .2" />
+        <geom type="plane" size="0 0 0.01" material="grid"/>
+    </worldbody>
+</mujoco>

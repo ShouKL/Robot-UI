@@ -1,0 +1,364 @@
+<mujoco model="underwater_robot">
+  <compiler meshdir="assets" autolimits="true" angle="radian" />
+  <compiler meshdir="assets" autolimits="true" angle="radian" discardvisual="false"/>
+  <!-- integrator="RK4" -->
+  <!-- 总density 20 实际为20 -->
+  <option timestep="0.002" />
+  <asset> 
+    <material name="metal" reflectance="0.5" rgba=".5 .5 .5 1" specular="0.7" shininess="0.3" metallic="1.0"/>
+    <material name="buoyancy_yellow" reflectance=".7" rgba=".65 .65 .2 1" />
+    <material name="whiteboard" reflectance=".5" rgba=".60 .60 .60 1" />
+    <material name="glass" reflectance=".2" rgba=".7 .7 .7 .45" />
+    <material name="print" reflectance=".2" rgba=".12 .24 .17 1" />
+    <material name="motor" reflectance=".2" rgba=".1 .1 .1 1"/>
+
+    <!-- 舱体 -->
+    <mesh name="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_1_1" file="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_1_1.stl"/>
+    <mesh name="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_2_1" file="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_2_1.stl"/>
+    <mesh name="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_3_1" file="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_3_1.stl"/>
+    <mesh name="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_4_1" file="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_4_1.stl"/>
+    <mesh name="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_5_1" file="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_5_1.stl"/>
+    <mesh name="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_6_1" file="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_6_1.stl"/>
+    <mesh name="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_7_1" file="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_7_1.stl"/>
+    <mesh name="robot____cang_ti__1__tian_liao_han_xiao__1__tian_liao_han_xiao_ling_jian_1_1" file="robot____cang_ti__1__tian_liao_han_xiao__1__tian_liao_han_xiao_ling_jian_1_1.stl"/>
+    <mesh name="robot____cang_ti__1__tian_liao_han_xiao__1__tian_liao_han_xiao_ling_jian_2_1" file="robot____cang_ti__1__tian_liao_han_xiao__1__tian_liao_han_xiao_ling_jian_2_1.stl"/>
+    <mesh name="robot____cang_ti__1__tian_liao_han_xiao__1__tian_liao_han_xiao_ling_jian_3_1" file="robot____cang_ti__1__tian_liao_han_xiao__1__tian_liao_han_xiao_ling_jian_3_1.stl"/>
+    <mesh name="robot____cang_ti__1__tian_liao_han_xiao__1__tian_liao_han_xiao_ling_jian_4_1" file="robot____cang_ti__1__tian_liao_han_xiao__1__tian_liao_han_xiao_ling_jian_4_1.stl"/>
+    <mesh name="robot____cang_ti__1__cang_qian_gai__1" file="robot____cang_ti__1__cang_qian_gai__1.stl"/>
+    <mesh name="robot____cang_ti__1__cang_hou_gai__2" file="robot____cang_ti__1__cang_hou_gai__2.stl"/>
+    <mesh name="robot____cang_ti__1__cang_ke__1" file="robot____cang_ti__1__cang_ke__1.stl"/>
+
+    <!-- 浮力材 -->
+    <mesh name="robot____fu_li_cai_qian__1" file="robot____fu_li_cai_qian__1.stl"/>
+    <mesh name="robot____fu_li_cai_qian__2" file="robot____fu_li_cai_qian__2.stl"/>
+    <mesh name="robot____fu_li_cai_hou__1" file="robot____fu_li_cai_hou__1.stl"/>
+    <mesh name="robot____fu_li_cai_hou__2" file="robot____fu_li_cai_hou__2.stl"/>
+    <mesh name="robot____fu_li_cai_ke_e_1" file="robot____fu_li_cai_ke_e_1.stl"/>
+    <mesh name="robot____fu_li_cai_ke_heu_1" file="robot____fu_li_cai_ke_heu_1.stl"/>
+    <mesh name="robot____fu_li_cai_ke_rov_1" file="robot____fu_li_cai_ke_rov_1.stl"/>
+    <mesh name="robot____fu_li_cai_ke_v_1" file="robot____fu_li_cai_ke_v_1.stl"/>
+
+    <!-- 框架 -->
+    <mesh name="robot____dang_ban_shang_mian__1" file="robot____dang_ban_shang_mian__1.stl"/>
+    <mesh name="robot____dang_ban_shang_mian__2" file="robot____dang_ban_shang_mian__2.stl"/>
+    <mesh name="robot____dang_ban_xia_mian__1" file="robot____dang_ban_xia_mian__1.stl"/>
+    <mesh name="robot____dang_ban_zhong_jian__1" file="robot____dang_ban_zhong_jian__1.stl"/>
+    <mesh name="robot____dang_ban_zhong_jian__2" file="robot____dang_ban_zhong_jian__2.stl"/>
+    <mesh name="robot____dang_ban_qian_hou__1" file="robot____dang_ban_qian_hou__1.stl"/>
+    <mesh name="robot____dang_ban_qian_hou__2" file="robot____dang_ban_qian_hou__2.stl"/>
+    <mesh name="robot____dang_ban_zuo_you__1" file="robot____dang_ban_zuo_you__1.stl"/>
+    <mesh name="robot____dang_ban_zuo_you__2" file="robot____dang_ban_zuo_you__2.stl"/>
+    <mesh name="robot____zhua_zi__1__zhua_zi_ban_ji__1" file="robot____zhua_zi__1__zhua_zi_ban_ji__1.stl"/>
+    <mesh name="robot____zhua_zi__1__zhua_zi_lian_jie_ban__1" file="robot____zhua_zi__1__zhua_zi_lian_jie_ban__1.stl"/>
+    <mesh name="robot____zhao_suo__1" file="robot____zhao_suo__1.stl"/>
+    <mesh name="robot____dian_ji_zhi_jia_ce_tui__1" file="robot____dian_ji_zhi_jia_ce_tui__1.stl"/>
+    <mesh name="robot____dian_ji_zhi_jia_ce_tui__2" file="robot____dian_ji_zhi_jia_ce_tui__2.stl"/>
+    <mesh name="robot____dian_ji_zhi_jia_ce_tui__3" file="robot____dian_ji_zhi_jia_ce_tui__3.stl"/>
+    <mesh name="robot____dian_ji_zhi_jia_ce_tui__4" file="robot____dian_ji_zhi_jia_ce_tui__4.stl"/>
+    <mesh name="robot____dian_ji_zhi_jia_chui_tui__1" file="robot____dian_ji_zhi_jia_chui_tui__1.stl"/>
+    <mesh name="robot____dian_ji_zhi_jia_chui_tui__2" file="robot____dian_ji_zhi_jia_chui_tui__2.stl"/>
+
+    <!-- 电机 -->
+    <mesh name="robot____dian_ji__1" file="robot____dian_ji__1.stl"/>
+    <mesh name="robot____dian_ji__2" file="robot____dian_ji__2.stl"/>
+    <mesh name="robot____dian_ji__3" file="robot____dian_ji__3.stl"/>
+    <mesh name="robot____dian_ji__4" file="robot____dian_ji__4.stl"/>
+    <mesh name="robot____dian_ji__5" file="robot____dian_ji__5.stl"/>
+    <mesh name="robot____dian_ji__6" file="robot____dian_ji__6.stl"/>
+
+    <!-- 配重 -->
+    <mesh name="robot____pei_zhong__1" file="robot____pei_zhong__1.stl"/>
+
+    <!-- 爪子左 -->
+    <mesh name="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_jia_ban_zuo__1" file="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_jia_ban_zuo__1.stl"/>
+    <mesh name="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_dang_ban__1" file="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_dang_ban__1.stl"/>
+    <mesh name="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_zhi_jia_zuo__1" file="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_zhi_jia_zuo__1.stl"/>
+    <mesh name="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_ling_jian_1_1" file="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_ling_jian_1_1.stl"/>
+    <mesh name="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_ling_jian_1_2" file="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_ling_jian_1_2.stl"/>
+    <mesh name="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_ling_jian_1_3" file="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_ling_jian_1_3.stl"/>
+    <mesh name="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_ling_jian_2_1" file="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_ling_jian_2_1.stl"/>
+    <mesh name="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_ling_jian_3_1" file="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_ling_jian_3_1.stl"/>
+    <mesh name="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_ling_jian_4_1" file="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_ling_jian_4_1.stl"/>
+    
+    <!-- 爪子右 -->
+    <mesh name="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_jia_ban_you__1" file="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_jia_ban_you__1.stl"/>
+    <mesh name="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_dang_ban__1" file="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_dang_ban__1.stl"/>
+    <mesh name="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_zhi_jia_you__1" file="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_zhi_jia_you__1.stl"/>
+    <mesh name="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_ling_jian_1_1" file="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_ling_jian_1_1.stl"/>
+    <mesh name="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_ling_jian_1_2" file="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_ling_jian_1_2.stl"/>
+    <mesh name="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_ling_jian_1_3" file="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_ling_jian_1_3.stl"/>
+    <mesh name="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_ling_jian_2_1" file="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_ling_jian_2_1.stl"/>
+    <mesh name="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_ling_jian_3_1" file="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_ling_jian_3_1.stl"/>
+    <mesh name="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_ling_jian_4_1" file="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_ling_jian_4_1.stl"/>
+
+    <!-- 桨叶 -->
+    <mesh name="robot____jiang_ye_ce_you_shang_fan__2" file="robot____jiang_ye_ce_you_shang_fan__2.stl"/>
+    <mesh name="robot____jiang_ye_ce_you_xia_zheng__1" file="robot____jiang_ye_ce_you_xia_zheng__1.stl"/>
+    <mesh name="robot____jiang_ye_ce_zuo_shang_zheng__1" file="robot____jiang_ye_ce_zuo_shang_zheng__1.stl"/>
+    <mesh name="robot____jiang_ye_ce_zuo_xia_fan__1" file="robot____jiang_ye_ce_zuo_xia_fan__1.stl"/>
+    <mesh name="robot____jiang_ye_chui_you_fan__1" file="robot____jiang_ye_chui_you_fan__1.stl"/>
+    <mesh name="robot____jiang_ye_chui_zuo_zheng__1" file="robot____jiang_ye_chui_zuo_zheng__1.stl"/>
+  </asset>
+
+  <default>
+    <default class="visual">
+      <!-- <geom contype="0" conaffinity="0" group="2" /> -->
+      <geom />
+    </default>
+    <default class="collision">
+      <!-- <geom group="1" /> -->
+      <geom />
+    </default>
+  </default>
+
+  <worldbody>
+    <body name="robot" pos="0 0 0">
+      <freejoint/>
+      
+      <body name="kuangjia" pos="0 0 0.135">
+        <geom type="mesh" mesh="robot____dang_ban_shang_mian__1" material="whiteboard" density="1200" 
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        <geom type="mesh" mesh="robot____dang_ban_shang_mian__2" material="whiteboard" density="1200" 
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        <geom type="mesh" mesh="robot____dang_ban_xia_mian__1" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        <geom type="mesh" mesh="robot____dang_ban_zhong_jian__1" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        <geom type="mesh" mesh="robot____dang_ban_zhong_jian__2" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        <geom type="mesh" mesh="robot____dang_ban_qian_hou__1" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        <geom type="mesh" mesh="robot____dang_ban_qian_hou__2" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        <geom type="mesh" mesh="robot____dang_ban_zuo_you__1" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="1000.5 100.25 1.5 1.0 1.0"/>
+        <geom type="mesh" mesh="robot____dang_ban_zuo_you__2" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        <geom type="mesh" mesh="robot____zhua_zi__1__zhua_zi_ban_ji__1" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        <geom type="mesh" mesh="robot____zhua_zi__1__zhua_zi_lian_jie_ban__1" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        <geom type="mesh" mesh="robot____zhao_suo__1" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        <geom type="mesh" mesh="robot____dian_ji_zhi_jia_ce_tui__1" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        <geom type="mesh" mesh="robot____dian_ji_zhi_jia_ce_tui__2" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        <geom type="mesh" mesh="robot____dian_ji_zhi_jia_ce_tui__3" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        <geom type="mesh" mesh="robot____dian_ji_zhi_jia_ce_tui__4" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        <geom type="mesh" mesh="robot____dian_ji_zhi_jia_chui_tui__1" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        <geom type="mesh" mesh="robot____dian_ji_zhi_jia_chui_tui__2" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+
+        <!--舱体-->
+        <body name="cang_ti" pos="0 0 0">
+          <site name="imu" pos="0 0 0" size="0.01" rgba="0 0 1 1" />
+          <geom type="mesh" mesh="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_1_1" material="metal" density="5000"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_2_1" material="metal" density="5000"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_3_1" material="metal" density="5000"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_4_1" material="metal" density="5000"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_5_1" material="metal" density="5000"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_6_1" material="metal" density="5000"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_7_1" material="metal" density="5000"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____cang_ti__1__tian_liao_han_xiao__1__tian_liao_han_xiao_ling_jian_1_1" material="metal" density="5000"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____cang_ti__1__tian_liao_han_xiao__1__tian_liao_han_xiao_ling_jian_2_1" material="metal" density="5000"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____cang_ti__1__tian_liao_han_xiao__1__tian_liao_han_xiao_ling_jian_3_1" material="metal" density="5000"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____cang_ti__1__tian_liao_han_xiao__1__tian_liao_han_xiao_ling_jian_4_1" material="metal" density="5000"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____cang_ti__1__cang_qian_gai__1" material="glass" density="100"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____cang_ti__1__cang_hou_gai__2" material="metal" density="3000"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____cang_ti__1__cang_ke__1" material="glass" density="100"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        </body>
+        
+        <!--浮力材-->
+        <body name="fulicai" pos="0 0 0">
+          <geom type="mesh" mesh="robot____fu_li_cai_qian__1" material="buoyancy_yellow" density="500"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____fu_li_cai_qian__2" material="buoyancy_yellow" density="500"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____fu_li_cai_hou__1" material="buoyancy_yellow" density="500"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____fu_li_cai_hou__2" material="buoyancy_yellow" density="500"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____fu_li_cai_ke_e_1" material="print" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____fu_li_cai_ke_heu_1" material="print" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____fu_li_cai_ke_rov_1" material="print" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____fu_li_cai_ke_v_1" material="print" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        </body>
+
+        <!--电机-->
+        <body name="motor" pos="0 0 0">
+          <geom type="mesh" mesh="robot____dian_ji__1"  material="motor" density="3000"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____dian_ji__2" material="motor" density="3000"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____dian_ji__3" material="motor" density="3000"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____dian_ji__4" material="motor" density="3000"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____dian_ji__5" material="motor" density="3000"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____dian_ji__6" material="motor" density="3000"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        </body>
+
+        <body name="peizhong" pos="0 0 0">
+          <geom type="mesh" mesh="robot____pei_zhong__1" material="metal" density="11340"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        </body>
+
+        <body name="zhuaziyou" pos="0.02557 0.28742 -0.07211">
+          <joint name="zhuaziyou_joint" type="hinge" axis="0 0 1" damping="0.02"  armature="0.01"
+          stiffness="0"  range="-0.78 0.78"/>
+          <geom type="mesh" mesh="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_jia_ban_you__1"  material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_dang_ban__1" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_zhi_jia_you__1" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_ling_jian_1_1" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_ling_jian_1_2" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_ling_jian_1_3" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_ling_jian_2_1" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_ling_jian_3_1" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____zhua_zi__1__zhua_zi_you__1__zhua_zi_ling_jian_4_1" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        </body>
+
+        <body name="zhuazizuo" pos="-0.02693 0.28742 -0.07211">
+          <joint name="zhuazizuo_joint" type="hinge" axis="0 0 1" damping="0.02"  armature="0.01"
+          stiffness="0"/>
+          <geom type="mesh" mesh="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_jia_ban_zuo__1"  material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_dang_ban__1" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_zhi_jia_zuo__1" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_ling_jian_1_1" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_ling_jian_1_2" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_ling_jian_1_3" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_ling_jian_2_1" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_ling_jian_3_1" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+          <geom type="mesh" mesh="robot____zhua_zi__1__zhua_zi_zuo__1__zhua_zi_ling_jian_4_1" material="whiteboard" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        </body>
+
+        <body name="cetuiyoushang" pos="0.09998 0.19485 -0.02714" euler="1.570796327 -2.530727415 0">
+          <joint name="cetuiyoushang_joint" type="hinge" axis="0 0 1" damping="0.000001"  armature="0.001"
+          stiffness="0"/>
+          <geom type="mesh" mesh="robot____jiang_ye_ce_you_shang_fan__2"  material="print" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        </body>
+
+        <body name="cetuiyouxia" pos="0.09998 -0.20038 -0.02714" euler="1.570796327 -0.610865238 0">
+          <joint name="cetuiyouxia_joint" type="hinge" axis="0 0 1" damping="0.000001"  armature="0.001"
+          stiffness="0" />
+          <geom type="mesh" mesh="robot____jiang_ye_ce_you_xia_zheng__1" material="print" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        </body>
+
+        <body name="cetuizuoshang" pos="-0.10215 0.19485 -0.02714" euler="1.570796327 2.530727415 0">
+          <joint name="cetuizuoshang_joint" type="hinge" axis="0 0 1" damping="0.000001"  armature="0.001"
+          stiffness="0" />
+          <geom type="mesh" mesh="robot____jiang_ye_ce_zuo_shang_zheng__1" material="print" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        </body>
+
+        <body name="cetuizuoxia" pos="-0.10215 -0.20038 -0.02714" euler="1.570796327 0.610865238 0">
+          <joint name="cetuizuoxia_joint" type="hinge" axis="0 0 1" damping="0.000001"  armature="0.001"
+          stiffness="0" />
+          <geom type="mesh" mesh="robot____jiang_ye_ce_zuo_xia_fan__1" material="print" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        </body>
+
+        <body name="chuituiyou" pos="0.11092 -0.00277 0.05819">
+          <joint name="chuituiyou_joint" type="hinge" axis="0 0 1" damping="0.000001"  armature="0.001"
+          stiffness="0" />
+          <geom type="mesh" mesh="robot____jiang_ye_chui_you_fan__1" material="print" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        </body>
+
+        <body name="chuituizuo" pos="-0.11308 -0.00277 0.05819">
+          <joint name="chuituizuo_joint" axis="0 0 1" damping="0.000001"  armature="0.001"
+          stiffness="0" />
+          <geom type="mesh" mesh="robot____jiang_ye_chui_zuo_zheng__1" material="print" density="1200"
+              fluidshape="ellipsoid" fluidcoef="0.4 7.79 2.81 3.84 0.27"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <equality>
+    <joint joint1="zhuaziyou_joint" joint2="zhuazizuo_joint" polycoef="0 -1 0 0 0"/>
+  </equality>
+
+  <actuator>
+      <position joint="zhuaziyou_joint" name="zhuaziyou_motor"
+                forcerange="-4.5 4.5" ctrlrange="-0.78 0.85" kp="40" kv="2"/>
+      <general  joint="cetuiyoushang_joint" name="cetuiyoushang_motor" gear="0 0 50000 0 0 500" forcerange="-50000 50000"/>
+      <general  joint="cetuiyouxia_joint" name="cetuiyouxia_motor" gear="0 0 50000 0 0 500" forcerange="-50000 50000"/>
+      <general  joint="cetuizuoshang_joint" name="cetuizuoshang_motor" gear="0 0 50000 0 0 500" forcerange="-50000 50000"/>
+      <general  joint="cetuizuoxia_joint" name="cetuizuoxia_motor" gear="0 0 50000 0 0 500" forcerange="-50000 50000"/>
+      <general  joint="chuituiyou_joint" name="chuituiyou_motor" gear="0 0 50000 0 0 500" forcerange="-50000 50000"/>
+      <general  joint="chuituizuo_joint" name="chuituizuo_motor" gear="0 0 50000 0 0 500" forcerange="-50000 50000"/>
+
+  </actuator>
+  
+<!-- 
+  <sensor>
+    <jointpos name='left_hip_joint_p'    joint='left_hip_joint'       />
+    <jointpos name='left_thigh_joint_p'  joint='left_thigh_joint'     />
+    <jointpos name='left_calf_joint_p'   joint='left_calf_joint'      />
+    <jointpos name='left_wheel_joint_p'  joint='left_wheel_joint'     />
+    <jointpos name='right_hip_joint_p'   joint='right_hip_joint'      />
+    <jointpos name='right_thigh_joint_p' joint='right_thigh_joint'    />
+    <jointpos name='right_calf_joint_p'  joint='right_calf_joint'     />
+    <jointpos name='right_wheel_joint_p' joint='right_wheel_joint'    />
+
+    <jointvel name='left_hip_joint_v'    joint='left_hip_joint'       />
+    <jointvel name='left_thigh_joint_v'  joint='left_thigh_joint'     />
+    <jointvel name='left_calf_joint_v'   joint='left_calf_joint'      />
+    <jointvel name='left_wheel_joint_v'  joint='left_wheel_joint'     />
+    <jointvel name='right_hip_joint_v'   joint='right_hip_joint'      />
+    <jointvel name='right_thigh_joint_v' joint='right_thigh_joint'    />
+    <jointvel name='right_calf_joint_v'  joint='right_calf_joint'     />
+    <jointvel name='right_wheel_joint_v' joint='right_wheel_joint'    />
+
+    <framequat name='base_orientation' objtype='site' objname='imu' />
+    <gyro name='base_angular_velocity' site='imu' />
+    <accelerometer name="base_linear_acceleration" site="imu" />
+
+    <subtreelinvel name="base_linear_velocity" body="nz" />
+    <framepos name='base_position' objtype='body' objname='nz' />
+  </sensor> -->
+</mujoco>

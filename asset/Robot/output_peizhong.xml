@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mujoco>
+<compiler meshdir="assets"/>
+  <asset>
+    <mesh file="robot____pei_zhong__1.stl"/>
+  </asset>
+
+  <default>
+  <default class="peizhong_default">
+  <geom contype="0" conaffinity="0"/>
+  </default>
+  </default>
+
+  <worldbody>
+  <body name="peizhong_body" pos="0 0 0">
+    <geom type="mesh" mesh="robot____pei_zhong__1" mass="0.0001" class="peizhong_default"/>
+  </body>
+  </worldbody>
+</mujoco>

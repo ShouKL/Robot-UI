@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mujoco>
+<compiler meshdir="assets"/>
+  <asset>
+    <mesh file="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_1_1.stl"/>
+    <mesh file="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_2_1.stl"/>
+    <mesh file="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_3_1.stl"/>
+    <mesh file="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_4_1.stl"/>
+    <mesh file="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_5_1.stl"/>
+    <mesh file="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_6_1.stl"/>
+    <mesh file="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_7_1.stl"/>
+    <mesh file="robot____cang_ti__1__tian_liao_han_xiao__1__tian_liao_han_xiao_ling_jian_1_1.stl"/>
+    <mesh file="robot____cang_ti__1__tian_liao_han_xiao__1__tian_liao_han_xiao_ling_jian_2_1.stl"/>
+    <mesh file="robot____cang_ti__1__tian_liao_han_xiao__1__tian_liao_han_xiao_ling_jian_3_1.stl"/>
+    <mesh file="robot____cang_ti__1__tian_liao_han_xiao__1__tian_liao_han_xiao_ling_jian_4_1.stl"/>
+    <mesh file="robot____cang_ti__1__cang_qian_gai__1.stl"/>
+    <mesh file="robot____cang_ti__1__cang_hou_gai__2.stl"/>
+    <mesh file="robot____cang_ti__1__cang_ke__1.stl"/>
+  </asset>
+
+  <default>
+  <default class="cangti_default">
+  <geom contype="0" conaffinity="0"/>
+  </default>
+  </default>
+
+  <worldbody>
+  <body name="cangti_body" pos="0 0 0">
+    <geom type="mesh" mesh="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_1_1" mass="0.0001" class="cangti_default"/>
+    <geom type="mesh" mesh="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_2_1" mass="0.0001" class="cangti_default"/>
+    <geom type="mesh" mesh="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_3_1" mass="0.0001" class="cangti_default"/>
+    <geom type="mesh" mesh="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_4_1" mass="0.0001" class="cangti_default"/>
+    <geom type="mesh" mesh="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_5_1" mass="0.0001" class="cangti_default"/>
+    <geom type="mesh" mesh="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_6_1" mass="0.0001" class="cangti_default"/>
+    <geom type="mesh" mesh="robot____cang_ti__1__tian_liao_han_da__1__tian_liao_han_da_ling_jian_7_1" mass="0.0001" class="cangti_default"/>
+    <geom type="mesh" mesh="robot____cang_ti__1__tian_liao_han_xiao__1__tian_liao_han_xiao_ling_jian_1_1" mass="0.0001" class="cangti_default"/>
+    <geom type="mesh" mesh="robot____cang_ti__1__tian_liao_han_xiao__1__tian_liao_han_xiao_ling_jian_2_1" mass="0.0001" class="cangti_default"/>
+    <geom type="mesh" mesh="robot____cang_ti__1__tian_liao_han_xiao__1__tian_liao_han_xiao_ling_jian_3_1" mass="0.0001" class="cangti_default"/>
+    <geom type="mesh" mesh="robot____cang_ti__1__tian_liao_han_xiao__1__tian_liao_han_xiao_ling_jian_4_1" mass="0.0001" class="cangti_default"/>
+    <geom type="mesh" mesh="robot____cang_ti__1__cang_qian_gai__1" mass="0.0001" class="cangti_default"/>
+    <geom type="mesh" mesh="robot____cang_ti__1__cang_hou_gai__2" mass="0.0001" class="cangti_default"/>
+    <geom type="mesh" mesh="robot____cang_ti__1__cang_ke__1" mass="0.0001" class="cangti_default"/>
+  </body>
+  </worldbody>
+</mujoco>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mujoco>
+<compiler meshdir="assets"/>
+  <asset>
+    <mesh file="robot____fu_li_cai_qian__1.stl"/>
+    <mesh file="robot____fu_li_cai_qian__2.stl"/>
+    <mesh file="robot____fu_li_cai_hou__1.stl"/>
+    <mesh file="robot____fu_li_cai_hou__2.stl"/>
+    <mesh file="robot____fu_li_cai_ke_e_1.stl"/>
+    <mesh file="robot____fu_li_cai_ke_heu_1.stl"/>
+    <mesh file="robot____fu_li_cai_ke_rov_1.stl"/>
+    <mesh file="robot____fu_li_cai_ke_v_1.stl"/>
+  </asset>
+
+  <default>
+  <default class="fulicai_default">
+  <geom contype="0" conaffinity="0"/>
+  </default>
+  </default>
+
+  <worldbody>
+  <body name="fulicai_body" pos="0 0 0">
+    <geom type="mesh" mesh="robot____fu_li_cai_qian__1" mass="0.0001" class="fulicai_default"/>
+    <geom type="mesh" mesh="robot____fu_li_cai_qian__2" mass="0.0001" class="fulicai_default"/>
+    <geom type="mesh" mesh="robot____fu_li_cai_hou__1" mass="0.0001" class="fulicai_default"/>
+    <geom type="mesh" mesh="robot____fu_li_cai_hou__2" mass="0.0001" class="fulicai_default"/>
+    <geom type="mesh" mesh="robot____fu_li_cai_ke_e_1" mass="0.0001" class="fulicai_default"/>
+    <geom type="mesh" mesh="robot____fu_li_cai_ke_heu_1" mass="0.0001" class="fulicai_default"/>
+    <geom type="mesh" mesh="robot____fu_li_cai_ke_rov_1" mass="0.0001" class="fulicai_default"/>
+    <geom type="mesh" mesh="robot____fu_li_cai_ke_v_1" mass="0.0001" class="fulicai_default"/>
+  </body>
+  </worldbody>
+</mujoco>

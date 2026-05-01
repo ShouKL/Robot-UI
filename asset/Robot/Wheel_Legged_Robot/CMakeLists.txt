@@ -1,0 +1,19 @@
+cmake_minimum_required(VERSION 3.20)
+project(MUJOCO_T)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/simulate)
+
+
+#编译安装，从cmake安装位置opt使用
+set(MUJOCO_FOLDER /opt/mujoco/lib/cmake)
+find_package(mujoco REQUIRED PATHS ${MUJOCO_FOLDER} NO_DEFAULT_PATH)
+if (mujoco_FOUND)
+    message(STATUS "Find mujoco:  ${mujoco_INCLUDE_DIRS}, ${mujoco_LIBRARIES}")
+endif()
+
+find_package(OpenCV REQUIRED)
+
+set(mujoco_thread_path ${CMAKE_CURRENT_SOURCE_DIR}/utils/mujoco_thread)
+include_directories(${mujoco_thread_path})
+
+add_executable(Wheel_Legged_Robot Wheel_Legged_Robot.cpp ${mujoco_thread_path}/mujoco_thread.cpp)
+target_link_libraries(Wheel_Legged_Robot mujoco::mujoco glut GL GLU glfw ${OpenCV_LIBS})

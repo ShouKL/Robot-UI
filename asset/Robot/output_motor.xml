@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mujoco>
+<compiler meshdir="assets"/>
+  <asset>
+    <mesh file="robot____dian_ji__1.stl"/>
+    <mesh file="robot____dian_ji__2.stl"/>
+    <mesh file="robot____dian_ji__3.stl"/>
+    <mesh file="robot____dian_ji__4.stl"/>
+    <mesh file="robot____dian_ji__5.stl"/>
+    <mesh file="robot____dian_ji__6.stl"/>
+  </asset>
+
+  <default>
+  <default class="motor_default">
+  <geom contype="0" conaffinity="0"/>
+  </default>
+  </default>
+
+  <worldbody>
+  <body name="motor_body" pos="0 0 0">
+    <geom type="mesh" mesh="robot____dian_ji__1" mass="0.0001" class="motor_default"/>
+    <geom type="mesh" mesh="robot____dian_ji__2" mass="0.0001" class="motor_default"/>
+    <geom type="mesh" mesh="robot____dian_ji__3" mass="0.0001" class="motor_default"/>
+    <geom type="mesh" mesh="robot____dian_ji__4" mass="0.0001" class="motor_default"/>
+    <geom type="mesh" mesh="robot____dian_ji__5" mass="0.0001" class="motor_default"/>
+    <geom type="mesh" mesh="robot____dian_ji__6" mass="0.0001" class="motor_default"/>
+  </body>
+  </worldbody>
+</mujoco>

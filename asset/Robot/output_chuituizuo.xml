@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mujoco>
+<compiler meshdir="assets"/>
+  <asset>
+    <mesh file="robot____jiang_ye_chui_zuo_zheng__1.stl"/>
+  </asset>
+
+  <default>
+  <default class="chuituizuo_default">
+  <geom contype="0" conaffinity="0"/>
+  </default>
+  </default>
+
+  <worldbody>
+  <body name="chuituizuo_body" pos="0 0 0">
+    <geom type="mesh" mesh="robot____jiang_ye_chui_zuo_zheng__1" mass="0.0001" class="chuituizuo_default"/>
+  </body>
+  </worldbody>
+</mujoco>
