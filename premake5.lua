@@ -4,7 +4,11 @@ workspace "Robot-UI"
    configurations { "Debug", "Release", "Dist" }
    startproject "Robot-UI"
 
-outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
-include "vendor/Walnut/Build-Walnut-External.lua"
+   -- Workspace-wide build options for MSVC
+   filter "system:windows"
+      buildoptions { "/EHsc", "/Zc:preprocessor", "/Zc:__cplusplus" }
 
-include "Robot-UI"
+outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
+include "Walnut/Build-Walnut-External.lua"
+
+include "Robot-UI/Build-Robot-UI.lua"
