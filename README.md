@@ -1,6 +1,19 @@
-# Walnut App Template
+# Robot-UI App Template
 
-This is a simple app template for [Walnut](https://github.com/TheCherno/Walnut) - unlike the example within the Walnut repository, this keeps Walnut as an external submodule and is much more sensible for actually building applications. See the [Walnut](https://github.com/TheCherno/Walnut) repository for more details.
+This is a Robot-UI app template for [Walnut](https://github.com/TheCherno/Walnut). See the Walnut repository for more details.
 
 ## Getting Started
-Once you've cloned, you can customize the `premake5.lua` and `WalnutApp/premake5.lua` files to your liking (eg. change the name from "WalnutApp" to something else).  Once you're happy, run `scripts/Setup.bat` to generate Visual Studio 2022 solution/project files. Your app is located in the `WalnutApp/` directory, which some basic example code to get you going in `WalnutApp/src/WalnutApp.cpp`. I recommend modifying that WalnutApp project to create your own application, as everything should be setup and ready to go.
+
+```shell
+$ git clone --recursive https://github.com/ShouKL/Robot-UI.git 
+```
+
+Once you've cloned, you need Install required dependencies. 
+| dependency  | link      | Env Variables      | Value |
+|-------------|-----------|-----------------|------------------|
+| OpenCV    | https://opencv.org/releases/ Windows| OPENCV | ...\opencv\build |
+| gstreamer | https://gstreamer.freedesktop.org/download/#windows MSVC x86_64 (VS 2022, Release CRT)| GSTREAMER | ...\gstreamer\1.0\msvc_x86_64 |
+| Vulkan | https://vulkan.lunarg.com/sdk/home vulkansdk-windows-X64-1.4.341.1.exe | VULKAN_SDK | ...\VulkanSDK\1.4.341.1 |
+| Mujoco | https://github.com/google-deepmind/mujoco/releases mujoco-3.8.0-windows-x86_64.zip | MUJOCO | ...\mujoco |
+
+Once you're happy, run `scripts/Setup.bat` to generate Visual Studio 2026 solution/project files. If you want to generate vs2022, you can replace vs2026 with vs2022 in `scripts/Setup.bat`. I recommend modifying that Robot-UI APP project to create your own application, as everything should be setup and ready to go.
