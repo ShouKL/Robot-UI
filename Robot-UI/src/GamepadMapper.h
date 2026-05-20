@@ -3,6 +3,7 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <imgui.h>
 #include <GLFW/glfw3.h>
 #include <algorithm>
@@ -10,8 +11,8 @@
 #include "Walnut/Image.h"
 
 struct KeyInfo {
-    ImVec2 pos;       // 按键坐标
-    ImVec2 textPos;   // 功能按钮显示的坐标
+    ImVec2 pos;
+    ImVec2 textPos;
     float radius;
     std::string name;
     std::string label;
@@ -28,6 +29,11 @@ struct KeyMapping {
     bool is_analog;
 };
 
+struct GamepadMode {
+    char name[64] = "Default";
+    std::vector<KeyMapping> mappings;
+};
+
 class GamepadMapper {
 public:
     GamepadMapper();
@@ -35,27 +41,49 @@ public:
 
     void DrawGamepadMapper();
     void UpdateGamepadState();
+
     float GetActionValue(const std::string& actionName);
 
-    void SetMappings(const std::vector<KeyMapping>& mappings);
-    void ApplyMappings();
-    void RevertMappings();
+    // 模式管理
+    std::vector<std::string> GetModeNames() const;
+    int  GetActiveModeIndex() const { return m_ActiveModeIndex; }
 
-    const std::vector<KeyMapping>& GetMappings() const { return m_Mappings; }
+    void SetActiveMode(const std::string& name);
+    void SetActiveModeByIndex(int index);
+    const std::string& GetActiveModeName() const { return m_Modes[m_ActiveModeIndex].name; }
+
+    void AddMode();
+    void DeleteMode(int index);
+    bool ModeExists(const std::string& name) const;
+
+    // 草稿机制
+    void BeginEdit(int modeIndex);
+    void ApplyEdit();
+    void CancelEdit();
+    bool IsEditing() const { return m_IsEditing; }
+
+    // 获取模式列表（只读）及 UI 模式选择索引
+    const std::vector<GamepadMode>& GetModes() const { return m_Modes; }
+    int& GetEditModeIndexRef() { return m_SelectedModeIndex; }   // 外部用于同步侧边栏选中
 
 private:
     std::shared_ptr<Walnut::Image> m_GamepadImage;
-    // UI 编辑用的状态
-    std::vector<KeyMapping> m_Mappings;
-    std::map<std::string, std::vector<std::string>> m_KeyBoundActions;
 
-    // 实际生效的状态
-    std::vector<KeyMapping> m_ActiveMappings;
-    std::map<std::string, std::vector<std::string>> m_ActiveKeyBoundActions;
+    std::vector<GamepadMode> m_Modes;
+    int m_ActiveModeIndex = 0;                // 控制线程使用的模式
+    int m_SelectedModeIndex = 0;              // UI 侧边栏当前选中的编辑目标模式索引
+
+    // 编辑草稿
+    GamepadMode  m_EditingMode;
+    bool         m_IsEditing = false;
+    int          m_EditingModeIndex = -1;
+
+    mutable std::mutex m_ModeMutex;
+
+    std::map<std::string, std::vector<std::string>> m_KeyBoundActions;
+    std::string m_SelectedAction;
 
     std::vector<KeyInfo> m_Keys;
-
-    std::string m_SelectedAction;
     std::map<std::string, float> m_ButtonIntensity;
 
     GLFWgamepadstate m_LastState;
@@ -63,9 +91,12 @@ private:
 
     static constexpr float k_BindThreshold = 0.5f;
     static constexpr float k_VisualDeadzone = 0.15f;
-    static constexpr float k_StickVisualRange = 30.0f;
 
     void BindAction();
     void UnbindAction(const std::string& actionName);
     float CalculateIntensity(const KeyInfo& key, const GLFWgamepadstate& state);
+    void RefreshBoundActions();
+
+    const GamepadMode& GetDisplayMode() const;
+    GamepadMode& GetDisplayMode();
 };

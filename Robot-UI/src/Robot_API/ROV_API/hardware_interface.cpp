@@ -129,7 +129,6 @@ void HardwareInterface::SendActuatorData(const ActuatorData& data) {
 #if defined(_WIN32) || defined(_WIN64)
     // 只有Socket有效且目标地址正确才发送
     if (m_Socket != INVALID_SOCKET && m_RemoteAddr.sin_family == AF_INET) {
-        // 序列化为JSON字节流
         auto bytes = SerializeActuatorData(m_CurrentActuatorData);
         // 发送UDP数据包
         sendto(m_Socket, (const char*)bytes.data(), static_cast<int>(bytes.size()), 0,
@@ -239,3 +238,4 @@ SensorData HardwareInterface::DeserializeSensorData(const std::vector<uint8_t>& 
     data.is_valid = true;
     return data;
 }
+
