@@ -2,3 +2,7 @@
 	path = Walnut
 	url = https://github.com/StudioCherno/Walnut.git
 	branch = dev
+	
+[submodule "vendor/imgui-node-editor"]
+	path = vendor/imgui-node-editor
+	url = https://github.com/thedmd/imgui-node-editor.git
