@@ -36,12 +36,8 @@ void OptionPanel::DrawOptionPanel()
                 ImGui::PopID();
             }
 
-            // 如果离开 GamepadMapper 页，需要结束编辑状态（但不提交，等待 Apply/Cancel）
             if (previous_id == 1 && selected_id != 1 && m_GamepadEditActive) {
-                // 注意：不能在这里直接 CancelEdit，因为用户可能还想 Apply。
-                // 我们选择保留草稿，在 Apply/Revert 时处理。
-                // 若要在离开时自动放弃，可调用 CancelEdit()，但当前设计希望由外部按钮控制。
-                // 因此不做任何操作。
+                // 离开 GamepadMapper 时不做操作，草稿保留到 Apply/Revert
             }
         }
         ImGui::EndChild();
@@ -88,18 +84,18 @@ void OptionPanel::DrawOptionPanel()
                     ImGui::PushID(i);
                     bool isSelected = (editIdx == i);
                     if (ImGui::Selectable(modes[i].name, isSelected, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, 30))) {
-                        // 切换到不同模式时，进入新模式的草稿编辑
-                        if (editIdx != i) {
+                        // 若已在编辑，仅切换草稿模式索引；否则先 BeginEdit 再切换
+                        if (m_GamepadEditActive)
+                            m_GamepadMapper->SwitchEditMode(i);
+                        else
                             m_GamepadMapper->BeginEdit(i);
-                            m_LastGamepadEditIndex = i;
-                            m_GamepadEditActive = true;
-                        }
+                        m_LastGamepadEditIndex = i;
+                        m_GamepadEditActive = true;
                     }
                     if (modes.size() > 1) {
                         if (ImGui::BeginPopupContextItem()) {
                             if (ImGui::MenuItem("Delete Mode")) {
                                 m_GamepadMapper->DeleteMode(i);
-                                // 删除后可能需要更新编辑状态
                                 if (m_LastGamepadEditIndex == i) {
                                     m_LastGamepadEditIndex = -1;
                                     m_GamepadEditActive = false;
@@ -112,7 +108,7 @@ void OptionPanel::DrawOptionPanel()
                 }
                 if (ImGui::BeginPopupContextWindow("GamepadModeListPopup", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
                     if (ImGui::MenuItem("Add Mode")) {
-                        m_GamepadMapper->AddMode();  // 内部会自动 BeginEdit 新添加的模式
+                        m_GamepadMapper->AddMode();
                         m_LastGamepadEditIndex = m_GamepadMapper->GetEditModeIndexRef();
                         m_GamepadEditActive = true;
                     }
@@ -139,20 +135,15 @@ void OptionPanel::DrawOptionPanel()
             }
             else if (selected_id == 1) {
                 if (m_GamepadMapper) {
-                    // 如果不在编辑状态，自动进入编辑当前选中的模式
-                    if (!m_GamepadMapper->IsEditing()) {
-                        int editIdx = m_GamepadMapper->GetEditModeIndexRef();
-                        m_GamepadMapper->BeginEdit(editIdx);
+                    // 首次进入此页签：默认打开第一个模式
+                    if (!m_GamepadMapper->IsEditing() || m_LastGamepadEditIndex < 0) {
+                        int editIdx = 0;
+                        if (!m_GamepadMapper->IsEditing())
+                            m_GamepadMapper->BeginEdit(editIdx);
+                        else
+                            m_GamepadMapper->SwitchEditMode(editIdx);
                         m_LastGamepadEditIndex = editIdx;
                         m_GamepadEditActive = true;
-                    }
-                    else {
-                        // 确保编辑的模式索引与子侧边栏选中的一致（可能因外部操作变化）
-                        int expectedIdx = m_GamepadMapper->GetEditModeIndexRef();
-                        if (m_LastGamepadEditIndex != expectedIdx) {
-                            m_GamepadMapper->BeginEdit(expectedIdx);
-                            m_LastGamepadEditIndex = expectedIdx;
-                        }
                     }
                     m_GamepadMapper->DrawGamepadMapper();
                 }

@@ -1,0 +1,11 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build Robot-UI",
+			"type": "shell",
+			"command": "premake5 vs2022",
+			"group": "build"
+		}
+	]
+}

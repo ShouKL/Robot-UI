@@ -21,6 +21,9 @@ public:
     void UpdateAll();
     void DrawUI(const char* windowName = "Stream Manager", bool* p_open = nullptr);
 
+    // 序列化用：获取所有设备的流配置
+    std::vector<StreamConfig> GetAllStreamConfigs() const;
+
 private:
     std::vector<DeviceNode> m_devices;
     int m_nextId = 1000;

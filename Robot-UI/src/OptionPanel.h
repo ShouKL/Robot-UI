@@ -16,6 +16,7 @@ public:
 
     std::unique_ptr<GamepadMapper>& GetGamepadMapper() { return m_GamepadMapper; }
     std::unique_ptr<Robot_Config>& GetRobotConfig() { return m_RobotConfig; }
+    std::unique_ptr<ImGuiStyleManager>& GetImGuiStyleManager() { return m_ImGuiStyleManager; }
 
 private:
     std::unique_ptr<GamepadMapper> m_GamepadMapper;

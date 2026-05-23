@@ -59,6 +59,14 @@ void StreamManager::RemoveDevice(int id) {
     }
 }
 
+std::vector<StreamConfig> StreamManager::GetAllStreamConfigs() const {
+    std::vector<StreamConfig> configs;
+    for (const auto& node : m_devices) {
+        configs.push_back(node.stream->GetStreamConfig());
+    }
+    return configs;
+}
+
 void StreamManager::UpdateAll() {
     for (auto& node : m_devices) {                    // 遍历所有设备
         if (node.isStreaming) {                       // 只有正在运行的设备才执行更新

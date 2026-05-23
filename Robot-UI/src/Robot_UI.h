@@ -13,11 +13,14 @@
 #include "OptionPanel.h"
 #include "LiveStream.h"
 #include "StreamManager.h"
+#include "ConfigSerializer.h"
+#include "NodeEditor.h"
 #include "Robot_API/robot_api.h"
 #include "imgui.h"
 #include <memory>
 #include <thread>
 #include <atomic>
+#include <string>
 
 class Robot_UI_Layer : public Walnut::Layer
 {
@@ -27,25 +30,35 @@ public:
 
 	virtual void OnUIRender() override;
 
-	void ShowOption() { 
-		m_OptionOpen = true; 
-		if (m_OptionPanel) m_OptionPanel->Revert();
-	}
+	void ShowOption() { m_OptionOpen = true; }
 	void ShowAbout() { m_AboutOpen = true; }
 	void ShowRobotStatus() { m_RobotStatusOpen = true; }
+	void ShowNodeEditor();
+	void SyncNodeEditorModes();
 
 	bool& GetLiveStreamerOpen() { return m_LiveStreamerOpen; }
 	bool& GetShowRobotStatus() { return m_RobotStatusOpen; }
 
+	// File 菜单操作
+	void FileOpen();
+	void FileSave();
+	void FileSaveAs();
+	void AutoSaveOnExit();  // 退出时自动保存到默认路径
+
 private:
+	void LoadConfigFile(const std::string& path);  // 静默加载（不弹框）
+	std::string GetDefaultConfigPath() const;       // exe 同目录下的 default_config.rbt
+
 	bool m_AboutOpen;
 	bool m_OptionOpen;
 	bool m_SimulationOpen;
 	bool m_LiveStreamerOpen;
 	bool m_RobotStatusOpen;
+	bool m_NodeEditorOpen;
 
 	std::unique_ptr<OptionPanel> m_OptionPanel;
 	std::unique_ptr<StreamManager> m_StreamManager;
+	std::unique_ptr<NodeEditor> m_NodeEditor;
 
 	ActuatorData m_CurrentCommand;
 	std::mutex m_CommandMutex;
@@ -55,5 +68,6 @@ private:
 	std::thread m_GamepadThread;
 	std::atomic<bool> m_Running;
 	std::atomic<bool> m_IsConnected{false};
+	std::string m_CurrentSavePath;  // 当前 .rbt 保存路径（空=未保存过）
 	void GamepadRoutine();
 };

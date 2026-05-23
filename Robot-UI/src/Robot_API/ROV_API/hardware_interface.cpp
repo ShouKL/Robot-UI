@@ -198,7 +198,7 @@ std::vector<uint8_t> HardwareInterface::SerializeActuatorData(const ActuatorData
     frame.push_back(static_cast<uint8_t>((len >> 8) & 0xFF));
     frame.insert(frame.end(), payload.begin(), payload.end());
     uint8_t checksum = 0;
-    for (auto b : payload) checksum = static_cast<uint8_t>(checksum + b);
+    for (uint8_t b : payload) checksum = static_cast<uint8_t>((static_cast<unsigned>(checksum) + static_cast<unsigned>(b)) & 0xFF);
     frame.push_back(checksum);
 
     return frame;
@@ -214,13 +214,14 @@ SensorData HardwareInterface::DeserializeSensorData(const std::vector<uint8_t>& 
     // basic frame checks
     if (raw_data[0] != 0xAA) return data;
     uint8_t msg_type = raw_data[1];
-    uint16_t len = static_cast<uint16_t>(raw_data[2]) | (static_cast<uint16_t>(raw_data[3]) << 8);
-    if (raw_data.size() != static_cast<size_t>(4 + len + 1)) return data; // header + payload + checksum
+    uint16_t len = static_cast<uint16_t>(raw_data[2]) | static_cast<uint16_t>(static_cast<unsigned>(raw_data[3]) << 8);
+    if (raw_data.size() != static_cast<size_t>(4u + len + 1u)) return data; // header + payload + checksum
 
     const uint8_t* payload = raw_data.data() + 4;
     uint8_t checksum = raw_data[4 + len];
     uint8_t calc = 0;
-    for (size_t i = 0; i < len; ++i) calc = static_cast<uint8_t>(calc + payload[i]);
+    for (size_t i = 0; i < len; ++i)
+        calc = static_cast<uint8_t>((static_cast<unsigned>(calc) + static_cast<unsigned>(payload[i])) & 0xFF);
     if (calc != checksum) return data;
 
     if (msg_type != 0x02) return data; // not sensor frame

@@ -1,19 +1,28 @@
 #include "Robot_UI.h"
 #include "Robot_API/ROV_API/hardware_interface.h"
 #include "Walnut/EntryPoint.h"
+#include "ConfigSerializer.h"
+#include <imgui_node_editor.h>
 #include <GLFW/glfw3.h>
 #include <chrono>
 
 Robot_UI_Layer::Robot_UI_Layer(std::shared_ptr<RobotAPI> robotAPI)
     : m_AboutOpen(false), m_OptionOpen(false),
-    m_SimulationOpen(false), m_LiveStreamerOpen(true), m_RobotStatusOpen(true),
+    m_SimulationOpen(false), m_LiveStreamerOpen(true), m_RobotStatusOpen(true), m_NodeEditorOpen(false),
     m_RobotAPI(robotAPI)
 {
     m_OptionPanel = std::make_unique<OptionPanel>();
     m_StreamManager = std::make_unique<StreamManager>();
 
+    // NodeEditor creates its own ed::EditorContext internally
+    m_NodeEditor = std::make_unique<NodeEditor>();
+
     m_Running = true;
     m_GamepadThread = std::thread(&Robot_UI_Layer::GamepadRoutine, this);
+
+    // 启动时自动加载默认配置文件
+    std::string defaultCfg = GetDefaultConfigPath();
+    LoadConfigFile(defaultCfg);
 }
 
 Robot_UI_Layer::~Robot_UI_Layer()
@@ -23,6 +32,156 @@ Robot_UI_Layer::~Robot_UI_Layer()
     {
         m_GamepadThread.join();
     }
+    // NodeEditor destructor destroys its ed::EditorContext
+}
+
+void Robot_UI_Layer::FileOpen()
+{
+    std::string path = ConfigSerializer::OpenFileDialog("Robot UI Config (*.rbt)\0*.rbt\0All Files (*.*)\0*.*\0");
+    if (path.empty()) return;
+
+    std::vector<StreamConfig> streams;
+    std::string error;
+    bool ok = ConfigSerializer::Load(
+        path,
+        *m_OptionPanel->GetRobotConfig(),
+        *m_OptionPanel->GetGamepadMapper(),
+        *m_OptionPanel->GetImGuiStyleManager(),
+        streams,
+        &error);
+
+    HWND hwnd = GetActiveWindow();
+    if (!ok)
+    {
+        MessageBoxA(hwnd, error.c_str(), "Load Failed", MB_OK | MB_ICONWARNING);
+        return;
+    }
+
+    m_CurrentSavePath = path;
+    m_IsConnected = false;
+
+    // 加载当前活跃模式的节点图
+    if (m_NodeEditor && m_OptionPanel->GetRobotConfig())
+    {
+        auto& activeModes = m_OptionPanel->GetRobotConfig()->GetActiveModes();
+        int idx = m_OptionPanel->GetRobotConfig()->GetActiveModeIndex();
+        if (idx >= 0 && idx < (int)activeModes.size())
+            m_NodeEditor->LoadGraphYaml(activeModes[idx].node_graph);
+    }
+
+    MessageBoxA(hwnd, ("Configuration loaded from:\n" + path).c_str(),
+                "Load Success", MB_OK | MB_ICONINFORMATION);
+}
+
+void Robot_UI_Layer::FileSave()
+{
+    if (m_CurrentSavePath.empty())
+        m_CurrentSavePath = GetDefaultConfigPath();
+
+    // 将当前节点图同步到 modes（ConfigSerializer::Save 读取 modes，非 active_modes）
+    if (m_NodeEditor && m_OptionPanel->GetRobotConfig())
+    {
+        std::string graphYaml = m_NodeEditor->GetGraphYaml();
+
+        auto& activeModes = m_OptionPanel->GetRobotConfig()->GetActiveModes();
+        int idx = m_OptionPanel->GetRobotConfig()->GetActiveModeIndex();
+        if (idx >= 0 && idx < (int)activeModes.size())
+            activeModes[idx].node_graph = graphYaml;
+
+        // Also sync to modes so ConfigSerializer::Save picks it up
+        auto& modes = m_OptionPanel->GetRobotConfig()->GetModes();
+        if (idx >= 0 && idx < (int)modes.size())
+            modes[idx].node_graph = graphYaml;
+    }
+
+    std::vector<StreamConfig> streams;
+    if (m_StreamManager)
+        streams = m_StreamManager->GetAllStreamConfigs();
+
+    std::string error;
+    if (!ConfigSerializer::Save(m_CurrentSavePath,
+                                *m_OptionPanel->GetRobotConfig(),
+                                *m_OptionPanel->GetGamepadMapper(),
+                                *m_OptionPanel->GetImGuiStyleManager(),
+                                streams, &error))
+    {
+        MessageBoxA(GetActiveWindow(), error.c_str(), "Save Failed", MB_OK | MB_ICONWARNING);
+    }
+}
+
+void Robot_UI_Layer::FileSaveAs()
+{
+    std::string path = ConfigSerializer::SaveFileDialog("Robot UI Config (*.rbt)\0*.rbt\0All Files (*.*)\0*.*\0", "rbt");
+    if (path.empty()) return;
+
+    m_CurrentSavePath = path;
+    FileSave();
+
+    MessageBoxA(GetActiveWindow(), ("Configuration saved to:\n" + path).c_str(),
+                "Save Success", MB_OK | MB_ICONINFORMATION);
+}
+
+void Robot_UI_Layer::LoadConfigFile(const std::string& path)
+{
+    std::vector<StreamConfig> streams;
+    std::string error;
+    bool ok = ConfigSerializer::Load(
+        path,
+        *m_OptionPanel->GetRobotConfig(),
+        *m_OptionPanel->GetGamepadMapper(),
+        *m_OptionPanel->GetImGuiStyleManager(),
+        streams,
+        &error);
+
+    if (!ok) return;  // 文件不存在或格式错误时静默跳过
+
+    m_CurrentSavePath = path;
+    m_IsConnected = false;
+
+    if (m_NodeEditor && m_OptionPanel->GetRobotConfig())
+    {
+        auto& activeModes = m_OptionPanel->GetRobotConfig()->GetActiveModes();
+        int idx = m_OptionPanel->GetRobotConfig()->GetActiveModeIndex();
+        if (idx >= 0 && idx < (int)activeModes.size())
+            m_NodeEditor->LoadGraphYaml(activeModes[idx].node_graph);
+    }
+}
+
+std::string Robot_UI_Layer::GetDefaultConfigPath() const
+{
+    char exePath[MAX_PATH];
+    GetModuleFileNameA(nullptr, exePath, sizeof(exePath));
+    std::string dir(exePath);
+    size_t lastSlash = dir.find_last_of("\\/");
+    if (lastSlash != std::string::npos)
+        dir = dir.substr(0, lastSlash + 1);
+    return dir + "RobotUI_Config.rbt";
+}
+
+void Robot_UI_Layer::ShowNodeEditor()
+{
+    m_NodeEditorOpen = true;
+    SyncNodeEditorModes();
+    m_NodeEditor->OnOpen();
+}
+
+void Robot_UI_Layer::SyncNodeEditorModes()
+{
+    if (!m_NodeEditor || !m_OptionPanel || !m_OptionPanel->GetGamepadMapper())
+        return;
+    auto& gp = m_OptionPanel->GetGamepadMapper();
+    const auto& modes = gp->GetModes();
+    std::vector<std::string> names;
+    for (const auto& m : modes)
+        names.push_back(m.name);
+    m_NodeEditor->SetModeNames(names, gp->GetActiveModeIndex());
+
+    // Wire callback: mode switch in NodeEditor → set active mode in GamepadMapper
+    // Capture raw pointer to avoid copying unique_ptr
+    GamepadMapper* rawGp = gp.get();
+    m_NodeEditor->SetModeSwitchCallback([rawGp](int idx) {
+        rawGp->SetActiveModeByIndex(idx);
+    });
 }
 
 void Robot_UI_Layer::GamepadRoutine()
@@ -39,14 +198,14 @@ void Robot_UI_Layer::GamepadRoutine()
             }
 
             if (m_OptionPanel->GetGamepadMapper()) {
-                float modeToggleVal = m_OptionPanel->GetGamepadMapper()->GetActionValue("Mode Toggle");
+                float modeToggleVal = m_OptionPanel->GetGamepadMapper()->GetKeyValue("Mode Toggle");
                 bool currentModeToggle = modeToggleVal > 0.5f;
                 if (currentModeToggle && !lastModeToggle) {
                     if (m_OptionPanel->GetRobotConfig()) {
                         m_OptionPanel->GetRobotConfig()->NextActiveMode();
                         data = m_OptionPanel->GetRobotConfig()->GetActiveActuatorConfig();
 
-                        // 切换到新模式时，同步手柄映射预设
+                        // 切换到新模式时，同步手柄映射预设和节点图
                         auto& active_modes = m_OptionPanel->GetRobotConfig()->GetActiveModes();
                         int active_idx = m_OptionPanel->GetRobotConfig()->GetActiveModeIndex();
                         if (!active_modes.empty() && active_idx < (int)active_modes.size()) {
@@ -54,27 +213,37 @@ void Robot_UI_Layer::GamepadRoutine()
                             if (m_OptionPanel->GetGamepadMapper()->ModeExists(Mode)) {
                                 m_OptionPanel->GetGamepadMapper()->SetActiveMode(Mode);
                             }
+                            // 同步节点图
+                            if (m_NodeEditor) {
+                                m_NodeEditor->LoadGraphYaml(active_modes[active_idx].node_graph);
+                                SyncNodeEditorModes();
+                            }
                         }
                     }
                 }
                 lastModeToggle = currentModeToggle;
 
-                // 通过 GamepadMapper 中绑定的动作名称拉取数据
-                data.motion.x = m_OptionPanel->GetGamepadMapper()->GetActionValue("Move X");
-                data.motion.y = m_OptionPanel->GetGamepadMapper()->GetActionValue("Move Y");
-                data.motion.z = m_OptionPanel->GetGamepadMapper()->GetActionValue("Move Z");
-                data.motion.rx = m_OptionPanel->GetGamepadMapper()->GetActionValue("Roll");
-                data.motion.ry = m_OptionPanel->GetGamepadMapper()->GetActionValue("Pitch");
-                data.motion.rz = m_OptionPanel->GetGamepadMapper()->GetActionValue("Yaw");
+                // 通过节点图求值：收集所有自定义键位的值，输入节点图，输出 ActuatorData
+                if (m_NodeEditor && m_OptionPanel->GetGamepadMapper()) {
+                    std::map<std::string, float> keyValues;
 
-                float speedMode = m_OptionPanel->GetGamepadMapper()->GetActionValue("Speed Mode");
-                for (auto& pair : data.brushlessmotor) {
-                    pair.second.target_speed = speedMode;
-                }
+                    // 收集当前手柄模式下所有已绑定键位名及其当前值
+                    const auto& modes = m_OptionPanel->GetGamepadMapper()->GetModes();
+                    int activeIdx = m_OptionPanel->GetGamepadMapper()->GetActiveModeIndex();
+                    if (activeIdx >= 0 && activeIdx < (int)modes.size()) {
+                        for (const auto& mapping : modes[activeIdx].mappings) {
+                            if (mapping.is_bound) {
+                                float v = m_OptionPanel->GetGamepadMapper()->GetKeyValue(mapping.key_name);
+                                // 数字键位钳制为 0 或 1
+                                if (!mapping.is_analog)
+                                    v = (v >= 0.5f) ? 1.0f : 0.0f;
+                                keyValues[mapping.key_name] = v;
+                            }
+                        }
+                    }
 
-                float servoValue = m_OptionPanel->GetGamepadMapper()->GetActionValue("Servo Linear") * 180.0;
-                for (auto& pair : data.servo) {
-                    pair.second.angle = servoValue;
+                    // 节点图求值 → 直接写入 ActuatorData
+                    m_NodeEditor->EvaluateIntoActuator(keyValues, data);
                 }
             }
 
@@ -209,11 +378,76 @@ void Robot_UI_Layer::OnUIRender()
         }
         ImGui::End();
     }
+
+    // 节点编辑器窗口
+    if (m_NodeEditorOpen && m_NodeEditor)
+    {
+        // 每帧同步模式列表，确保新建/删除模式后下拉框实时更新
+        SyncNodeEditorModes();
+
+        // 同步可用键位名（自定义键位 + 映射中的键位名）
+        if (m_OptionPanel && m_OptionPanel->GetGamepadMapper())
+        {
+            std::vector<std::string> keyNames;
+            const auto& modes = m_OptionPanel->GetGamepadMapper()->GetModes();
+            int activeIdx = m_OptionPanel->GetGamepadMapper()->GetActiveModeIndex();
+            if (activeIdx >= 0 && activeIdx < (int)modes.size())
+            {
+                // 用户创建的自定义键位（在 GamepadMapper 的 Digital/Analog 区域）
+                for (const auto& key : modes[activeIdx].keys)
+                    keyNames.push_back(key.name);
+            }
+            m_NodeEditor->SetAvailableKeyNames(keyNames);
+        }
+
+        // 同步可用输出目标（来自 ActuatorConfig）
+        if (m_OptionPanel && m_OptionPanel->GetRobotConfig())
+        {
+            ActuatorData cfg = m_OptionPanel->GetRobotConfig()->GetActiveActuatorConfig();
+            auto targets = GetActuatorOutputTargets(cfg);
+            m_NodeEditor->SetAvailableOutputTargets(targets);
+        }
+
+        // 每帧求值并刷新侧边栏（即使未连接手柄，也显示当前节点图的计算结果）
+        if (m_OptionPanel && m_OptionPanel->GetGamepadMapper())
+        {
+            std::map<std::string, float> keyValues;
+            const auto& modes = m_OptionPanel->GetGamepadMapper()->GetModes();
+            int activeIdx = m_OptionPanel->GetGamepadMapper()->GetActiveModeIndex();
+            if (activeIdx >= 0 && activeIdx < (int)modes.size())
+            {
+                std::set<std::string> analogKeys;
+                for (const auto& mapping : modes[activeIdx].mappings)
+                {
+                    if (!mapping.is_bound) continue;     // 未绑定键位跳过
+                    float v = m_OptionPanel->GetGamepadMapper()->GetKeyValue(mapping.key_name);
+                    // 数字键位（is_analog=false）钳制为 0 或 1
+                    if (!mapping.is_analog)
+                        v = (v >= 0.5f) ? 1.0f : 0.0f;
+                    else
+                        analogKeys.insert(mapping.key_name);
+                    keyValues[mapping.key_name] = v;
+                }
+                m_NodeEditor->SetAnalogKeys(analogKeys);
+
+            }
+            m_NodeEditor->Evaluate(keyValues);
+        }
+
+        if (!m_NodeEditor->Draw())
+            m_NodeEditorOpen = false;
+    }
 }
 
 // --- Entry Point ---
 Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 {
+    // 设置 GLFW 错误回调，抑制剪贴板格式不可用错误（错误码 65545 = GLFW_FORMAT_UNAVAILABLE）
+    glfwSetErrorCallback([](int error, const char* description) {
+        if (error == 65545) return;  // 静默剪贴板转换失败（如中文编码问题）
+        fprintf(stderr, "GLFW Error %d: %s\n", error, description);
+    });
+
     Walnut::ApplicationSpecification spec;
     spec.Name = "Robot UI";
     spec.CustomTitlebar = true;
@@ -232,6 +466,19 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
         {
             if (ImGui::BeginMenu("File"))
             {
+                if (ImGui::MenuItem("Open"))
+                {
+                    uiLayer->FileOpen();
+                }
+                if (ImGui::MenuItem("Save"))
+                {
+                    uiLayer->FileSave();
+                }
+                if (ImGui::MenuItem("Save As"))
+                {
+                    uiLayer->FileSaveAs();
+                }
+                ImGui::Separator();
                 if (ImGui::MenuItem("Exit"))
                 {
                     app->Close();
@@ -251,6 +498,10 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
                 if (ImGui::MenuItem("Option"))
                 {
                     uiLayer->ShowOption();
+                }
+                if (ImGui::MenuItem("Node Editor"))
+                {
+                    uiLayer->ShowNodeEditor();
                 }
                 if (ImGui::MenuItem("About"))
                 {

@@ -5,7 +5,11 @@ project "Robot-UI"
    targetdir "bin/%{cfg.buildcfg}"
    staticruntime "off"
 
-   files { "src/**.h", "src/**.cpp" }
+   files { "src/**.h", "src/**.cpp",
+           "../vendor/imgui-node-editor/crude_json.cpp",
+           "../vendor/imgui-node-editor/imgui_canvas.cpp",
+           "../vendor/imgui-node-editor/imgui_node_editor.cpp",
+           "../vendor/imgui-node-editor/imgui_node_editor_api.cpp" }
 
 
    OPENCV = os.getenv("OPENCV")
@@ -16,6 +20,7 @@ project "Robot-UI"
    IncludeDir["OpenCV"] = "%{OPENCV}/include"
    IncludeDir["Mujoco"] = "%{MUJOCO}/include"
    IncludeDir["GStreamer"] = "%{GSTREAMER}/include"
+   IncludeDir["NodeEditor"] = "../vendor/imgui-node-editor"
    
    LibraryDir = LibraryDir or {}
    LibraryDir["OpenCV"] = "%{OPENCV}/x64/vc16/lib"
@@ -27,6 +32,7 @@ project "Robot-UI"
       "../Walnut/vendor/imgui",
       "../Walnut/vendor/glfw/include",
       "../Walnut/vendor/glm",
+      "../Walnut/vendor/yaml-cpp/include",
 
       "../Walnut/Walnut/Platform/GUI",
       "../Walnut/Walnut/Source",
@@ -39,6 +45,8 @@ project "Robot-UI"
       "%{IncludeDir.GStreamer}/gstreamer-1.0",
       "%{IncludeDir.GStreamer}/glib-2.0",
       "%{LibraryDir.GStreamer}/glib-2.0/include",
+
+      "%{IncludeDir.NodeEditor}"
    }
 
    links
@@ -48,6 +56,7 @@ project "Robot-UI"
 
    links
    {
+      "../Walnut/vendor/yaml-cpp/bin/Debug-windows-x86_64/yaml-cpp/yaml-cpp.lib",
       "%{LibraryDir.Mujoco}/mujoco.lib",
       "%{LibraryDir.GStreamer}/gstreamer-1.0.lib",
       "%{LibraryDir.GStreamer}/glib-2.0.lib",
@@ -60,7 +69,7 @@ project "Robot-UI"
 
    filter "system:windows"
       systemversion "latest"
-      defines { "WL_PLATFORM_WINDOWS" }
+      defines { "WL_PLATFORM_WINDOWS", "YAML_CPP_STATIC_DEFINE" }
 
    filter "configurations:Debug"
       defines { "WL_DEBUG" }

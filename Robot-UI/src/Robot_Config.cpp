@@ -271,4 +271,84 @@ void Robot_Config::DrawRobotConfigPanel() {
         }
         ImGui::TreePop();
     }
+
+    // ---------- 参数映射表（自定义参数名 → ActuatorData 字段路径） ----------
+    ImGui::Spacing();
+    ImGui::Text("Parameter Mapping");
+    ImGui::Separator();
+    ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f),
+                       "Map custom output names to ActuatorData fields");
+    ImGui::TextColored(ImVec4(0.4f, 0.4f, 0.4f, 1.0f),
+                       "e.g. motion.x / motion.y / motor_0_speed / servo_0_angle");
+
+    if (ImGui::BeginTable("ParamMapTable", 3,
+        ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable))
+    {
+        ImGui::TableSetupColumn("Custom Name", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn("Field Path", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, 30.0f);
+        ImGui::TableHeadersRow();
+
+        int delIdx = -1;
+        std::string renameOld, renameNew;
+        int rowIdx = 0;
+
+        for (auto& [customName, fieldPath] : mode.parameter_mapping)
+        {
+            ImGui::PushID(rowIdx);
+            ImGui::TableNextRow();
+
+            char nameBuf[128] = {};
+            char pathBuf[128] = {};
+
+            ImGui::TableSetColumnIndex(0);
+            strncpy(nameBuf, customName.c_str(), sizeof(nameBuf) - 1);
+            ImGui::PushItemWidth(-1);
+            if (ImGui::InputText("##name", nameBuf, sizeof(nameBuf)))
+            {
+                std::string newName(nameBuf);
+                if (!newName.empty() && newName != customName)
+                {
+                    renameOld = customName;
+                    renameNew = newName;
+                }
+            }
+            ImGui::PopItemWidth();
+
+            ImGui::TableSetColumnIndex(1);
+            strncpy(pathBuf, fieldPath.c_str(), sizeof(pathBuf) - 1);
+            ImGui::PushItemWidth(-1);
+            if (ImGui::InputText("##path", pathBuf, sizeof(pathBuf)))
+                fieldPath = pathBuf;
+            ImGui::PopItemWidth();
+
+            ImGui::TableSetColumnIndex(2);
+            if (ImGui::Button("X")) delIdx = rowIdx;
+
+            ImGui::PopID();
+            ++rowIdx;
+        }
+
+        // 应用删除（后处理）
+        if (delIdx >= 0)
+        {
+            auto delIt = mode.parameter_mapping.begin();
+            std::advance(delIt, delIdx);
+            if (delIt != mode.parameter_mapping.end())
+                mode.parameter_mapping.erase(delIt);
+        }
+
+        // 应用重命名（后处理）
+        if (!renameOld.empty() && !renameNew.empty() && mode.parameter_mapping.count(renameOld))
+        {
+            std::string savedPath = mode.parameter_mapping[renameOld];
+            mode.parameter_mapping.erase(renameOld);
+            mode.parameter_mapping[renameNew] = savedPath;
+        }
+
+        ImGui::EndTable();
+    }
+
+    if (ImGui::Button("Add Mapping"))
+        mode.parameter_mapping["new_param"] = "motion.x";
 }

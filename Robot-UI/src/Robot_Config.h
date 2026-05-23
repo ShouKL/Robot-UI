@@ -10,6 +10,9 @@
 struct RobotMode {
     char name[64] = "Default Mode";
     std::string gamepad_mapping_Mode = "Default";
+    std::string node_graph;                         // NodeEditor 序列化数据
+    // 自定义参数名 → ActuatorData 字段路径（如 "前进速度" → "motion.x"）
+    std::map<std::string, std::string> parameter_mapping;
     ActuatorData actuator_config;
     std::string host_ip = "192.168.0.10";
     int remote_port = 8888;
@@ -20,8 +23,6 @@ struct RobotMode {
     bool has_temperature = true;
     bool has_humidity = true;
     bool has_depth = true;
-
-
 };
 
 class Robot_Config {
@@ -67,13 +68,20 @@ public:
     bool HasDepth() {
         return active_modes.empty() ? true : active_modes[active_mode_index].has_depth;
     }
+    const std::map<std::string, std::string>& GetActiveParameterMapping() {
+        static std::map<std::string, std::string> empty;
+        return active_modes.empty() ? empty : active_modes[active_mode_index].parameter_mapping;
+    }
 
     // 以下返回引用时，根据编辑状态返回草稿或正式模式列表
     std::vector<RobotMode>& GetModes() {
         return m_IsEditing ? m_EditingModes : modes;
     }
+    const std::vector<RobotMode>& GetModes() const {
+        return modes;
+    }
     std::vector<RobotMode>& GetActiveModes() { return active_modes; }
-    int GetActiveModeIndex() { return active_mode_index; }
+    int GetActiveModeIndex() const { return active_mode_index; }
 
     void SetAvailableModeNames(const std::vector<std::string>& names) { m_AvailableModes = names; }
 
