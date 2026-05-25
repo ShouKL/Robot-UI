@@ -141,6 +141,15 @@ void NodeEditor::BuildNode(EditorNode* node)
 }
 
 // ============================================================================
+// RebuildAllNodes — fix dangling pin→node pointers after vector reallocation
+// ============================================================================
+void NodeEditor::RebuildAllNodes()
+{
+    for (auto& node : m_Nodes)
+        BuildNode(&node);
+}
+
+// ============================================================================
 // Spawn*Node factories
 // ============================================================================
 EditorNode* NodeEditor::SpawnKeySource()
@@ -155,7 +164,7 @@ EditorNode* NodeEditor::SpawnConstValue()
 {
     m_Nodes.emplace_back(GetNextId(), "Const", NodeType::ConstValue, GetNodeHeaderColor(NodeType::ConstValue));
     m_Nodes.back().Outputs.emplace_back(GetNextId(), "Value", PinType::Float);
-    m_Nodes.back().Value = 1.0f;
+    m_Nodes.back().Value = 0.0f;
     BuildNode(&m_Nodes.back());
     return &m_Nodes.back();
 }
@@ -353,6 +362,9 @@ void NodeEditor::AddNodeAt(NodeType type, const ImVec2& pos, bool fromScreen)
         m_Modified = true;
         m_NavigateFrame = 1;  // 新节点加入，下一帧导航到内容
     }
+
+    // emplace_back inside Spawn*() may have invalidated pin→node pointers
+    RebuildAllNodes();
 }
 
 // ============================================================================
@@ -1865,6 +1877,9 @@ bool NodeEditor::LoadGraphYaml(const std::string& yamlStr)
             }
         }
 
+        // Fix dangling pin→node pointers caused by vector reallocation during emplace_back
+        RebuildAllNodes();
+
         if (root["links"] && root["links"].IsSequence())
         {
             for (auto yl : root["links"])
@@ -1956,18 +1971,13 @@ std::vector<std::string> GetActuatorOutputTargets(const ActuatorData& data)
 {
     std::vector<std::string> targets;
 
-    targets.push_back("motion.x");
-    targets.push_back("motion.y");
-    targets.push_back("motion.z");
-    targets.push_back("motion.rx");
-    targets.push_back("motion.ry");
-    targets.push_back("motion.rz");
+    for (const auto& kv : data.servo) {
+        targets.push_back("servo_" + std::to_string(kv.first));
+    }
 
-    for (const auto& [id, sv] : data.servo)
-        targets.push_back("servo_" + std::to_string(id));
-
-    for (const auto& [id, bm] : data.brushlessmotor)
-        targets.push_back("motor_" + std::to_string(id));
+    for (const auto& kv : data.brushlessmotor) {
+        targets.push_back("motor_" + std::to_string(kv.first));
+    }
 
     return targets;
 }

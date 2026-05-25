@@ -137,6 +137,11 @@ public:
 
     // Mode switching support
     void SetModeNames(const std::vector<std::string>& names, int activeIdx);
+    std::string GetCurrentModeName() const {
+        if (m_SelectedModeIdx >= 0 && m_SelectedModeIdx < (int)m_ModeNames.size())
+            return m_ModeNames[m_SelectedModeIdx];
+        return "None";
+    }
     void SetModeSwitchCallback(std::function<void(int)> cb) { m_OnModeSwitch = cb; }
 
     // Apply / Cancel editing state
@@ -176,6 +181,7 @@ private:
     EditorNode* SpawnOutput();
 
     void BuildNode(EditorNode* node);
+    void RebuildAllNodes();   // rebuild all pin→node back-pointers after vector reallocation
     void AddNode(NodeType type);
     void AddNodeAt(NodeType type, const ImVec2& screenPos);
     void AddNodeAt(NodeType type, const ImVec2& pos, bool fromScreen);

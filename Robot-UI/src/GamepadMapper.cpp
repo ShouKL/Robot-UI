@@ -29,34 +29,12 @@ GamepadMapper::GamepadMapper() {
     };
 
     GamepadMode defaultMode;
-    strncpy(defaultMode.name, "Default", sizeof(defaultMode.name));
-    defaultMode.mappings = std::vector<KeyMapping>{
-        {0, "A",                    "", ImVec2(), false, false},
-        {0, "B",                    "", ImVec2(), false, false},
-        {0, "X",                    "", ImVec2(), false, false},
-        {0, "Y",                    "", ImVec2(), false, false},
-        {0, "LB",                   "", ImVec2(), false, false},
-        {0, "RB",                   "", ImVec2(), false, false},
-        {0, "LT",                   "", ImVec2(), false, true },
-        {0, "RT",                   "", ImVec2(), false, true },
-        {0, "LS X",                 "", ImVec2(), false, true },
-        {0, "LS Y",                 "", ImVec2(), false, true },
-        {0, "RS X",                 "", ImVec2(), false, true },
-        {0, "RS Y",                 "", ImVec2(), false, true },
-        {0, "DPad Up",              "", ImVec2(), false, false},
-        {0, "DPad Down",            "", ImVec2(), false, false},
-        {0, "DPad Left",            "", ImVec2(), false, false},
-        {0, "DPad Right",           "", ImVec2(), false, false},
-        {0, "L3",                   "", ImVec2(), false, false},
-        {0, "R3",                   "", ImVec2(), false, false},
-        {0, "Mode Toggle",          "", ImVec2(), false, false},
-    };
-    m_Modes.push_back(defaultMode);
+    strncpy(defaultMode.name, "", sizeof(defaultMode.name));
+    m_Modes = std::vector<GamepadMode>{};
     m_ActiveModeIndex = 0;
     m_SelectedModeIndex = 0;
 
     memset(&m_LastState, 0, sizeof(GLFWgamepadstate));
-    // 不在此处 BeginEdit，由外部在 UI 打开时调用
 }
 
 GamepadMapper::~GamepadMapper() {}
@@ -157,7 +135,10 @@ void GamepadMapper::SetActiveModeByIndex(int index) {
 }
 
 void GamepadMapper::AddMode() {
-    GamepadMode newMode = m_Modes[m_ActiveModeIndex];
+    GamepadMode newMode;
+    if (!m_Modes.empty()) {
+        newMode = m_Modes[m_ActiveModeIndex];
+    }
     int idx = 0;
     while (true) {
         snprintf(newMode.name, sizeof(newMode.name), "Mode %d", idx);
@@ -171,7 +152,7 @@ void GamepadMapper::AddMode() {
 }
 
 void GamepadMapper::DeleteMode(int index) {
-    if (m_Modes.size() <= 1) return;
+    if (m_Modes.empty()) return;
     if (index < 0 || index >= (int)m_Modes.size()) return;
     m_Modes.erase(m_Modes.begin() + index);
 
@@ -244,11 +225,19 @@ void GamepadMapper::SwitchEditMode(int modeIndex) {
 
 const GamepadMode& GamepadMapper::GetDisplayMode() const {
     if (m_IsEditing) return m_EditingMode;
+    if (m_Modes.empty()) {
+        static const GamepadMode s_emptyMode;
+        return s_emptyMode;
+    }
     return m_Modes[m_ActiveModeIndex];
 }
 
 GamepadMode& GamepadMapper::GetDisplayMode() {
     if (m_IsEditing) return m_EditingMode;
+    if (m_Modes.empty()) {
+        static GamepadMode s_emptyMode;
+        return s_emptyMode;
+    }
     return m_Modes[m_ActiveModeIndex];
 }
 

@@ -1,0 +1,535 @@
+robot_ui_config:
+  version: 1
+  robot:
+    modes:
+      - name: ROV
+        gamepad_mapping: ""
+        host_ip: ""
+        remote_port: 0
+        local_port: 0
+        protocol_type: 0
+        has_motion: true
+        has_temperature: true
+        has_humidity: true
+        has_depth: true
+        temp_encoding: 0
+        hum_encoding: 0
+        depth_encoding: 0
+        brushless_motors:
+          - id: 0
+            name: LeftFront
+            target_speed: 0
+            target_speed_enc: 0
+            np_mid: 0
+            np_mid_enc: 0
+            np_ini: 0
+            np_ini_enc: 0
+            pp_ini: 0
+            pp_ini_enc: 0
+            pp_mid: 0
+            pp_mid_enc: 0
+            nt_end: 0
+            nt_end_enc: 0
+            nt_mid: 0
+            nt_mid_enc: 0
+            pt_mid: 0
+            pt_mid_enc: 0
+            pt_end: 0
+            pt_end_enc: 0
+          - id: 1
+            name: RightFront
+            target_speed: 0
+            target_speed_enc: 0
+            np_mid: 0
+            np_mid_enc: 0
+            np_ini: 0
+            np_ini_enc: 0
+            pp_ini: 0
+            pp_ini_enc: 0
+            pp_mid: 0
+            pp_mid_enc: 0
+            nt_end: 0
+            nt_end_enc: 0
+            nt_mid: 0
+            nt_mid_enc: 0
+            pt_mid: 0
+            pt_mid_enc: 0
+            pt_end: 0
+            pt_end_enc: 0
+          - id: 2
+            name: LeftRear
+            target_speed: 0
+            target_speed_enc: 0
+            np_mid: 0
+            np_mid_enc: 0
+            np_ini: 0
+            np_ini_enc: 0
+            pp_ini: 0
+            pp_ini_enc: 0
+            pp_mid: 0
+            pp_mid_enc: 0
+            nt_end: 0
+            nt_end_enc: 0
+            nt_mid: 0
+            nt_mid_enc: 0
+            pt_mid: 0
+            pt_mid_enc: 0
+            pt_end: 0
+            pt_end_enc: 0
+          - id: 3
+            name: RightRear
+            target_speed: 0
+            target_speed_enc: 0
+            np_mid: 0
+            np_mid_enc: 0
+            np_ini: 0
+            np_ini_enc: 0
+            pp_ini: 0
+            pp_ini_enc: 0
+            pp_mid: 0
+            pp_mid_enc: 0
+            nt_end: 0
+            nt_end_enc: 0
+            nt_mid: 0
+            nt_mid_enc: 0
+            pt_mid: 0
+            pt_mid_enc: 0
+            pt_end: 0
+            pt_end_enc: 0
+          - id: 4
+            name: LeftVertical
+            target_speed: 0
+            target_speed_enc: 0
+            np_mid: 0
+            np_mid_enc: 0
+            np_ini: 0
+            np_ini_enc: 0
+            pp_ini: 0
+            pp_ini_enc: 0
+            pp_mid: 0
+            pp_mid_enc: 0
+            nt_end: 0
+            nt_end_enc: 0
+            nt_mid: 0
+            nt_mid_enc: 0
+            pt_mid: 0
+            pt_mid_enc: 0
+            pt_end: 0
+            pt_end_enc: 0
+          - id: 5
+            name: RightVertical
+            target_speed: 0
+            target_speed_enc: 0
+            np_mid: 0
+            np_mid_enc: 0
+            np_ini: 0
+            np_ini_enc: 0
+            pp_ini: 0
+            pp_ini_enc: 0
+            pp_mid: 0
+            pp_mid_enc: 0
+            nt_end: 0
+            nt_end_enc: 0
+            nt_mid: 0
+            nt_mid_enc: 0
+            pt_mid: 0
+            pt_mid_enc: 0
+            pt_end: 0
+            pt_end_enc: 0
+        servos:
+          - id: 0
+            name: Servo
+            angle: 0
+            angle_enc: 0
+        motion:
+          x: 0
+          x_enc: 0
+          y: 0
+          y_enc: 0
+          z: 0
+          z_enc: 0
+          rx: 0
+          rx_enc: 0
+          ry: 0
+          ry_enc: 0
+          rz: 0
+          rz_enc: 0
+        protocol_send:
+          include_length: true
+          checksum: 0
+          header:
+            []
+          tail:
+            []
+          fields:
+            - name: X
+              path: motion.x
+              encoding: 0
+              group: Motion
+              visible: true
+              fix: false
+            - name: Y
+              path: motion.y
+              encoding: 0
+              group: Motion
+              visible: true
+              fix: false
+            - name: Z
+              path: motion.z
+              encoding: 0
+              group: Motion
+              visible: true
+              fix: false
+            - name: RX
+              path: motion.rx
+              encoding: 0
+              group: Motion
+              visible: true
+              fix: false
+            - name: RY
+              path: motion.ry
+              encoding: 0
+              group: Motion
+              visible: true
+              fix: false
+            - name: RZ
+              path: motion.rz
+              encoding: 0
+              group: Motion
+              visible: true
+              fix: false
+        protocol_receive:
+          include_length: true
+          checksum: 0
+          msg_type: 0
+          header:
+            []
+          tail:
+            []
+          fields:
+            - name: Temperature
+              path: temperature.value
+              encoding: 0
+              group: ""
+              visible: true
+              fix: false
+            - name: Humidity
+              path: humidity.value
+              encoding: 0
+              group: ""
+              visible: true
+              fix: false
+            - name: Depth
+              path: depth.value
+              encoding: 0
+              group: ""
+              visible: true
+              fix: false
+    active_mode: 0
+  gamepad:
+    modes:
+      - name: Xbox
+        gamepad_type: 0
+        keys:
+          - key_id: 1
+            key_name: A
+            analog: false
+          - key_id: 2
+            key_name: B
+            analog: false
+          - key_id: 3
+            key_name: X
+            analog: false
+          - key_id: 4
+            key_name: Y
+            analog: false
+          - key_id: 5
+            key_name: Up
+            analog: false
+          - key_id: 6
+            key_name: Right
+            analog: false
+          - key_id: 7
+            key_name: Down
+            analog: false
+          - key_id: 8
+            key_name: Left
+            analog: false
+          - key_id: 9
+            key_name: LS
+            analog: false
+          - key_id: 10
+            key_name: RS
+            analog: false
+          - key_id: 11
+            key_name: LB
+            analog: false
+          - key_id: 12
+            key_name: RB
+            analog: false
+          - key_id: 13
+            key_name: View
+            analog: false
+          - key_id: 14
+            key_name: Menu
+            analog: false
+          - key_id: 19
+            key_name: LT
+            analog: true
+          - key_id: 20
+            key_name: RT
+            analog: true
+          - key_id: 21
+            key_name: LSX
+            analog: true
+          - key_id: 22
+            key_name: LSY
+            analog: true
+          - key_id: 23
+            key_name: RSX
+            analog: true
+          - key_id: 24
+            key_name: RSY
+            analog: true
+        mappings:
+          - key_id: 1
+            key_name: A
+            key: Button_A
+            analog: false
+          - key_id: 2
+            key_name: B
+            key: Button_B
+            analog: false
+          - key_id: 3
+            key_name: X
+            key: Button_X
+            analog: false
+          - key_id: 4
+            key_name: Y
+            key: Button_Y
+            analog: false
+          - key_id: 5
+            key_name: Up
+            key: DPad_Up
+            analog: false
+          - key_id: 6
+            key_name: Right
+            key: DPad_Right
+            analog: false
+          - key_id: 7
+            key_name: Down
+            key: DPad_Down
+            analog: false
+          - key_id: 8
+            key_name: Left
+            key: DPad_Left
+            analog: false
+          - key_id: 9
+            key_name: LS
+            key: L_Stick_Click
+            analog: false
+          - key_id: 10
+            key_name: RS
+            key: R_Stick_Click
+            analog: false
+          - key_id: 11
+            key_name: LB
+            key: LB
+            analog: false
+          - key_id: 12
+            key_name: RB
+            key: RB
+            analog: false
+          - key_id: 13
+            key_name: View
+            key: Button_View
+            analog: false
+          - key_id: 14
+            key_name: Menu
+            key: Button_Menu
+            analog: false
+          - key_id: 19
+            key_name: LT
+            key: LT
+            analog: true
+          - key_id: 20
+            key_name: RT
+            key: RT
+            analog: true
+          - key_id: 21
+            key_name: LSX
+            key: L_Stick_X
+            analog: true
+          - key_id: 22
+            key_name: LSY
+            key: L_Stick_Y
+            analog: true
+          - key_id: 23
+            key_name: RSX
+            key: R_Stick_X
+            analog: true
+          - key_id: 24
+            key_name: RSY
+            key: R_Stick_Y
+            analog: true
+      - name: Mode 0
+        gamepad_type: 1
+        keys:
+          - key_id: 1
+            key_name: A
+            analog: false
+          - key_id: 2
+            key_name: B
+            analog: false
+          - key_id: 3
+            key_name: X
+            analog: false
+          - key_id: 4
+            key_name: Y
+            analog: false
+          - key_id: 5
+            key_name: Up
+            analog: false
+          - key_id: 6
+            key_name: Right
+            analog: false
+          - key_id: 7
+            key_name: Down
+            analog: false
+          - key_id: 8
+            key_name: Left
+            analog: false
+          - key_id: 9
+            key_name: LS
+            analog: false
+          - key_id: 10
+            key_name: RS
+            analog: false
+          - key_id: 11
+            key_name: LB
+            analog: false
+          - key_id: 12
+            key_name: RB
+            analog: false
+          - key_id: 13
+            key_name: View
+            analog: false
+          - key_id: 14
+            key_name: Menu
+            analog: false
+          - key_id: 19
+            key_name: LT
+            analog: true
+          - key_id: 20
+            key_name: RT
+            analog: true
+          - key_id: 21
+            key_name: LSX
+            analog: true
+          - key_id: 22
+            key_name: LSY
+            analog: true
+          - key_id: 23
+            key_name: RSX
+            analog: true
+          - key_id: 24
+            key_name: RSY
+            analog: true
+        mappings:
+          - key_id: 1
+            key_name: A
+            key: Button_A
+            analog: false
+          - key_id: 2
+            key_name: B
+            key: Button_B
+            analog: false
+          - key_id: 3
+            key_name: X
+            key: Button_X
+            analog: false
+          - key_id: 4
+            key_name: Y
+            key: Button_Y
+            analog: false
+          - key_id: 5
+            key_name: Up
+            key: DPad_Up
+            analog: false
+          - key_id: 6
+            key_name: Right
+            key: DPad_Right
+            analog: false
+          - key_id: 7
+            key_name: Down
+            key: DPad_Down
+            analog: false
+          - key_id: 8
+            key_name: Left
+            key: DPad_Left
+            analog: false
+          - key_id: 9
+            key_name: LS
+            key: L_Stick_Click
+            analog: false
+          - key_id: 10
+            key_name: RS
+            key: R_Stick_Click
+            analog: false
+          - key_id: 11
+            key_name: LB
+            key: Button_B
+            analog: false
+          - key_id: 12
+            key_name: RB
+            key: RB
+            analog: false
+          - key_id: 13
+            key_name: View
+            key: Button_View
+            analog: false
+          - key_id: 14
+            key_name: Menu
+            key: Button_Menu
+            analog: false
+          - key_id: 19
+            key_name: LT
+            key: LT
+            analog: true
+          - key_id: 20
+            key_name: RT
+            key: RT
+            analog: true
+          - key_id: 21
+            key_name: LSX
+            key: L_Stick_X
+            analog: true
+          - key_id: 22
+            key_name: LSY
+            key: L_Stick_Y
+            analog: true
+          - key_id: 23
+            key_name: RSX
+            key: R_Stick_X
+            analog: true
+          - key_id: 24
+            key_name: RSY
+            key: R_Stick_Y
+            analog: true
+    active_mode: 0
+  style:
+    theme: 7
+    invert: false
+    alpha: 1
+  streams:
+    []
+  ui_state:
+    about_open: false
+    option_open: true
+    simulation_open: false
+    live_streamer_open: true
+    robot_status_open: true
+    node_editor_open: true
+    thrust_curve_editor_open: true
+    robot_active_mode: 0
+    gamepad_active_mode: 0

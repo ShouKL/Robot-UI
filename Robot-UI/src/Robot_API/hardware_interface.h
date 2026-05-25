@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../robot_api.h"
+#include "robot_api.h"
 #include <mutex>
 #include <vector>
 #include <string>
@@ -37,6 +37,9 @@ public:
     SensorData GetSensorData() override;
     void SendActuatorData(const ActuatorData& data) override;
 
+    void SetProtocolConfig(const ProtocolSendConfig& config) override;
+    void SetProtocolReceiveConfig(const ProtocolReceiveConfig& config) override;
+
 private:
     SensorData m_CurrentSensorData;
     ActuatorData m_CurrentActuatorData;
@@ -46,6 +49,9 @@ private:
     bool m_IsConnected;
     std::string m_TargetIP;
     int m_TargetPort;
+
+    ProtocolSendConfig m_ProtocolCfg;      // 用户自定义发送协议
+    ProtocolReceiveConfig m_ReceiveCfg;    // 用户自定义接收协议
 
 #if defined(_WIN32) || defined(_WIN64)
     SOCKET m_Socket;

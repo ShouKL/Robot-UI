@@ -9,7 +9,9 @@ project "Robot-UI"
            "../vendor/imgui-node-editor/crude_json.cpp",
            "../vendor/imgui-node-editor/imgui_canvas.cpp",
            "../vendor/imgui-node-editor/imgui_node_editor.cpp",
-           "../vendor/imgui-node-editor/imgui_node_editor_api.cpp" }
+           "../vendor/imgui-node-editor/imgui_node_editor_api.cpp",
+           "../vendor/implot/implot.cpp",
+           "../vendor/implot/implot_items.cpp" }
 
 
    OPENCV = os.getenv("OPENCV")
@@ -21,6 +23,7 @@ project "Robot-UI"
    IncludeDir["Mujoco"] = "%{MUJOCO}/include"
    IncludeDir["GStreamer"] = "%{GSTREAMER}/include"
    IncludeDir["NodeEditor"] = "../vendor/imgui-node-editor"
+   IncludeDir["ImPlot"] = "../vendor/implot"
    
    LibraryDir = LibraryDir or {}
    LibraryDir["OpenCV"] = "%{OPENCV}/x64/vc16/lib"
@@ -46,7 +49,8 @@ project "Robot-UI"
       "%{IncludeDir.GStreamer}/glib-2.0",
       "%{LibraryDir.GStreamer}/glib-2.0/include",
 
-      "%{IncludeDir.NodeEditor}"
+      "%{IncludeDir.NodeEditor}",
+      "%{IncludeDir.ImPlot}"
    }
 
    links

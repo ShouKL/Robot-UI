@@ -137,106 +137,28 @@ void HardwareInterface::SendActuatorData(const ActuatorData& data) {
 #endif
 }
 
-// 序列化：将控制数据转为JSON格式（上位机 → 单片机）
+// 序列化：根据用户配置的 ProtocolSendConfig 动态构建帧
 std::vector<uint8_t> HardwareInterface::SerializeActuatorData(const ActuatorData& data) {
-    // 自定义数据帧格式：
-    // [0]      : 0xAA (start)
-    // [1]      : msg_type (0x01 = actuator)
-    // [2..3]   : payload length (uint16_t little-endian)
-    // [4..N-2] : payload
-    // [N-1]    : checksum (simple sum of payload bytes mod 256)
-
-    std::vector<uint8_t> payload;
-
-    auto push_float = [&](float v) {
-        uint8_t buf[4];
-        std::memcpy(buf, &v, sizeof(v));
-        payload.insert(payload.end(), buf, buf + 4);
-    };
-
-    // motion as float32
-    push_float(static_cast<float>(data.motion.x));
-    push_float(static_cast<float>(data.motion.y));
-    push_float(static_cast<float>(data.motion.z));
-    push_float(static_cast<float>(data.motion.rx));
-    push_float(static_cast<float>(data.motion.ry));
-    push_float(static_cast<float>(data.motion.rz));
-
-    // servos: count + entries (id: uint8, angle: float32)
-    uint8_t servo_count = static_cast<uint8_t>(std::min<size_t>(data.servo.size(), 255));
-    payload.push_back(servo_count);
-    for (const auto& pair : data.servo) {
-        uint8_t id = static_cast<uint8_t>(pair.second.id);
-        payload.push_back(id);
-        push_float(static_cast<float>(pair.second.angle));
-    }
-
-    // brushless motors: count + entries (id: uint8, speed: float32, 8 curve float32)
-    uint8_t motor_count = static_cast<uint8_t>(std::min<size_t>(data.brushlessmotor.size(), 255));
-    payload.push_back(motor_count);
-    for (const auto& pair : data.brushlessmotor) {
-        uint8_t id = static_cast<uint8_t>(pair.second.id);
-        payload.push_back(id);
-        push_float(static_cast<float>(pair.second.target_speed));
-        const ThrustCurve& c = pair.second.curve;
-        push_float(static_cast<float>(c.np_mid));
-        push_float(static_cast<float>(c.np_ini));
-        push_float(static_cast<float>(c.pp_ini));
-        push_float(static_cast<float>(c.pp_mid));
-        push_float(static_cast<float>(c.nt_end));
-        push_float(static_cast<float>(c.nt_mid));
-        push_float(static_cast<float>(c.pt_mid));
-        push_float(static_cast<float>(c.pt_end));
-    }
-
-    // build frame
-    std::vector<uint8_t> frame;
-    frame.push_back(0xAA);
-    frame.push_back(0x01); // actuator
-    uint16_t len = static_cast<uint16_t>(payload.size());
-    frame.push_back(static_cast<uint8_t>(len & 0xFF));
-    frame.push_back(static_cast<uint8_t>((len >> 8) & 0xFF));
-    frame.insert(frame.end(), payload.begin(), payload.end());
-    uint8_t checksum = 0;
-    for (uint8_t b : payload) checksum = static_cast<uint8_t>((static_cast<unsigned>(checksum) + static_cast<unsigned>(b)) & 0xFF);
-    frame.push_back(checksum);
-
-    return frame;
+    return BuildFrame(data, m_ProtocolCfg);
 }
 
-// 反序列化：将下位机发来的JSON解析为传感器数据
+void HardwareInterface::SetProtocolConfig(const ProtocolSendConfig& config) {
+    std::lock_guard<std::mutex> lock(m_DataMutex);
+    m_ProtocolCfg = config;
+}
+
+void HardwareInterface::SetProtocolReceiveConfig(const ProtocolReceiveConfig& config) {
+    std::lock_guard<std::mutex> lock(m_DataMutex);
+    m_ReceiveCfg = config;
+}
+
 SensorData HardwareInterface::DeserializeSensorData(const std::vector<uint8_t>& raw_data) {
-    SensorData data;
-    data.is_valid = false;
+    if (m_ReceiveCfg.fields.empty()) {
+        SensorData data;
+        data.is_valid = false;
+        return data;
+    }
 
-    if (raw_data.size() < 6) return data; // too small for header
-
-    // basic frame checks
-    if (raw_data[0] != 0xAA) return data;
-    uint8_t msg_type = raw_data[1];
-    uint16_t len = static_cast<uint16_t>(raw_data[2]) | static_cast<uint16_t>(static_cast<unsigned>(raw_data[3]) << 8);
-    if (raw_data.size() != static_cast<size_t>(4u + len + 1u)) return data; // header + payload + checksum
-
-    const uint8_t* payload = raw_data.data() + 4;
-    uint8_t checksum = raw_data[4 + len];
-    uint8_t calc = 0;
-    for (size_t i = 0; i < len; ++i)
-        calc = static_cast<uint8_t>((static_cast<unsigned>(calc) + static_cast<unsigned>(payload[i])) & 0xFF);
-    if (calc != checksum) return data;
-
-    if (msg_type != 0x02) return data; // not sensor frame
-
-    // sensor payload format: float32 temperature, float32 humidity, float32 depth
-    if (len < 12) return data;
-    float t = 0.f, h = 0.f, d = 0.f;
-    std::memcpy(&t, payload + 0, sizeof(float));
-    std::memcpy(&h, payload + 4, sizeof(float));
-    std::memcpy(&d, payload + 8, sizeof(float));
-
-    data.temperature.value = static_cast<double>(t);
-    data.humidity.value = static_cast<double>(h);
-    data.depth.value = static_cast<double>(d);
-    data.is_valid = true;
-    return data;
+    return ParseSensorFrame(raw_data, m_ReceiveCfg);
 }
 

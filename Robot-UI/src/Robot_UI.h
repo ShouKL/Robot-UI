@@ -15,6 +15,7 @@
 #include "StreamManager.h"
 #include "ConfigSerializer.h"
 #include "NodeEditor.h"
+#include "ThrustCurveEditor.h"
 #include "Robot_API/robot_api.h"
 #include "imgui.h"
 #include <memory>
@@ -34,6 +35,7 @@ public:
 	void ShowAbout() { m_AboutOpen = true; }
 	void ShowRobotStatus() { m_RobotStatusOpen = true; }
 	void ShowNodeEditor();
+	void ShowThrustCurveEditor();
 	void SyncNodeEditorModes();
 
 	bool& GetLiveStreamerOpen() { return m_LiveStreamerOpen; }
@@ -48,6 +50,8 @@ public:
 private:
 	void LoadConfigFile(const std::string& path);  // 静默加载（不弹框）
 	std::string GetDefaultConfigPath() const;       // exe 同目录下的 default_config.rbt
+	UIState CollectUIState() const;                  // 收集当前所有 UI 状态
+	void ApplyUIState(const UIState& st);            // 恢复 UI 状态
 
 	bool m_AboutOpen;
 	bool m_OptionOpen;
@@ -55,10 +59,12 @@ private:
 	bool m_LiveStreamerOpen;
 	bool m_RobotStatusOpen;
 	bool m_NodeEditorOpen;
+	bool m_ThrustCurveEditorOpen = false;
 
 	std::unique_ptr<OptionPanel> m_OptionPanel;
 	std::unique_ptr<StreamManager> m_StreamManager;
 	std::unique_ptr<NodeEditor> m_NodeEditor;
+	std::unique_ptr<ThrustCurveEditor> m_ThrustCurveEditor;
 
 	ActuatorData m_CurrentCommand;
 	std::mutex m_CommandMutex;

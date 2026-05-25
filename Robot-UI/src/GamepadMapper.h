@@ -88,7 +88,9 @@ public:
 
     void SetActiveMode(const std::string& name);
     void SetActiveModeByIndex(int index);
-    const std::string& GetActiveModeName() const { return m_Modes[m_ActiveModeIndex].name; }
+    std::string GetActiveModeName() const {
+        return m_Modes.empty() ? std::string() : std::string(m_Modes[m_ActiveModeIndex].name);
+    }
 
     void AddMode();
     void DeleteMode(int index);

@@ -7,7 +7,6 @@
 #include <memory>
 
 StreamManager::StreamManager() {
-    AddDevice("Default_Hikvision", "192.168.0.123"); // 使用海康威视作为默认预设
 }
 
 StreamManager::~StreamManager() {
@@ -31,16 +30,6 @@ void StreamManager::AddDevice(const char* name, const char* ip) {
     // 安全地复制 IP 地址
     strncpy(config.ip, ip, sizeof(config.ip) - 1);
     config.ip[sizeof(config.ip) - 1] = '\0';
-
-    // 设置默认的 GStreamer/流媒体参数
-    config.latency = 0;                               // 设置为 0 延迟模式
-    config.udpBufferSize = 8388608;                   // 设置 UDP 缓存为 8MB (高码率防止丢包)
-    config.protocol = TransportProto::UDP;            // 默认使用 UDP 协议
-    config.bufferMode = BufferMode::AUTO;             // 自动缓冲模式
-    config.dropOnLatency = true;                      // 延迟过高时丢弃过期帧
-    config.syncToClock = false;                       // 不强制同步系统时钟（减少卡顿）
-    config.ntpSync = false;                           // 禁用 NTP 网络对时同步
-    config.decoder = DecoderType::NVIDIA_HW;          // 默认开启 NVIDIA 硬件加速解码
 
     m_devices.push_back(std::move(node));             // 将配置好的节点移动存储到容器中
 }
