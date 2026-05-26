@@ -361,6 +361,19 @@ float GamepadMapper::GetKeyValue(const std::string& keyName) {
     return 0.0f;
 }
 
+std::vector<std::string> GamepadMapper::GetActiveModeBoundKeyNames() const
+{
+    std::lock_guard<std::mutex> lock(m_ModeMutex);
+    std::vector<std::string> names;
+    if (m_ActiveModeIndex < 0 || m_ActiveModeIndex >= (int)m_Modes.size())
+        return names;
+    for (const auto& mapping : m_Modes[m_ActiveModeIndex].mappings) {
+        if (mapping.is_bound)
+            names.push_back(mapping.key_name);
+    }
+    return names;
+}
+
 // ================= 手柄类型 =================
 
 void GamepadMapper::SetGamepadType(GamepadType type) {

@@ -16,6 +16,7 @@
 #include "ConfigSerializer.h"
 #include "NodeEditor.h"
 #include "ThrustCurveEditor.h"
+#include "RobotCommManager.h"
 #include "Robot_API/robot_api.h"
 #include "imgui.h"
 #include <memory>
@@ -26,7 +27,7 @@
 class Robot_UI_Layer : public Walnut::Layer
 {
 public:
-	Robot_UI_Layer(std::shared_ptr<RobotAPI> robotAPI = nullptr);
+	Robot_UI_Layer();
 	~Robot_UI_Layer();
 
 	virtual void OnUIRender() override;
@@ -36,9 +37,11 @@ public:
 	void ShowRobotStatus() { m_RobotStatusOpen = true; }
 	void ShowNodeEditor();
 	void ShowThrustCurveEditor();
+	void ShowRobotCommConfig();
 	void SyncNodeEditorModes();
 
 	bool& GetLiveStreamerOpen() { return m_LiveStreamerOpen; }
+	bool& GetShowRobotComm() { return m_RobotCommOpen; }
 	bool& GetShowRobotStatus() { return m_RobotStatusOpen; }
 
 	// File 菜单操作
@@ -56,6 +59,7 @@ private:
 	bool m_SimulationOpen;
 	bool m_LiveStreamerOpen;
 	bool m_RobotStatusOpen;
+	bool m_RobotCommOpen = true;
 	bool m_NodeEditorOpen;
 	bool m_ThrustCurveEditorOpen = false;
 
@@ -63,15 +67,12 @@ private:
 	std::unique_ptr<StreamManager> m_StreamManager;
 	std::unique_ptr<NodeEditor> m_NodeEditor;
 	std::unique_ptr<ThrustCurveEditor> m_ThrustCurveEditor;
+	std::unique_ptr<RobotCommManager> m_RobotCommManager;
 
-	ActuatorData m_CurrentCommand;
-	std::mutex m_CommandMutex;
-
-	std::shared_ptr<RobotAPI> m_RobotAPI;
+	std::atomic<std::shared_ptr<const ActuatorData>> m_CurrentCommand;
 
 	std::thread m_GamepadThread;
 	std::atomic<bool> m_Running;
-	std::atomic<bool> m_IsConnected{false};
 	std::string m_CurrentSavePath;  // 当前 .rbt 保存路径（空=未保存过）
 	void GamepadRoutine();
 };

@@ -880,12 +880,22 @@ void NodeEditor::DrawNodeContents(EditorNode& node)
             ImGui::TextDisabled("%.3f", node.Value);
             ed::EndPin();
         }
-        // Dropdown button to pick output target (ActuatorData field names)
+        // Dropdown button to pick output target
         {
             ImVec2 btnSize(150, 0);
-            if (!node.OutputTarget.empty())
+            // Resolve field_path to display name
+            std::string btnLabel = node.OutputTarget;
+            if (!btnLabel.empty()) {
+                for (const auto& t : m_OutputTargets) {
+                    if (t.field_path == node.OutputTarget) {
+                        btnLabel = t.name;
+                        break;
+                    }
+                }
+            }
+            if (!btnLabel.empty())
             {
-                if (ImGui::Button(node.OutputTarget.c_str(), btnSize))
+                if (ImGui::Button(btnLabel.c_str(), btnSize))
                 {
                     m_OutputComboNodeId = node.ID;
                     m_OutputComboRequested = true;
@@ -910,16 +920,23 @@ void NodeEditor::DrawNodeContents(EditorNode& node)
 // ============================================================================
 void NodeEditor::DrawKeyValuesSidebar(float sideWidth) const
 {
+    // Snapshot under lock (written by gamepad thread)
+    std::map<std::string, float> snapshot;
+    {
+        std::shared_lock<std::shared_mutex> lock(m_EvalMutex);
+        snapshot = m_LastKeyValues;
+    }
+
     ImGui::BeginChild("##KVSide", ImVec2(sideWidth, 0), true);
     ImGui::TextUnformatted("Input Keys");
     ImGui::Separator();
-    if (m_LastKeyValues.empty())
+    if (snapshot.empty())
     {
         ImGui::TextDisabled("(empty)");
     }
     else
     {
-        for (const auto& [name, val] : m_LastKeyValues)
+        for (const auto& [name, val] : snapshot)
         {
             ImGui::Text("%s", name.c_str());
             ImGui::SameLine(sideWidth - 50);
@@ -947,6 +964,13 @@ void NodeEditor::DrawKeyValuesSidebar(float sideWidth) const
 
 void NodeEditor::DrawOutputValuesSidebar(float sideWidth) const
 {
+    // Snapshot under lock (written by gamepad thread)
+    std::map<std::string, float> snapshot;
+    {
+        std::shared_lock<std::shared_mutex> lock(m_EvalMutex);
+        snapshot = m_LastOutputs;
+    }
+
     ImGui::BeginChild("##OVSide", ImVec2(sideWidth, 0), true);
     ImGui::TextUnformatted("Output Values");
     ImGui::Separator();
@@ -958,18 +982,49 @@ void NodeEditor::DrawOutputValuesSidebar(float sideWidth) const
     {
         for (const auto& target : m_OutputTargets)
         {
+            // Prefer graph-evaluated value, fall back to actuator field value
             float val = 0.0f;
-            auto it = m_LastOutputs.find(target);
-            if (it != m_LastOutputs.end())
+            bool fromGraph = false;
+            auto it = snapshot.find(target.field_path);
+            if (it != snapshot.end()) {
                 val = it->second;
+                fromGraph = true;
+            } else {
+                auto fit = m_FieldValues.find(target.field_path);
+                if (fit != m_FieldValues.end())
+                    val = (float)fit->second;
+            }
 
-            ImGui::Text("%s", target.c_str());
-            ImGui::SameLine(sideWidth - 55);
-            ImVec4 color(0.4f, 1.0f, 0.4f, 1.0f);
-            if (val < 0.0f) color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f);
-            else if (val == 0.0f && it == m_LastOutputs.end())
-                color = ImVec4(0.5f, 0.5f, 0.5f, 1.0f); // 默认值灰色
-            ImGui::TextColored(color, "%.3f", val);
+            ImGui::Text("%s", target.name.c_str());
+            ImGui::SameLine(sideWidth - 70);
+
+            ImVec4 color(0.4f, 0.8f, 1.0f, 1.0f);   // default: blue (from actuator)
+            if (fromGraph) color = ImVec4(0.4f, 1.0f, 0.4f, 1.0f);  // green (from graph)
+            if (val < 0.0f) color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f); // red (negative)
+
+            // Format per encoding type
+            switch (target.encoding) {
+            case DataEncoding::Bool:
+                ImGui::TextColored(color, "%s", val >= 0.5f ? "True" : "False");
+                break;
+            case DataEncoding::Int8:
+            case DataEncoding::Int16:
+            case DataEncoding::Int32:
+            case DataEncoding::Int64:
+                ImGui::TextColored(color, "%lld", (long long)val);
+                break;
+            case DataEncoding::Uint8:
+            case DataEncoding::Uint16:
+            case DataEncoding::Uint32:
+            case DataEncoding::Uint64:
+                ImGui::TextColored(color, "%llu", (unsigned long long)(val > 0.0f ? val : 0.0f));
+                break;
+            case DataEncoding::Float32:
+            case DataEncoding::Float64:
+            default:
+                ImGui::TextColored(color, "%.3f", val);
+                break;
+            }
         }
     }
     ImGui::EndChild();
@@ -1230,6 +1285,7 @@ bool NodeEditor::Draw()
                     showLabel("+ Create Link", ImColor(32, 45, 32, 180));
                     if (ed::AcceptNewItem(ImColor(128, 255, 128), 4.0f))
                     {
+                        std::unique_lock<std::shared_mutex> lock(m_EvalMutex);
                         m_Links.emplace_back(GetNextId(), startPinId, endPinId);
                         m_Links.back().Color = GetIconColor(startPin->Type);
                         m_Modified = true;
@@ -1257,6 +1313,8 @@ bool NodeEditor::Draw()
     // ==================================================================
     if (ed::BeginDelete())
     {
+        {
+            std::unique_lock<std::shared_mutex> lock(m_EvalMutex);
         ed::NodeId nodeId = 0;
         while (ed::QueryDeletedNode(&nodeId))
         {
@@ -1281,6 +1339,7 @@ bool NodeEditor::Draw()
                     m_Links.end());
                 m_Modified = true;
             }
+        }
         }
     }
     ed::EndDelete();
@@ -1360,6 +1419,7 @@ bool NodeEditor::Draw()
         {
             if (ImGui::MenuItem("Break Links"))
             {
+                std::unique_lock<std::shared_mutex> lock(m_EvalMutex);
                 int pid = (int)contextPinId.Get();
                 m_Links.erase(
                     std::remove_if(m_Links.begin(), m_Links.end(),
@@ -1381,6 +1441,7 @@ bool NodeEditor::Draw()
         // -- Create New Node --
         if (ImGui::BeginPopup("Create New Node"))
         {
+            std::unique_lock<std::shared_mutex> lock(m_EvalMutex);
             if (ImGui::MenuItem("Key Source"))   AddNode(NodeType::KeySource);
             if (ImGui::MenuItem("Const Value"))  AddNode(NodeType::ConstValue);
             ImGui::Separator();
@@ -1413,10 +1474,10 @@ bool NodeEditor::Draw()
             {
                 for (const auto& target : m_OutputTargets)
                 {
-                    bool sel = (node->OutputTarget == target);
-                    if (ImGui::Selectable(target.c_str(), sel))
+                    bool sel = (node->OutputTarget == target.field_path);
+                    if (ImGui::Selectable(target.name.c_str(), sel))
                     {
-                        node->OutputTarget = target;
+                        node->OutputTarget = target.field_path;
                         m_Modified = true;
                         ImGui::CloseCurrentPopup();
                         m_OutputComboNodeId = 0;
@@ -1490,7 +1551,7 @@ bool NodeEditor::Draw()
 // ============================================================================
 void NodeEditor::EvaluateGraph(const std::map<std::string, float>& keyValues)
 {
-    std::lock_guard<std::mutex> lock(m_EvalMutex);
+    std::unique_lock<std::shared_mutex> lock(m_EvalMutex);
     m_LastKeyValues = keyValues;
     m_LastOutputs.clear();
     if (m_Nodes.empty()) return;
@@ -1934,49 +1995,94 @@ bool NodeEditor::LoadGraphYaml(const std::string& yamlStr)
 // ============================================================================
 void WriteOutputToActuator(const std::string& target, float val, ActuatorData& data)
 {
-    if (target == "motion.x")      { data.motion.x  = val; return; }
-    if (target == "motion.y")      { data.motion.y  = val; return; }
-    if (target == "motion.z")      { data.motion.z  = val; return; }
-    if (target == "motion.rx")     { data.motion.rx = val; return; }
-    if (target == "motion.ry")     { data.motion.ry = val; return; }
-    if (target == "motion.rz")     { data.motion.rz = val; return; }
+    // Use the generic GetActuatorField path resolution — target is a field_path
+    // e.g., "motion.x", "brushlessmotor.0.target_speed", "servo.1.angle"
 
-    // servo_<id>
-    if (target.rfind("servo_", 0) == 0)
-    {
-        try {
-            int id = std::stoi(target.substr(6));
-            data.servo[id].id = id;
-            data.servo[id].angle = val;
-        } catch (...) {}
+    auto segs = [](const std::string& s, char delim) -> std::vector<std::string> {
+        std::vector<std::string> parts;
+        std::stringstream ss(s);
+        std::string item;
+        while (std::getline(ss, item, delim)) parts.push_back(item);
+        return parts;
+    }(target, '.');
+
+    if (segs.empty()) return;
+
+    // --- motion ---
+    if (segs[0] == "motion" && segs.size() == 2) {
+        if      (segs[1] == "x")  data.motion.x  = val;
+        else if (segs[1] == "y")  data.motion.y  = val;
+        else if (segs[1] == "z")  data.motion.z  = val;
+        else if (segs[1] == "rx") data.motion.rx = val;
+        else if (segs[1] == "ry") data.motion.ry = val;
+        else if (segs[1] == "rz") data.motion.rz = val;
         return;
     }
 
-    // motor_<id>
-    if (target.rfind("motor_", 0) == 0)
-    {
-        try {
-            int id = std::stoi(target.substr(6));
-            data.brushlessmotor[id].id = id;
-            data.brushlessmotor[id].target_speed = val;
-        } catch (...) {}
+    // --- brushlessmotor ---
+    if (segs[0] == "brushlessmotor" && segs.size() >= 3) {
+        int id = std::stoi(segs[1]);
+        auto& motor = data.brushlessmotor[id];
+        motor.id = id;
+        if (segs[2] == "target_speed") { motor.target_speed = val; return; }
+        if (segs[2] == "curve" && segs.size() == 4) {
+            if      (segs[3] == "np_mid") motor.curve.np_mid = val;
+            else if (segs[3] == "np_ini") motor.curve.np_ini = val;
+            else if (segs[3] == "pp_ini") motor.curve.pp_ini = val;
+            else if (segs[3] == "pp_mid") motor.curve.pp_mid = val;
+            else if (segs[3] == "nt_end") motor.curve.nt_end = val;
+            else if (segs[3] == "nt_mid") motor.curve.nt_mid = val;
+            else if (segs[3] == "pt_mid") motor.curve.pt_mid = val;
+            else if (segs[3] == "pt_end") motor.curve.pt_end = val;
+            return;
+        }
+        return;
+    }
+
+    // --- servo ---
+    if (segs[0] == "servo" && segs.size() == 3) {
+        int id = std::stoi(segs[1]);
+        auto& s = data.servo[id];
+        s.id = id;
+        if (segs[2] == "angle") { s.angle = val; return; }
         return;
     }
 }
 
 // ============================================================================
-// GetActuatorOutputTargets — build list of available output field names
+// BuildOutputTargetsFromProtocol — build output targets from protocol send fields
 // ============================================================================
-std::vector<std::string> GetActuatorOutputTargets(const ActuatorData& data)
+std::vector<OutputTargetInfo> BuildOutputTargetsFromProtocol(const ProtocolSendConfig& cfg, const ActuatorData& actuator)
 {
-    std::vector<std::string> targets;
+    std::vector<OutputTargetInfo> targets;
 
-    for (const auto& kv : data.servo) {
-        targets.push_back("servo_" + std::to_string(kv.first));
-    }
+    auto components = GetSendComponents(actuator, false, false, false);
 
-    for (const auto& kv : data.brushlessmotor) {
-        targets.push_back("motor_" + std::to_string(kv.first));
+    for (const auto& field : cfg.fields)
+    {
+        if (field.fix) continue; // skip fix fields
+
+        // Build display name: resolve component → subfield
+        std::string curCompId = ResolveComponentId(field.field_path);
+        std::string curSub = ResolveSubField(field.field_path);
+        std::string displayName = field.name;
+
+        // Try to build a nicer display name from component + subfield
+        for (const auto& c : components) {
+            if (c.id == curCompId) {
+                auto sfs = GetSubFields(c);
+                for (const auto& sf : sfs) {
+                    if (sf.key == curSub) {
+                        displayName = c.label + " > " + sf.label;
+                        break;
+                    }
+                }
+                if (displayName == field.name) displayName = c.label + " > " + curSub;
+                break;
+            }
+        }
+
+        targets.push_back({displayName, field.field_path, field.encoding});
     }
 
     return targets;

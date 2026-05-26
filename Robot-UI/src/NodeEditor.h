@@ -5,7 +5,7 @@
 #include <map>
 #include <set>
 #include <functional>
-#include <mutex>
+#include <shared_mutex>
 #include <imgui_node_editor.h>
 #include "Robot_API/robot_api.h"
 
@@ -116,6 +116,15 @@ struct NodeIdLess
 using KeyNameList = std::vector<std::string>;
 
 // ============================================================================
+// OutputTargetInfo — describes a protocol send field as an output target
+// ============================================================================
+struct OutputTargetInfo {
+    std::string name;         // display name (e.g., "Motor Left > Target Speed")
+    std::string field_path;   // e.g., "brushlessmotor.0.target_speed"
+    DataEncoding encoding = DataEncoding::Float32;
+};
+
+// ============================================================================
 // NodeEditor class
 // ============================================================================
 class NodeEditor
@@ -132,8 +141,11 @@ public:
     // 标记哪些键是模拟量（用于侧边栏区分显示 True/False vs 浮点值）
     void SetAnalogKeys(const std::set<std::string>& names) { m_AnalogKeys = names; }
 
-    // Set available output target names (ActuatorData field paths like "motion.x", "servo_0")
-    void SetAvailableOutputTargets(const KeyNameList& targets) { m_OutputTargets = targets; }
+    // Set available output target names (from protocol send fields)
+    void SetAvailableOutputTargets(const std::vector<OutputTargetInfo>& targets) { m_OutputTargets = targets; }
+
+    // Set current field values from actuator (field_path → value)
+    void SetFieldValues(const std::map<std::string, double>& values) { m_FieldValues = values; }
 
     // Mode switching support
     void SetModeNames(const std::vector<std::string>& names, int activeIdx);
@@ -154,6 +166,9 @@ public:
 
     // Directly write evaluated outputs into an ActuatorData
     void EvaluateIntoActuator(const std::map<std::string, float>& keyValues, ActuatorData& data);
+
+    // Update key-value snapshot for sidebar display (without ActuatorData output)
+    void EvaluateGraph(const std::map<std::string, float>& keyValues);
 
     // Get the current YAML (for the caller to persist)
     std::string GetGraphYaml() const;
@@ -206,9 +221,6 @@ private:
     void DrawPinIcon(const EditorPin& pin, bool connected, int alpha);
     void DrawNodeContents(EditorNode& node);
 
-    // -- Evaluation --
-    void EvaluateGraph(const std::map<std::string, float>& keyValues);
-
     // -- Editor context --
     ax::NodeEditor::EditorContext* m_EditorCtx = nullptr;
 
@@ -219,13 +231,15 @@ private:
     bool                     m_Modified = false;
 
     KeyNameList                        m_AvailableKeys;
-    KeyNameList                        m_OutputTargets;
+    std::vector<OutputTargetInfo>      m_OutputTargets;
     std::map<std::string, float>       m_LastKeyValues;
     std::map<std::string, float>       m_LastOutputs;
+    std::map<std::string, double>      m_FieldValues;   // actuator field_path → current value
     std::set<std::string>              m_AnalogKeys;  // 模拟键名集合，用于侧边栏区分显示
 
-    // Thread safety for EvaluateGraph (called from both UI and gamepad threads)
-    mutable std::mutex m_EvalMutex;
+    // Thread safety: shared_mutex allows concurrent reads (sidebars + EvaluateGraph)
+    // while serializing writes (node/link edits)
+    mutable std::shared_mutex m_EvalMutex;
 
     // Mode switching
     std::vector<std::string>  m_ModeNames;
@@ -256,6 +270,6 @@ private:
 void WriteOutputToActuator(const std::string& outputTarget, float value, ActuatorData& data);
 
 // ============================================================================
-// Build list of ActuatorData output target names from a config
+// Build list of output targets from ProtocolSendConfig fields (exclude fix)
 // ============================================================================
-std::vector<std::string> GetActuatorOutputTargets(const ActuatorData& data);
+std::vector<OutputTargetInfo> BuildOutputTargetsFromProtocol(const ProtocolSendConfig& cfg, const ActuatorData& actuator);

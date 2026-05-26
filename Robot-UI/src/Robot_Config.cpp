@@ -121,34 +121,11 @@ void Robot_Config::DrawRobotConfigPanel() {
     // ---------- 名称 ----------
     ImGui::InputText("Name", mode.name, sizeof(mode.name));
 
-    ImGui::Spacing();
-    ImGui::Text("Network & Protocol Configuration");
-    ImGui::Separator();
-
-    char ip_buf[128];
-    strncpy(ip_buf, mode.host_ip.c_str(), sizeof(ip_buf));
-    ImGui::InputText("Host IP", ip_buf, sizeof(ip_buf));
-    mode.host_ip = ip_buf;
-
-    ImGui::InputInt("Remote Port", &mode.remote_port);
-    ImGui::InputInt("Local Port", &mode.local_port);
-
-    ImGui::Spacing();
-    ImGui::Text("Actuators");
-    ImGui::Separator();
-
     auto& actuator_config = mode.actuator_config;
 
     // 马达编辑
     ImGui::PushID("MotorsSection");
     bool motor_node_open = ImGui::TreeNode("Brushless Motors");
-    ImGui::SameLine(ImGui::GetContentRegionAvail().x - 20);
-    if (ImGui::SmallButton("+")) {
-        int next_id = actuator_config.brushlessmotor.empty() ? 0 : actuator_config.brushlessmotor.rbegin()->first + 1;
-        BrushlessMotor motor;
-        motor.id = next_id;
-        actuator_config.brushlessmotor[next_id] = motor;
-    }
     if (ImGui::BeginPopupContextItem("MotorTreeCtx")) {
         if (ImGui::MenuItem("Add Motor")) {
             int next_id = actuator_config.brushlessmotor.empty() ? 0 : actuator_config.brushlessmotor.rbegin()->first + 1;
@@ -162,7 +139,7 @@ void Robot_Config::DrawRobotConfigPanel() {
         for (auto it = actuator_config.brushlessmotor.begin(); it != actuator_config.brushlessmotor.end(); ) {
             auto& m = it->second;
             bool m_node_open = ImGui::TreeNode((void*)(intptr_t)m.id, "%s",
-                m.name.empty() ? (std::string("Motor #") + std::to_string(m.id)).c_str() : m.name.c_str());
+                m.name.empty() ? (std::string("Motor") + std::to_string(m.id)).c_str() : m.name.c_str());
             bool delete_motor = false;
             if (ImGui::BeginPopupContextItem()) {
                 if (ImGui::MenuItem("Delete Motor")) delete_motor = true;
@@ -174,20 +151,6 @@ void Robot_Config::DrawRobotConfigPanel() {
                 strncpy(nameBuf, m.name.c_str(), sizeof(nameBuf) - 1);
                 if (ImGui::InputText("Name", nameBuf, sizeof(nameBuf)))
                     m.name = nameBuf;
-
-                auto encNames = GetEncodingNames();
-
-                // 辅助：InputFloat + 编码下拉（同行）
-                auto EncodedInput = [&](const char* label, EncodedValue& ev, float step = 0.f) {
-                    float fv = (float)ev.value;
-                    ImGui::InputFloat(label, &fv); ev.value = fv;
-                    ImGui::SameLine();
-                    ImGui::SetNextItemWidth(110);
-                    int idx = EncodingToIndex(ev.encoding);
-                    char comboId[64]; snprintf(comboId, sizeof(comboId), "##enc_%s", label);
-                    if (ImGui::Combo(comboId, &idx, encNames.data(), (int)encNames.size()))
-                        ev.encoding = IndexToEncoding(idx);
-                };
 
                 // Thrust curve — single formatted string (np_ini, np_mid, pp_ini, pp_mid, nt_end, nt_mid, pt_mid, pt_end, pwm_min, pwm_max)
                 {
@@ -216,7 +179,8 @@ void Robot_Config::DrawRobotConfigPanel() {
                     ImGui::PopItemWidth();
                 }
 
-                EncodedInput("target_speed", m.target_speed);
+                float fv = (float)m.target_speed.value;
+                ImGui::InputFloat("target_speed", &fv); m.target_speed.value = fv;
                 ImGui::TreePop();
             }
             if (delete_motor) it = actuator_config.brushlessmotor.erase(it);
@@ -230,13 +194,6 @@ void Robot_Config::DrawRobotConfigPanel() {
     // 舵机编辑
     ImGui::PushID("ServosSection");
     bool servo_node_open = ImGui::TreeNode("Servos");
-    ImGui::SameLine(ImGui::GetContentRegionAvail().x - 20);
-    if (ImGui::SmallButton("+")) {
-        int next_id = actuator_config.servo.empty() ? 0 : actuator_config.servo.rbegin()->first + 1;
-        Servo servo;
-        servo.id = next_id;
-        actuator_config.servo[next_id] = servo;
-    }
     if (ImGui::BeginPopupContextItem("ServoTreeCtx")) {
         if (ImGui::MenuItem("Add Servo")) {
             int next_id = actuator_config.servo.empty() ? 0 : actuator_config.servo.rbegin()->first + 1;
@@ -263,18 +220,8 @@ void Robot_Config::DrawRobotConfigPanel() {
                 if (ImGui::InputText("Name", nameBuf, sizeof(nameBuf)))
                     s.name = nameBuf;
 
-                auto encNames = GetEncodingNames();
-                auto EncodedInput = [&](const char* label, EncodedValue& ev) {
-                    float fv = (float)ev.value;
-                    ImGui::InputFloat(label, &fv); ev.value = fv;
-                    ImGui::SameLine();
-                    ImGui::SetNextItemWidth(110);
-                    char comboId[64]; snprintf(comboId, sizeof(comboId), "##enc_%s", label);
-                    int idx = EncodingToIndex(ev.encoding);
-                    if (ImGui::Combo(comboId, &idx, encNames.data(), (int)encNames.size()))
-                        ev.encoding = IndexToEncoding(idx);
-                };
-                EncodedInput("Angle", s.angle);
+                float fv = (float)s.angle.value;
+                ImGui::InputFloat("Angle", &fv); s.angle.value = fv;
                 ImGui::TreePop();
             }
             if (delete_servo) it = actuator_config.servo.erase(it);
@@ -294,25 +241,15 @@ void Robot_Config::DrawRobotConfigPanel() {
     if (mode.actuator_config.has_motion) {
         ImGui::Indent();
         auto& m = mode.actuator_config.motion;
-        auto encNames = GetEncodingNames();
-        auto EncodedInput = [&](const char* label, EncodedValue& ev) {
-            float fv = (float)ev.value;
-            ImGui::PushItemWidth(120);
-            ImGui::InputFloat(label, &fv); ev.value = fv;
-            ImGui::PopItemWidth();
-            ImGui::SameLine();
-            ImGui::SetNextItemWidth(110);
-            char comboId[64]; snprintf(comboId, sizeof(comboId), "##enc_m_%s", label);
-            int idx = EncodingToIndex(ev.encoding);
-            if (ImGui::Combo(comboId, &idx, encNames.data(), (int)encNames.size()))
-                ev.encoding = IndexToEncoding(idx);
-        };
-        EncodedInput("X",  m.x);
-        EncodedInput("Y",  m.y);
-        EncodedInput("Z",  m.z);
-        EncodedInput("RX", m.rx);
-        EncodedInput("RY", m.ry);
-        EncodedInput("RZ", m.rz);
+        {
+            float fv;
+            fv = (float)m.x.value;  ImGui::InputFloat("X",  &fv); m.x.value = fv;
+            fv = (float)m.y.value;  ImGui::InputFloat("Y",  &fv); m.y.value = fv;
+            fv = (float)m.z.value;  ImGui::InputFloat("Z",  &fv); m.z.value = fv;
+            fv = (float)m.rx.value; ImGui::InputFloat("RX", &fv); m.rx.value = fv;
+            fv = (float)m.ry.value; ImGui::InputFloat("RY", &fv); m.ry.value = fv;
+            fv = (float)m.rz.value; ImGui::InputFloat("RZ", &fv); m.rz.value = fv;
+        }
         ImGui::Unindent();
     }
 
@@ -320,27 +257,9 @@ void Robot_Config::DrawRobotConfigPanel() {
     ImGui::Spacing();
     ImGui::Text("Sensors");
     ImGui::Separator();
-    auto encNames = GetEncodingNames();
     ImGui::Checkbox("Temperature", &mode.has_temperature);
-    ImGui::SameLine(200);
-    ImGui::SetNextItemWidth(130);
-    int tEnc = EncodingToIndex(mode.temp_encoding);
-    if (ImGui::Combo("##tempen", &tEnc, encNames.data(), (int)encNames.size()))
-        mode.temp_encoding = IndexToEncoding(tEnc);
-
     ImGui::Checkbox("Humidity",    &mode.has_humidity);
-    ImGui::SameLine(200);
-    ImGui::SetNextItemWidth(130);
-    int hEnc = EncodingToIndex(mode.hum_encoding);
-    if (ImGui::Combo("##humen", &hEnc, encNames.data(), (int)encNames.size()))
-        mode.hum_encoding = IndexToEncoding(hEnc);
-
     ImGui::Checkbox("Depth",       &mode.has_depth);
-    ImGui::SameLine(200);
-    ImGui::SetNextItemWidth(130);
-    int dEnc = EncodingToIndex(mode.depth_encoding);
-    if (ImGui::Combo("##depenc", &dEnc, encNames.data(), (int)encNames.size()))
-        mode.depth_encoding = IndexToEncoding(dEnc);
 
     ImGui::PopID();
 
@@ -366,13 +285,6 @@ void Robot_Config::DrawProtocolConfigWindow() {
     }
 
     auto& mode = m_EditingModes[m_EditingModeIndex];
-
-    // 传输协议
-    const char* protocols[] = { "UDP", "TCP", "Serial" };
-    ImGui::Combo("Transport Protocol", &mode.protocol_type, protocols, IM_ARRAYSIZE(protocols));
-
-    ImGui::Spacing();
-    ImGui::Separator();
 
     if (ImGui::BeginTabBar("ProtoTabs")) {
         if (ImGui::BeginTabItem("Send Fields")) {
@@ -580,7 +492,6 @@ void Robot_Config::DrawProtocolFieldConfig(ProtocolSendConfig& cfg, ActuatorData
                                 bool sel = (c.id == curCompId && sf.key == curSub);
                                 if (ImGui::MenuItem(sf.label.c_str(), nullptr, sel)) {
                                     f.field_path = c.path_prefix + sf.key;
-                                    f.encoding = sf.encoding;
                                 }
                                 if (sel) ImGui::SetItemDefaultFocus();
                             }
@@ -589,16 +500,15 @@ void Robot_Config::DrawProtocolFieldConfig(ProtocolSendConfig& cfg, ActuatorData
                     }
                     ImGui::EndCombo();
                 }
-                ImGui::SameLine();
-                ImGui::SetNextItemWidth(85);
-                int encIdx = EncodingToIndex(f.encoding);
-                if (ImGui::Combo("##sendenc", &encIdx, encodingNames.data(), (int)encodingNames.size()))
-                    f.encoding = IndexToEncoding(encIdx);
                 ImGui::PopItemWidth();
 
-                // 类型（只读）
+                // 类型（可编辑下拉）
                 ImGui::TableSetColumnIndex(3);
-                ImGui::TextUnformatted(encodingNames[EncodingToIndex(f.encoding)]);
+                ImGui::PushItemWidth(-1);
+                int encIdx = EncodingToIndex(f.encoding);
+                if (ImGui::Combo("##sendtype", &encIdx, encodingNames.data(), (int)encodingNames.size()))
+                    f.encoding = IndexToEncoding(encIdx);
+                ImGui::PopItemWidth();
 
                 // 分组
                 ImGui::TableSetColumnIndex(4);
@@ -756,7 +666,6 @@ void Robot_Config::DrawProtocolReceiveFieldConfig(ProtocolReceiveConfig& cfg, bo
                                 bool sel = (c.id == curCompId && sf.key == curSub);
                                 if (ImGui::MenuItem(sf.label.c_str(), nullptr, sel)) {
                                     f.field_path = c.path_prefix + sf.key;
-                                    f.encoding = sf.encoding;
                                 }
                                 if (sel) ImGui::SetItemDefaultFocus();
                             }
@@ -765,16 +674,15 @@ void Robot_Config::DrawProtocolReceiveFieldConfig(ProtocolReceiveConfig& cfg, bo
                     }
                     ImGui::EndCombo();
                 }
-                ImGui::SameLine();
-                ImGui::SetNextItemWidth(85);
-                int encIdx = EncodingToIndex(f.encoding);
-                if (ImGui::Combo("##recvenc", &encIdx, encodingNames.data(), (int)encodingNames.size()))
-                    f.encoding = IndexToEncoding(encIdx);
                 ImGui::PopItemWidth();
 
-                // 类型（只读）
+                // 类型（可编辑下拉）
                 ImGui::TableSetColumnIndex(3);
-                ImGui::TextUnformatted(encodingNames[EncodingToIndex(f.encoding)]);
+                ImGui::PushItemWidth(-1);
+                int encIdx = EncodingToIndex(f.encoding);
+                if (ImGui::Combo("##recvtype", &encIdx, encodingNames.data(), (int)encodingNames.size()))
+                    f.encoding = IndexToEncoding(encIdx);
+                ImGui::PopItemWidth();
 
                 // 分组
                 ImGui::TableSetColumnIndex(4);

@@ -77,6 +77,9 @@ public:
     // 通过键位名获取当前手柄值
     float GetKeyValue(const std::string& keyName);
 
+    // 线程安全地获取当前活动模式下所有已绑定键位名列表（供 GamepadThread 使用）
+    std::vector<std::string> GetActiveModeBoundKeyNames() const;
+
     // ========== 手柄类型（操作当前编辑/活动模式） ==========
     void SetGamepadType(GamepadType type);
     GamepadType GetGamepadType() const;

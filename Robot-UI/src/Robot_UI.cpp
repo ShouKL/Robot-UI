@@ -18,19 +18,28 @@ static std::string GetExeDir()
     return "";
 }
 
-Robot_UI_Layer::Robot_UI_Layer(std::shared_ptr<RobotAPI> robotAPI)
+Robot_UI_Layer::Robot_UI_Layer()
     : m_AboutOpen(false), m_OptionOpen(false),
-    m_SimulationOpen(false), m_LiveStreamerOpen(true), m_RobotStatusOpen(true), m_NodeEditorOpen(false),
-    m_RobotAPI(robotAPI)
+    m_SimulationOpen(false), m_LiveStreamerOpen(true), m_RobotStatusOpen(true), m_NodeEditorOpen(false)
 {
     m_OptionPanel = std::make_unique<OptionPanel>();
     m_StreamManager = std::make_unique<StreamManager>();
+    m_RobotCommManager = std::make_unique<RobotCommManager>();
+    if (m_OptionPanel && m_OptionPanel->GetRobotConfig())
+        m_RobotCommManager->SetRobotConfig(m_OptionPanel->GetRobotConfig().get());
 
     // NodeEditor creates its own ed::EditorContext internally
     m_NodeEditor = std::make_unique<NodeEditor>();
     m_ThrustCurveEditor = std::make_unique<ThrustCurveEditor>();
 
+    // NodeEditor 模式切换回调 → 同步 GamepadMapper
+    m_NodeEditor->SetModeSwitchCallback([this](int idx) {
+        if (m_OptionPanel && m_OptionPanel->GetGamepadMapper())
+            m_OptionPanel->GetGamepadMapper()->SetActiveModeByIndex(idx);
+    });
+
     m_Running = true;
+    m_CurrentCommand.store(std::make_shared<const ActuatorData>(), std::memory_order_relaxed);
     m_GamepadThread = std::thread(&Robot_UI_Layer::GamepadRoutine, this);
 
     // 启动时自动加载 exe 同目录下的 default_config.rbt
@@ -112,7 +121,7 @@ void Robot_UI_Layer::FileOpen()
     }
 
     m_CurrentSavePath = path;
-    m_IsConnected = false;
+    if (m_RobotCommManager) m_RobotCommManager->Disconnect();
 
     // 加载当前活跃模式的节点图
     if (m_NodeEditor && m_OptionPanel->GetRobotConfig())
@@ -192,7 +201,7 @@ void Robot_UI_Layer::LoadConfigFile(const std::string& path)
     }
 
     m_CurrentSavePath = path;
-    m_IsConnected = false;
+    if (m_RobotCommManager) m_RobotCommManager->Disconnect();
 
     // 恢复 UI 状态
     ApplyUIState(uiState);
@@ -221,7 +230,19 @@ void Robot_UI_Layer::GamepadRoutine()
     bool lastModeToggle = false;
     while (m_Running)
     {
-        if (m_RobotAPI && m_IsConnected)
+        // ===== 始终收集手柄键值并评估节点图（使 NodeEditor "Input Keys" 侧边栏始终显示） =====
+        if (m_OptionPanel && m_OptionPanel->GetGamepadMapper() && m_NodeEditor)
+        {
+            std::map<std::string, float> keyValues;
+            // 线程安全快照：GetActiveModeBoundKeyNames() 内部加锁
+            auto boundKeys = m_OptionPanel->GetGamepadMapper()->GetActiveModeBoundKeyNames();
+            for (const auto& keyName : boundKeys) {
+                keyValues[keyName] = m_OptionPanel->GetGamepadMapper()->GetKeyValue(keyName);
+            }
+            m_NodeEditor->EvaluateGraph(keyValues);
+        }
+
+        if (m_RobotCommManager && m_RobotCommManager->IsConnected())
         {
             ActuatorData data;
 
@@ -257,16 +278,10 @@ void Robot_UI_Layer::GamepadRoutine()
                 // 通过节点图求值：收集所有自定义键位的值，输入节点图，输出 ActuatorData
                 if (m_NodeEditor && m_OptionPanel->GetGamepadMapper()) {
                     std::map<std::string, float> keyValues;
-
-                    // 收集当前手柄模式下所有已绑定键位名及其当前值
-                    const auto& modes = m_OptionPanel->GetGamepadMapper()->GetModes();
-                    int activeIdx = m_OptionPanel->GetGamepadMapper()->GetActiveModeIndex();
-                    if (activeIdx >= 0 && activeIdx < (int)modes.size()) {
-                        for (const auto& mapping : modes[activeIdx].mappings) {
-                            if (mapping.is_bound) {
-                                keyValues[mapping.key_name] = m_OptionPanel->GetGamepadMapper()->GetKeyValue(mapping.key_name);
-                            }
-                        }
+                    // 线程安全快照：GetActiveModeBoundKeyNames() 内部加锁
+                    auto boundKeys = m_OptionPanel->GetGamepadMapper()->GetActiveModeBoundKeyNames();
+                    for (const auto& keyName : boundKeys) {
+                        keyValues[keyName] = m_OptionPanel->GetGamepadMapper()->GetKeyValue(keyName);
                     }
 
                     // 节点图求值并直接写入 ActuatorData
@@ -274,13 +289,11 @@ void Robot_UI_Layer::GamepadRoutine()
                 }
             }
 
-            {
-                std::lock_guard<std::mutex> lock(m_CommandMutex);
-                m_CurrentCommand = data;
-            }
+            // 无锁发布：atomic store shared_ptr，UI 线程通过 load 获取一致快照
+            m_CurrentCommand.store(std::make_shared<const ActuatorData>(data), std::memory_order_release);
 
-            if (m_IsConnected) {
-                m_RobotAPI->SendActuatorData(data);
+            if (m_RobotCommManager->IsConnected()) {
+                m_RobotCommManager->SendActuatorData(data);
             }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(50)); // 20Hz
@@ -317,6 +330,11 @@ void Robot_UI_Layer::OnUIRender()
 
     if (m_OptionOpen && m_OptionPanel)
     {
+        ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+        ImGui::SetNextWindowSize(ImVec2(displaySize.x * 0.85f, displaySize.y * 0.8f), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSizeConstraints(
+            ImVec2(400, 300),
+            ImVec2(displaySize.x, displaySize.y));
         if (ImGui::Begin("Option", nullptr, ImGuiWindowFlags_AlwaysVerticalScrollbar))
         {
             m_OptionPanel->DrawOptionPanel();
@@ -326,7 +344,7 @@ void Robot_UI_Layer::OnUIRender()
             if (ImGui::Button("Apply", ImVec2(buttonWidth, 0)))
             {
                 if (m_OptionPanel->Apply()) {
-                    m_IsConnected = false;  // 配置变更后断开连接
+                    if (m_RobotCommManager) m_RobotCommManager->Disconnect();
                 }
             }
 
@@ -345,140 +363,102 @@ void Robot_UI_Layer::OnUIRender()
     {
         if (ImGui::Begin("Robot Status", &m_RobotStatusOpen))
         {
-            if (m_IsConnected) {
-                if (ImGui::Button("Disconnect")) {
-                    m_IsConnected = false;
-                }
-            }
-            else {
-                if (ImGui::Button("Connect")) {
-                    if (m_RobotAPI && m_OptionPanel->GetRobotConfig()) {
-                        auto& config = m_OptionPanel->GetRobotConfig();
-                        m_IsConnected = m_RobotAPI->Initialize(
-                            config->GetActiveHostIP(),
-                            config->GetActiveRemotePort(),
-                            config->GetActiveLocalPort());
-                    }
-                }
-            }
-
             ImGui::Separator();
+            // 无锁读取：一次 atomic load 获取整帧一致的命令快照
+            auto cmd = m_CurrentCommand.load(std::memory_order_acquire);
+            if (!cmd) cmd = std::make_shared<const ActuatorData>();
 
-            // Mode/Type selector
-            if (m_OptionPanel->GetRobotConfig()) {
-                auto& activeModes = m_OptionPanel->GetRobotConfig()->GetActiveModes();
-                int activeIdx = m_OptionPanel->GetRobotConfig()->GetActiveModeIndex();
-                if (!activeModes.empty() && activeIdx >= 0 && activeIdx < (int)activeModes.size()) {
-                    std::string preview = activeModes[activeIdx].name;
-                    ImGui::Text("Type:"); ImGui::SameLine();
-                    if (ImGui::BeginCombo("##TypeSelect", preview.c_str())) {
-                        for (int i = 0; i < (int)activeModes.size(); ++i) {
-                            bool isSelected = (i == activeIdx);
-                            if (ImGui::Selectable(activeModes[i].name, isSelected)) {
-                                m_OptionPanel->GetRobotConfig()->SetActiveModeIndex(i);
-                                SyncNodeEditorModes();
-                            }
-                            if (isSelected) ImGui::SetItemDefaultFocus();
-                        }
-                        ImGui::EndCombo();
-                    }
-
-                    ImGui::Separator();
-                    std::lock_guard<std::mutex> lock(m_CommandMutex);
-
-                    // === Actuator — TreeNodes for hierarchy ===
-                    if (ImGui::CollapsingHeader("Actuator", ImGuiTreeNodeFlags_DefaultOpen)) {
-                        const auto& sendCfg = m_OptionPanel->GetRobotConfig()->GetActiveProtocolConfig();
-                        if (sendCfg.fields.empty()) {
-                            ImGui::TextDisabled("  No send fields configured");
-                        } else {
-                            std::map<std::string, std::vector<const SendField*>> groups;
-                            for (const auto& f : sendCfg.fields)
-                                groups[f.group.empty() ? "Default" : f.group].push_back(&f);
-                            ImGui::Indent();
-                            for (const auto& g : groups) {
-                                if (ImGui::TreeNodeEx(g.first.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
-                                    int visibleCnt = 0;
-                                    for (const auto* f : g.second) {
-                                        if (!f->visible) continue;
-                                        ++visibleCnt;
-                                        float val = 0.0f;
-                                        if (f->field_path == "motion.x")  val = (float)m_CurrentCommand.motion.x;
-                                        else if (f->field_path == "motion.y")  val = (float)m_CurrentCommand.motion.y;
-                                        else if (f->field_path == "motion.z")  val = (float)m_CurrentCommand.motion.z;
-                                        else if (f->field_path == "motion.rx") val = (float)m_CurrentCommand.motion.rx;
-                                        else if (f->field_path == "motion.ry") val = (float)m_CurrentCommand.motion.ry;
-                                        else if (f->field_path == "motion.rz") val = (float)m_CurrentCommand.motion.rz;
-                                        else if (f->field_path.find("brushlessmotor.") == 0) {
-                                            auto dot = f->field_path.find('.', 15);
-                                            std::string idStr = f->field_path.substr(15, dot - 15);
-                                            int mid = atoi(idStr.c_str());
-                                            std::string sub = f->field_path.substr(dot + 1);
-                                            if (m_CurrentCommand.brushlessmotor.count(mid)) {
-                                                if (sub == "target_speed") val = (float)m_CurrentCommand.brushlessmotor[mid].target_speed.value;
-                                            }
-                                        }
-                                        else if (f->field_path.find("servo.") == 0) {
-                                            auto dot = f->field_path.find('.', 6);
-                                            std::string idStr = f->field_path.substr(6, dot - 6);
-                                            int sid = atoi(idStr.c_str());
-                                            if (m_CurrentCommand.servo.count(sid))
-                                                val = (float)m_CurrentCommand.servo[sid].angle.value;
-                                        }
-                                        ImGui::Text("  %s = %.2f", f->name.c_str(), val);
+            // === Actuator — TreeNodes for hierarchy ===
+            if (ImGui::CollapsingHeader("Actuator", ImGuiTreeNodeFlags_DefaultOpen)) {
+                const auto& sendCfg = m_OptionPanel->GetRobotConfig()->GetActiveProtocolConfig();
+                if (sendCfg.fields.empty()) {
+                    ImGui::TextDisabled("  No send fields configured");
+                } else {
+                    std::map<std::string, std::vector<const SendField*>> groups;
+                    for (const auto& f : sendCfg.fields)
+                        groups[f.group.empty() ? "Default" : f.group].push_back(&f);
+                    ImGui::Indent();
+                    for (const auto& g : groups) {
+                        if (ImGui::TreeNodeEx(g.first.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+                            int visibleCnt = 0;
+                            for (const auto* f : g.second) {
+                                if (!f->visible) continue;
+                                ++visibleCnt;
+                                float val = 0.0f;
+                                if (f->field_path == "motion.x")  val = (float)cmd->motion.x;
+                                else if (f->field_path == "motion.y")  val = (float)cmd->motion.y;
+                                else if (f->field_path == "motion.z")  val = (float)cmd->motion.z;
+                                else if (f->field_path == "motion.rx") val = (float)cmd->motion.rx;
+                                else if (f->field_path == "motion.ry") val = (float)cmd->motion.ry;
+                                else if (f->field_path == "motion.rz") val = (float)cmd->motion.rz;
+                                else if (f->field_path.find("brushlessmotor.") == 0) {
+                                    auto dot = f->field_path.find('.', 15);
+                                    std::string idStr = f->field_path.substr(15, dot - 15);
+                                    int mid = atoi(idStr.c_str());
+                                    std::string sub = f->field_path.substr(dot + 1);
+                                    if (cmd->brushlessmotor.count(mid)) {
+                                        if (sub == "target_speed") val = (float)cmd->brushlessmotor.at(mid).target_speed.value;
                                     }
-                                    if (visibleCnt == 0) ImGui::TextDisabled("  (no visible fields)");
-                                    ImGui::TreePop();
                                 }
-                            }
-                            ImGui::Unindent();
-                        }
-                    }
-
-                    // === Sensor — TreeNodes with indent for hierarchy ===
-                    if (ImGui::CollapsingHeader("Sensor", ImGuiTreeNodeFlags_DefaultOpen)) {
-                        const auto& recvCfg = m_OptionPanel->GetRobotConfig()->GetActiveProtocolReceiveConfig();
-                        if (recvCfg.fields.empty()) {
-                            ImGui::TextDisabled("  No receive fields configured");
-                        } else {
-                            std::map<std::string, std::vector<const ReceiveField*>> groups;
-                            for (const auto& f : recvCfg.fields)
-                                groups[f.group.empty() ? "Default" : f.group].push_back(&f);
-                            ImGui::Indent();
-                            for (const auto& g : groups) {
-                                if (ImGui::TreeNodeEx(g.first.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
-                                    int visibleCnt = 0;
-                                    SensorData sensorData;
-                                    bool hasData = false;
-                                    if (m_IsConnected && m_RobotAPI) {
-                                        sensorData = m_RobotAPI->GetSensorData();
-                                        hasData = sensorData.is_valid;
-                                    }
-                                    for (const auto* f : g.second) {
-                                        if (!f->visible) continue;
-                                        ++visibleCnt;
-                                        float val = 0.0f;
-                                        if (hasData) {
-                                            if (f->field_path == "temperature.value") val = (float)sensorData.temperature.value;
-                                            else if (f->field_path == "humidity.value") val = (float)sensorData.humidity.value;
-                                            else if (f->field_path == "depth.value") val = (float)sensorData.depth.value;
-                                        }
-                                        if (hasData)
-                                            ImGui::Text("  %s = %.2f", f->name.c_str(), val);
-                                        else
-                                            ImGui::Text("  %s = --", f->name.c_str());
-                                    }
-                                    if (visibleCnt == 0) ImGui::TextDisabled("  (no visible fields)");
-                                    ImGui::TreePop();
+                                else if (f->field_path.find("servo.") == 0) {
+                                    auto dot = f->field_path.find('.', 6);
+                                    std::string idStr = f->field_path.substr(6, dot - 6);
+                                    int sid = atoi(idStr.c_str());
+                                    if (cmd->servo.count(sid))
+                                        val = (float)cmd->servo.at(sid).angle.value;
                                 }
+                                ImGui::Text("  %s = %.2f", f->name.c_str(), val);
                             }
-                            ImGui::Unindent();
+                            if (visibleCnt == 0) ImGui::TextDisabled("  (no visible fields)");
+                            ImGui::TreePop();
                         }
                     }
+                    ImGui::Unindent();
                 }
             }
-        }
+
+            // === Sensor — TreeNodes with indent for hierarchy ===
+            if (ImGui::CollapsingHeader("Sensor", ImGuiTreeNodeFlags_DefaultOpen)) {
+                const auto& recvCfg = m_OptionPanel->GetRobotConfig()->GetActiveProtocolReceiveConfig();
+                if (recvCfg.fields.empty()) {
+                    ImGui::TextDisabled("  No receive fields configured");
+                } else {
+                    std::map<std::string, std::vector<const ReceiveField*>> groups;
+                    for (const auto& f : recvCfg.fields)
+                        groups[f.group.empty() ? "Default" : f.group].push_back(&f);
+                    ImGui::Indent();
+                    for (const auto& g : groups) {
+                        if (ImGui::TreeNodeEx(g.first.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+                            int visibleCnt = 0;
+                            SensorData sensorData;
+                            bool hasData = false;
+                            if (m_RobotCommManager->IsConnected()) {
+                                sensorData = m_RobotCommManager->GetSensorData();
+                                hasData = sensorData.is_valid;
+                            }
+                            for (const auto* f : g.second) {
+                                if (!f->visible) continue;
+                                ++visibleCnt;
+                                float val = 0.0f;
+                                if (hasData) {
+                                    if (f->field_path == "temperature.value") val = (float)sensorData.temperature.value;
+                                    else if (f->field_path == "humidity.value") val = (float)sensorData.humidity.value;
+                                    else if (f->field_path == "depth.value") val = (float)sensorData.depth.value;
+                                }
+                                if (hasData)
+                                    ImGui::Text("  %s = %.2f", f->name.c_str(), val);
+                                else
+                                    ImGui::Text("  %s = --", f->name.c_str());
+                            }
+                            if (visibleCnt == 0) ImGui::TextDisabled("  (no visible fields)");
+                            ImGui::TreePop();
+                        }
+                    }
+                    ImGui::Unindent();
+                }
+            }
         ImGui::End();
+        }
     }
 
     // 节点编辑器窗口
@@ -487,23 +467,48 @@ void Robot_UI_Layer::OnUIRender()
         // 同步可用键位名（来自 GamepadMapper）
         if (m_OptionPanel && m_OptionPanel->GetGamepadMapper())
         {
-            std::vector<std::string> keyNames;
             const auto& modes = m_OptionPanel->GetGamepadMapper()->GetModes();
             int activeIdx = m_OptionPanel->GetGamepadMapper()->GetActiveModeIndex();
+
+            // 同步模式名列表（供 NodeEditor 顶部下拉切换）
+            std::vector<std::string> modeNames;
+            for (const auto& m : modes)
+                modeNames.push_back(m.name);
+            m_NodeEditor->SetModeNames(modeNames, activeIdx);
+
+            // 同步当前模式的键位名
+            std::vector<std::string> keyNames;
+            std::set<std::string> analogKeys;
             if (activeIdx >= 0 && activeIdx < (int)modes.size())
             {
-                for (const auto& mapping : modes[activeIdx].mappings)
+                for (const auto& mapping : modes[activeIdx].mappings) {
                     keyNames.push_back(mapping.key_name);
+                    if (mapping.is_analog) {
+                        analogKeys.insert(mapping.key_name);
+                    }
+                }
             }
             m_NodeEditor->SetAvailableKeyNames(keyNames);
+            m_NodeEditor->SetAnalogKeys(analogKeys);
         }
 
-        // 同步可用输出目标（ActuatorData 字段路径）
+        // 同步可用输出目标（来自 protocol send fields，排除 fix）
         if (m_OptionPanel && m_OptionPanel->GetRobotConfig())
         {
-            auto data = m_OptionPanel->GetRobotConfig()->GetActiveActuatorConfig();
-            auto targets = GetActuatorOutputTargets(data);
+            auto& cfg = m_OptionPanel->GetRobotConfig();
+            const auto& proto = cfg->GetActiveProtocolConfig();
+            auto data = cfg->GetActiveActuatorConfig();
+            auto targets = BuildOutputTargetsFromProtocol(proto, data);
             m_NodeEditor->SetAvailableOutputTargets(targets);
+
+            // 同步当前 actuator field 值（field_path → value）
+            std::map<std::string, double> fieldVals;
+            for (const auto& t : targets) {
+                double val = 0.0;
+                if (GetActuatorField(data, t.field_path, val))
+                    fieldVals[t.field_path] = val;
+            }
+            m_NodeEditor->SetFieldValues(fieldVals);
         }
 
         m_NodeEditorOpen = m_NodeEditor->Draw();
@@ -516,7 +521,13 @@ void Robot_UI_Layer::OnUIRender()
         m_ThrustCurveEditorOpen = m_ThrustCurveEditor->IsOpen();
     }
 
-    // 协议配置窗口
+    // RobotComm Configuration
+    if (m_RobotCommManager)
+    {
+        m_RobotCommManager->DrawUI("Robot Comm", &m_RobotCommOpen);
+    }
+
+    // Protocol Field Configuration 子窗口
     if (m_OptionPanel && m_OptionPanel->GetRobotConfig())
     {
         m_OptionPanel->GetRobotConfig()->DrawProtocolConfigWindow();
@@ -532,6 +543,12 @@ void Robot_UI_Layer::ShowThrustCurveEditor()
 {
     m_ThrustCurveEditor->Open();
     m_ThrustCurveEditorOpen = true;
+}
+
+void Robot_UI_Layer::ShowRobotCommConfig()
+{
+    if (m_RobotCommManager)
+        m_RobotCommManager->OpenConfigWindow();
 }
 
 void Robot_UI_Layer::SyncNodeEditorModes()
@@ -557,9 +574,7 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
 
-    std::shared_ptr<RobotAPI> hardwareAPI = std::make_shared<HardwareInterface>();
-
-    std::shared_ptr<Robot_UI_Layer> uiLayer = std::make_shared<Robot_UI_Layer>(hardwareAPI);
+    std::shared_ptr<Robot_UI_Layer> uiLayer = std::make_shared<Robot_UI_Layer>();
     app->PushLayer(uiLayer);
 
     app->SetMenubarCallback([app, uiLayer]()
@@ -603,6 +618,7 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
             if (ImGui::BeginMenu("View"))
             {
                 ImGui::MenuItem("Live Streamer", nullptr, &uiLayer->GetLiveStreamerOpen());
+                ImGui::MenuItem("Robot Comm", nullptr, &uiLayer->GetShowRobotComm());
                 ImGui::MenuItem("Robot Status", nullptr, &uiLayer->GetShowRobotStatus());
                 ImGui::EndMenu();
             }

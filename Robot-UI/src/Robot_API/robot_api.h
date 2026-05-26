@@ -13,10 +13,16 @@
 
 enum class DataEncoding : uint8_t {
     Float32 = 0,
-    Int16   = 1,
-    Uint16  = 2,
-    Int8    = 3,
-    Uint8   = 4,
+    Float64 = 1,
+    Int8    = 2,
+    Int16   = 3,
+    Int32   = 4,
+    Int64   = 5,
+    Uint8   = 6,
+    Uint16  = 7,
+    Uint32  = 8,
+    Uint64  = 9,
+    Bool    = 10,
 };
 
 // ================== 带编码的数值容器 ==================
@@ -141,16 +147,22 @@ struct ProtocolSendConfig {
 // ================== Inline 工具函数 ==================
 
 inline std::vector<const char*> GetEncodingNames() {
-    return { "Float32", "Int16", "Uint16", "Int8", "Uint8" };
+    return { "Float32", "Float64", "Int8", "Int16", "Int32", "Int64", "Uint8", "Uint16", "Uint32", "Uint64", "Bool" };
 }
 
 inline DataEncoding IndexToEncoding(int idx) {
     switch (idx) {
     case 0:  return DataEncoding::Float32;
-    case 1:  return DataEncoding::Int16;
-    case 2:  return DataEncoding::Uint16;
-    case 3:  return DataEncoding::Int8;
-    case 4:  return DataEncoding::Uint8;
+    case 1:  return DataEncoding::Float64;
+    case 2:  return DataEncoding::Int8;
+    case 3:  return DataEncoding::Int16;
+    case 4:  return DataEncoding::Int32;
+    case 5:  return DataEncoding::Int64;
+    case 6:  return DataEncoding::Uint8;
+    case 7:  return DataEncoding::Uint16;
+    case 8:  return DataEncoding::Uint32;
+    case 9:  return DataEncoding::Uint64;
+    case 10: return DataEncoding::Bool;
     default: return DataEncoding::Float32;
     }
 }
@@ -158,10 +170,16 @@ inline DataEncoding IndexToEncoding(int idx) {
 inline int EncodingToIndex(DataEncoding enc) {
     switch (enc) {
     case DataEncoding::Float32: return 0;
-    case DataEncoding::Int16:   return 1;
-    case DataEncoding::Uint16:  return 2;
-    case DataEncoding::Int8:    return 3;
-    case DataEncoding::Uint8:   return 4;
+    case DataEncoding::Float64: return 1;
+    case DataEncoding::Int8:    return 2;
+    case DataEncoding::Int16:   return 3;
+    case DataEncoding::Int32:   return 4;
+    case DataEncoding::Int64:   return 5;
+    case DataEncoding::Uint8:   return 6;
+    case DataEncoding::Uint16:  return 7;
+    case DataEncoding::Uint32:  return 8;
+    case DataEncoding::Uint64:  return 9;
+    case DataEncoding::Bool:    return 10;
     default: return 0;
     }
 }
@@ -169,10 +187,16 @@ inline int EncodingToIndex(DataEncoding enc) {
 inline int GetEncodingByteSize(DataEncoding enc) {
     switch (enc) {
     case DataEncoding::Float32: return 4;
-    case DataEncoding::Int16:   return 2;
-    case DataEncoding::Uint16:  return 2;
+    case DataEncoding::Float64: return 8;
     case DataEncoding::Int8:    return 1;
+    case DataEncoding::Int16:   return 2;
+    case DataEncoding::Int32:   return 4;
+    case DataEncoding::Int64:   return 8;
     case DataEncoding::Uint8:   return 1;
+    case DataEncoding::Uint16:  return 2;
+    case DataEncoding::Uint32:  return 4;
+    case DataEncoding::Uint64:  return 8;
+    case DataEncoding::Bool:    return 1;
     default: return 0;
     }
 }
@@ -191,7 +215,6 @@ struct FieldComponent {
 struct FieldSubField {
     std::string key;         // "x", "target_speed", "curve.np_mid", "value" ...
     std::string label;       // "X", "Target Speed", "Curve np_mid", "Value"
-    DataEncoding encoding;   // 自动编码
 };
 
 // 从 ActuatorData + sensor 标志生成可用组件列表
@@ -232,32 +255,36 @@ inline std::vector<FieldComponent> GetRecvComponents(bool hasTemp, bool hasHum, 
 inline std::vector<FieldSubField> GetSubFields(const FieldComponent& comp) {
     if (comp.id == "motion") {
         return {
-            {"x",  "X",  DataEncoding::Float32},
-            {"y",  "Y",  DataEncoding::Float32},
-            {"z",  "Z",  DataEncoding::Float32},
-            {"rx", "RX", DataEncoding::Float32},
-            {"ry", "RY", DataEncoding::Float32},
-            {"rz", "RZ", DataEncoding::Float32},
+            {"x",  "X"},
+            {"y",  "Y"},
+            {"z",  "Z"},
+            {"rx", "RX"},
+            {"ry", "RY"},
+            {"rz", "RZ"},
         };
     }
     if (comp.id[0] == 'm') { // motor
         return {
-            {"target_speed", "Target Speed", DataEncoding::Float32},
-            {"curve.np_mid", "Curve np_mid", DataEncoding::Float32},
-            {"curve.np_ini", "Curve np_ini", DataEncoding::Float32},
-            {"curve.pp_ini", "Curve pp_ini", DataEncoding::Float32},
-            {"curve.pp_mid", "Curve pp_mid", DataEncoding::Float32},
-            {"curve.nt_end", "Curve nt_end", DataEncoding::Float32},
-            {"curve.nt_mid", "Curve nt_mid", DataEncoding::Float32},
-            {"curve.pt_mid", "Curve pt_mid", DataEncoding::Float32},
-            {"curve.pt_end", "Curve pt_end", DataEncoding::Float32},
+            {"id",           "ID"},
+            {"target_speed", "Target Speed"},
+            {"curve.np_mid", "Curve np_mid"},
+            {"curve.np_ini", "Curve np_ini"},
+            {"curve.pp_ini", "Curve pp_ini"},
+            {"curve.pp_mid", "Curve pp_mid"},
+            {"curve.nt_end", "Curve nt_end"},
+            {"curve.nt_mid", "Curve nt_mid"},
+            {"curve.pt_mid", "Curve pt_mid"},
+            {"curve.pt_end", "Curve pt_end"},
         };
     }
     if (comp.id[0] == 's') { // servo
-        return {{"angle", "Angle", DataEncoding::Float32}};
+        return {
+            {"id",    "ID"},
+            {"angle", "Angle"},
+        };
     }
     // sensors
-    return {{"value", "Value", DataEncoding::Float32}};
+    return {{"value", "Value"}};
 }
 
 // 根据组件 id 解析 field_path 中的组件部分
@@ -353,6 +380,9 @@ inline bool GetActuatorField(const ActuatorData& data, const std::string& path, 
         if (it == data.brushlessmotor.end()) return false;
         const BrushlessMotor& motor = it->second;
 
+        if (segs[2] == "id" && segs.size() == 3) {
+            out = motor.id; return true;
+        }
         if (segs[2] == "target_speed" && segs.size() == 3) {
             out = motor.target_speed; return true;
         }
@@ -376,18 +406,12 @@ inline bool GetActuatorField(const ActuatorData& data, const std::string& path, 
         int id = std::stoi(segs[1]);
         auto it = data.servo.find(id);
         if (it == data.servo.end()) return false;
+        if (segs[2] == "id")    { out = it->second.id;    return true; }
         if (segs[2] == "angle") { out = it->second.angle; return true; }
         return false;
     }
 
     return false;
-}
-
-/// 写入一个 float32 到 payload
-inline void WriteFloat32(std::vector<uint8_t>& payload, double val) {
-    float fv = static_cast<float>(val);
-    uint8_t buf[4]; std::memcpy(buf, &fv, 4);
-    payload.insert(payload.end(), buf, buf + 4);
 }
 
 /// 根据 SendField 列表构建 payload 字节流
@@ -399,7 +423,19 @@ inline std::vector<uint8_t> BuildPayload(const ActuatorData& data, const std::ve
 
         switch (f.encoding) {
         case DataEncoding::Float32: {
-            WriteFloat32(payload, val);
+            float fv = static_cast<float>(val);
+            uint8_t buf[4]; std::memcpy(buf, &fv, 4);
+            payload.insert(payload.end(), buf, buf + 4);
+            break;
+        }
+        case DataEncoding::Float64: {
+            uint8_t buf[8]; std::memcpy(buf, &val, 8);
+            payload.insert(payload.end(), buf, buf + 8);
+            break;
+        }
+        case DataEncoding::Int8: {
+            int8_t iv = static_cast<int8_t>(std::clamp(val, -128.0, 127.0));
+            payload.push_back(static_cast<uint8_t>(iv));
             break;
         }
         case DataEncoding::Int16: {
@@ -408,20 +444,44 @@ inline std::vector<uint8_t> BuildPayload(const ActuatorData& data, const std::ve
             payload.insert(payload.end(), buf, buf + 2);
             break;
         }
+        case DataEncoding::Int32: {
+            int32_t iv = static_cast<int32_t>(std::clamp(val, -2147483648.0, 2147483647.0));
+            uint8_t buf[4]; std::memcpy(buf, &iv, 4);
+            payload.insert(payload.end(), buf, buf + 4);
+            break;
+        }
+        case DataEncoding::Int64: {
+            int64_t iv = static_cast<int64_t>(val);
+            uint8_t buf[8]; std::memcpy(buf, &iv, 8);
+            payload.insert(payload.end(), buf, buf + 8);
+            break;
+        }
+        case DataEncoding::Uint8: {
+            uint8_t uv = static_cast<uint8_t>(std::clamp(val, 0.0, 255.0));
+            payload.push_back(uv);
+            break;
+        }
         case DataEncoding::Uint16: {
             uint16_t uv = static_cast<uint16_t>(std::clamp(val, 0.0, 65535.0));
             uint8_t buf[2]; std::memcpy(buf, &uv, 2);
             payload.insert(payload.end(), buf, buf + 2);
             break;
         }
-        case DataEncoding::Int8: {
-            int8_t iv = static_cast<int8_t>(std::clamp(val, -128.0, 127.0));
-            payload.push_back(static_cast<uint8_t>(iv));
+        case DataEncoding::Uint32: {
+            uint32_t uv = static_cast<uint32_t>(std::clamp(val, 0.0, 4294967295.0));
+            uint8_t buf[4]; std::memcpy(buf, &uv, 4);
+            payload.insert(payload.end(), buf, buf + 4);
             break;
         }
-        case DataEncoding::Uint8: {
-            uint8_t uv = static_cast<uint8_t>(std::clamp(val, 0.0, 255.0));
-            payload.push_back(uv);
+        case DataEncoding::Uint64: {
+            uint64_t uv = static_cast<uint64_t>(val > 0.0 ? val : 0.0);
+            uint8_t buf[8]; std::memcpy(buf, &uv, 8);
+            payload.insert(payload.end(), buf, buf + 8);
+            break;
+        }
+        case DataEncoding::Bool: {
+            uint8_t bv = (val >= 0.5) ? 1 : 0;
+            payload.push_back(bv);
             break;
         }
         default: break;
@@ -514,15 +574,6 @@ inline bool SetSensorField(SensorData& data, const std::string& path, double val
     return false;
 }
 
-/// 从字节流中读取一个 float32（little-endian）
-inline float ReadFloat32(const uint8_t* buf, size_t& offset, size_t len) {
-    if (offset + 4 > len) return 0.f;
-    float val;
-    std::memcpy(&val, buf + offset, 4);
-    offset += 4;
-    return val;
-}
-
 /// 根据 ProtocolReceiveConfig 解析传感器数据帧
 inline SensorData ParseSensorFrame(const std::vector<uint8_t>& raw_data, const ProtocolReceiveConfig& cfg) {
     SensorData data;
@@ -572,10 +623,20 @@ inline SensorData ParseSensorFrame(const std::vector<uint8_t>& raw_data, const P
 
         switch (f.encoding) {
         case DataEncoding::Float32: {
-            double val = static_cast<double>(ReadFloat32(raw_data.data(), fieldOffset, raw_data.size()));
-            fieldOffset -= 4; // ReadFloat32 already advanced, undo
+            float fv; std::memcpy(&fv, raw_data.data() + fieldOffset, 4);
             fieldOffset += 4;
-            SetSensorField(data, f.field_path, val);
+            SetSensorField(data, f.field_path, static_cast<double>(fv));
+            break;
+        }
+        case DataEncoding::Float64: {
+            double dv; std::memcpy(&dv, raw_data.data() + fieldOffset, 8);
+            fieldOffset += 8;
+            SetSensorField(data, f.field_path, dv);
+            break;
+        }
+        case DataEncoding::Int8: {
+            int8_t iv = static_cast<int8_t>(raw_data[fieldOffset++]);
+            SetSensorField(data, f.field_path, static_cast<double>(iv));
             break;
         }
         case DataEncoding::Int16: {
@@ -584,18 +645,41 @@ inline SensorData ParseSensorFrame(const std::vector<uint8_t>& raw_data, const P
             SetSensorField(data, f.field_path, static_cast<double>(iv));
             break;
         }
+        case DataEncoding::Int32: {
+            int32_t iv; std::memcpy(&iv, raw_data.data() + fieldOffset, 4);
+            fieldOffset += 4;
+            SetSensorField(data, f.field_path, static_cast<double>(iv));
+            break;
+        }
+        case DataEncoding::Int64: {
+            int64_t iv; std::memcpy(&iv, raw_data.data() + fieldOffset, 8);
+            fieldOffset += 8;
+            SetSensorField(data, f.field_path, static_cast<double>(iv));
+            break;
+        }
+        case DataEncoding::Uint8: {
+            SetSensorField(data, f.field_path, static_cast<double>(raw_data[fieldOffset++]));
+            break;
+        }
         case DataEncoding::Uint16: {
             uint16_t uv; std::memcpy(&uv, raw_data.data() + fieldOffset, 2);
             fieldOffset += 2;
             SetSensorField(data, f.field_path, static_cast<double>(uv));
             break;
         }
-        case DataEncoding::Int8: {
-            int8_t iv = static_cast<int8_t>(raw_data[fieldOffset++]);
-            SetSensorField(data, f.field_path, static_cast<double>(iv));
+        case DataEncoding::Uint32: {
+            uint32_t uv; std::memcpy(&uv, raw_data.data() + fieldOffset, 4);
+            fieldOffset += 4;
+            SetSensorField(data, f.field_path, static_cast<double>(uv));
             break;
         }
-        case DataEncoding::Uint8: {
+        case DataEncoding::Uint64: {
+            uint64_t uv; std::memcpy(&uv, raw_data.data() + fieldOffset, 8);
+            fieldOffset += 8;
+            SetSensorField(data, f.field_path, static_cast<double>(uv));
+            break;
+        }
+        case DataEncoding::Bool: {
             SetSensorField(data, f.field_path, static_cast<double>(raw_data[fieldOffset++]));
             break;
         }
