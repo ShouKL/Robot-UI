@@ -11,6 +11,7 @@ class GamepadMapper;
 class ImGuiStyleManager;
 class NodeEditor;
 struct StreamConfig;
+struct ThrustCurve;
 
 // UI 状态（窗口开关、活跃索引等），随 .rbt 一同持久化
 struct UIState
@@ -36,6 +37,7 @@ public:
                      const ImGuiStyleManager& styleManager,
                      const std::vector<StreamConfig>& streams,
                      const UIState& uiState,
+                     const ThrustCurve* editorCurve,
                      std::string* outError = nullptr);
 
     // 从 .rbt 文件加载全部配置，直接恢复到传入的对象中，成功返回 true
@@ -45,6 +47,7 @@ public:
                      ImGuiStyleManager& styleManager,
                      std::vector<StreamConfig>& streams,
                      UIState& uiState,
+                     ThrustCurve* editorCurve,
                      std::string* outError = nullptr);
 
     // 默认扩展名
@@ -61,6 +64,7 @@ private:
     static void EmitStyle(YAML::Emitter& out, const ImGuiStyleManager& style);
     static void EmitStreams(YAML::Emitter& out, const std::vector<StreamConfig>& configs);
     static void EmitUIState(YAML::Emitter& out, const UIState& uiState);
+    static void EmitEditorCurve(YAML::Emitter& out, const ThrustCurve& curve);
 
     // ======================== YAML 读取（基于 yaml-cpp） ========================
     static bool ApplyRobotConfig(const YAML::Node& node, Robot_Config& config, std::string* outError);
@@ -68,6 +72,7 @@ private:
     static bool ApplyStyle(const YAML::Node& node, ImGuiStyleManager& style, std::string* outError);
     static bool ApplyStreams(const YAML::Node& node, std::vector<StreamConfig>& streams, std::string* outError);
     static bool ApplyUIState(const YAML::Node& node, UIState& uiState, std::string* outError);
+    static bool ApplyEditorCurve(const YAML::Node& node, ThrustCurve& curve, std::string* outError);
 
     // ======================== 节点图持久化 ========================
     static std::string EmitNodeGraphYaml(const std::string& nodeGraph);

@@ -7,6 +7,17 @@
 #include <chrono>
 #include <commdlg.h>   // GetOpenFileNameA / GetSaveFileNameA
 
+// 获取 exe 所在目录（含尾部反斜杠），作为文件对话框默认路径
+static std::string GetExeDir()
+{
+    char exePath[MAX_PATH] = "";
+    GetModuleFileNameA(nullptr, exePath, sizeof(exePath));
+    size_t pos = std::string(exePath).find_last_of("\\/");
+    if (pos != std::string::npos)
+        return std::string(exePath).substr(0, pos + 1);
+    return "";
+}
+
 Robot_UI_Layer::Robot_UI_Layer(std::shared_ptr<RobotAPI> robotAPI)
     : m_AboutOpen(false), m_OptionOpen(false),
     m_SimulationOpen(false), m_LiveStreamerOpen(true), m_RobotStatusOpen(true), m_NodeEditorOpen(false),
@@ -17,9 +28,14 @@ Robot_UI_Layer::Robot_UI_Layer(std::shared_ptr<RobotAPI> robotAPI)
 
     // NodeEditor creates its own ed::EditorContext internally
     m_NodeEditor = std::make_unique<NodeEditor>();
+    m_ThrustCurveEditor = std::make_unique<ThrustCurveEditor>();
 
     m_Running = true;
     m_GamepadThread = std::thread(&Robot_UI_Layer::GamepadRoutine, this);
+
+    // 启动时自动加载 exe 同目录下的 default_config.rbt
+    std::string defaultPath = GetExeDir() + "default_config.rbt";
+    LoadConfigFile(defaultPath);
 }
 
 Robot_UI_Layer::~Robot_UI_Layer()
@@ -37,12 +53,14 @@ static std::string Win32OpenFileDialog(const char* filter)
 {
     HWND hwnd = GetActiveWindow();
     char filePath[MAX_PATH] = "";
+    std::string exeDir = GetExeDir();  // 必须存为局部变量，否则 c_str() 悬空
     OPENFILENAMEA ofn = {};
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = hwnd;
     ofn.lpstrFilter = filter;
     ofn.lpstrFile = filePath;
     ofn.nMaxFile = sizeof(filePath);
+    ofn.lpstrInitialDir = exeDir.c_str();
     ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_NOCHANGEDIR;
     if (GetOpenFileNameA(&ofn))
         return filePath;
@@ -53,6 +71,7 @@ static std::string Win32SaveFileDialog(const char* filter, const char* defaultEx
 {
     HWND hwnd = GetActiveWindow();
     char filePath[MAX_PATH] = "";
+    std::string exeDir = GetExeDir();  // 必须存为局部变量，否则 c_str() 悬空
     OPENFILENAMEA ofn = {};
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = hwnd;
@@ -60,6 +79,7 @@ static std::string Win32SaveFileDialog(const char* filter, const char* defaultEx
     ofn.lpstrFile = filePath;
     ofn.nMaxFile = sizeof(filePath);
     ofn.lpstrDefExt = defaultExt;
+    ofn.lpstrInitialDir = exeDir.c_str();
     ofn.Flags = OFN_OVERWRITEPROMPT | OFN_HIDEREADONLY | OFN_NOCHANGEDIR;
     if (GetSaveFileNameA(&ofn))
         return filePath;
@@ -81,6 +101,7 @@ void Robot_UI_Layer::FileOpen()
         *m_OptionPanel->GetImGuiStyleManager(),
         streams,
         uiState,
+        &m_ThrustCurveEditor->GetCurve(),
         &error);
 
     HWND hwnd = GetActiveWindow();
@@ -133,7 +154,9 @@ void Robot_UI_Layer::FileSave()
                                 *m_OptionPanel->GetRobotConfig(),
                                 *m_OptionPanel->GetGamepadMapper(),
                                 *m_OptionPanel->GetImGuiStyleManager(),
-                                streams, uiState, &error))
+                                streams, uiState,
+                                &m_ThrustCurveEditor->GetCurve(),
+                                &error))
     {
         MessageBoxA(GetActiveWindow(), error.c_str(), "Save Failed", MB_OK | MB_ICONWARNING);
     }
@@ -149,6 +172,48 @@ void Robot_UI_Layer::FileSaveAs()
 
     MessageBoxA(GetActiveWindow(), ("Configuration saved to:\n" + path).c_str(),
                 "Save Success", MB_OK | MB_ICONINFORMATION);
+}
+
+void Robot_UI_Layer::LoadConfigFile(const std::string& path)
+{
+    std::vector<StreamConfig> streams;
+    UIState uiState;
+    std::string error;
+    if (!ConfigSerializer::Load(
+            path,
+            *m_OptionPanel->GetRobotConfig(),
+            *m_OptionPanel->GetGamepadMapper(),
+            *m_OptionPanel->GetImGuiStyleManager(),
+            streams, uiState,
+            &m_ThrustCurveEditor->GetCurve(),
+            &error))
+    {
+        return;  // 静默失败（文件不存在或格式错误）
+    }
+
+    m_CurrentSavePath = path;
+    m_IsConnected = false;
+
+    // 恢复 UI 状态
+    ApplyUIState(uiState);
+
+    // 加载当前活跃模式的节点图
+    if (m_NodeEditor && m_OptionPanel->GetRobotConfig())
+    {
+        auto& activeModes = m_OptionPanel->GetRobotConfig()->GetActiveModes();
+        int idx = m_OptionPanel->GetRobotConfig()->GetActiveModeIndex();
+        if (idx >= 0 && idx < (int)activeModes.size())
+            m_NodeEditor->LoadGraphYaml(activeModes[idx].node_graph);
+    }
+}
+
+UIState Robot_UI_Layer::CollectUIState() const
+{
+    return {};
+}
+
+void Robot_UI_Layer::ApplyUIState(const UIState&)
+{
 }
 
 void Robot_UI_Layer::GamepadRoutine()
@@ -299,43 +364,118 @@ void Robot_UI_Layer::OnUIRender()
 
             ImGui::Separator();
 
-            std::string currentModeName = "None";
+            // Mode/Type selector
             if (m_OptionPanel->GetRobotConfig()) {
-                currentModeName = m_OptionPanel->GetRobotConfig()->GetActiveModeName();
-            }
-            ImGui::Text("Current Mode: %s", currentModeName.c_str());
+                auto& activeModes = m_OptionPanel->GetRobotConfig()->GetActiveModes();
+                int activeIdx = m_OptionPanel->GetRobotConfig()->GetActiveModeIndex();
+                if (!activeModes.empty() && activeIdx >= 0 && activeIdx < (int)activeModes.size()) {
+                    std::string preview = activeModes[activeIdx].name;
+                    ImGui::Text("Type:"); ImGui::SameLine();
+                    if (ImGui::BeginCombo("##TypeSelect", preview.c_str())) {
+                        for (int i = 0; i < (int)activeModes.size(); ++i) {
+                            bool isSelected = (i == activeIdx);
+                            if (ImGui::Selectable(activeModes[i].name, isSelected)) {
+                                m_OptionPanel->GetRobotConfig()->SetActiveModeIndex(i);
+                                SyncNodeEditorModes();
+                            }
+                            if (isSelected) ImGui::SetItemDefaultFocus();
+                        }
+                        ImGui::EndCombo();
+                    }
 
-            std::lock_guard<std::mutex> lock(m_CommandMutex);
-            ImGui::Text("Current Motion Command:");
-            ImGui::Text("X (Forward/Back): %.2f", m_CurrentCommand.motion.x);
-            ImGui::Text("Y (Left/Right):   %.2f", m_CurrentCommand.motion.y);
-            ImGui::Text("Z (Up/Down):      %.2f", m_CurrentCommand.motion.z);
-            ImGui::Text("Roll (RX):        %.2f", m_CurrentCommand.motion.rx);
-            ImGui::Text("Pitch (RY):       %.2f", m_CurrentCommand.motion.ry);
-            ImGui::Text("Yaw (RZ):         %.2f", m_CurrentCommand.motion.rz);
+                    ImGui::Separator();
+                    std::lock_guard<std::mutex> lock(m_CommandMutex);
 
-            ImGui::Separator();
-            ImGui::Text("Sensor Data:");
-            if (m_RobotAPI && m_IsConnected)
-            {
-                SensorData sensorData = m_RobotAPI->GetSensorData();
-                if (sensorData.is_valid)
-                {
-                    if (m_OptionPanel->GetRobotConfig()->HasTemperature())
-                        ImGui::Text("Temperature: %.2f *C", sensorData.temperature.value);
-                    if (m_OptionPanel->GetRobotConfig()->HasHumidity())
-                        ImGui::Text("Humidity:    %.2f %%", sensorData.humidity.value);
-                    if (m_OptionPanel->GetRobotConfig()->HasDepth())
-                        ImGui::Text("Depth:       %.2f m", sensorData.depth.value);
+                    // === Actuator — TreeNodes for hierarchy ===
+                    if (ImGui::CollapsingHeader("Actuator", ImGuiTreeNodeFlags_DefaultOpen)) {
+                        const auto& sendCfg = m_OptionPanel->GetRobotConfig()->GetActiveProtocolConfig();
+                        if (sendCfg.fields.empty()) {
+                            ImGui::TextDisabled("  No send fields configured");
+                        } else {
+                            std::map<std::string, std::vector<const SendField*>> groups;
+                            for (const auto& f : sendCfg.fields)
+                                groups[f.group.empty() ? "Default" : f.group].push_back(&f);
+                            ImGui::Indent();
+                            for (const auto& g : groups) {
+                                if (ImGui::TreeNodeEx(g.first.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+                                    int visibleCnt = 0;
+                                    for (const auto* f : g.second) {
+                                        if (!f->visible) continue;
+                                        ++visibleCnt;
+                                        float val = 0.0f;
+                                        if (f->field_path == "motion.x")  val = (float)m_CurrentCommand.motion.x;
+                                        else if (f->field_path == "motion.y")  val = (float)m_CurrentCommand.motion.y;
+                                        else if (f->field_path == "motion.z")  val = (float)m_CurrentCommand.motion.z;
+                                        else if (f->field_path == "motion.rx") val = (float)m_CurrentCommand.motion.rx;
+                                        else if (f->field_path == "motion.ry") val = (float)m_CurrentCommand.motion.ry;
+                                        else if (f->field_path == "motion.rz") val = (float)m_CurrentCommand.motion.rz;
+                                        else if (f->field_path.find("brushlessmotor.") == 0) {
+                                            auto dot = f->field_path.find('.', 15);
+                                            std::string idStr = f->field_path.substr(15, dot - 15);
+                                            int mid = atoi(idStr.c_str());
+                                            std::string sub = f->field_path.substr(dot + 1);
+                                            if (m_CurrentCommand.brushlessmotor.count(mid)) {
+                                                if (sub == "target_speed") val = (float)m_CurrentCommand.brushlessmotor[mid].target_speed.value;
+                                            }
+                                        }
+                                        else if (f->field_path.find("servo.") == 0) {
+                                            auto dot = f->field_path.find('.', 6);
+                                            std::string idStr = f->field_path.substr(6, dot - 6);
+                                            int sid = atoi(idStr.c_str());
+                                            if (m_CurrentCommand.servo.count(sid))
+                                                val = (float)m_CurrentCommand.servo[sid].angle.value;
+                                        }
+                                        ImGui::Text("  %s = %.2f", f->name.c_str(), val);
+                                    }
+                                    if (visibleCnt == 0) ImGui::TextDisabled("  (no visible fields)");
+                                    ImGui::TreePop();
+                                }
+                            }
+                            ImGui::Unindent();
+                        }
+                    }
+
+                    // === Sensor — TreeNodes with indent for hierarchy ===
+                    if (ImGui::CollapsingHeader("Sensor", ImGuiTreeNodeFlags_DefaultOpen)) {
+                        const auto& recvCfg = m_OptionPanel->GetRobotConfig()->GetActiveProtocolReceiveConfig();
+                        if (recvCfg.fields.empty()) {
+                            ImGui::TextDisabled("  No receive fields configured");
+                        } else {
+                            std::map<std::string, std::vector<const ReceiveField*>> groups;
+                            for (const auto& f : recvCfg.fields)
+                                groups[f.group.empty() ? "Default" : f.group].push_back(&f);
+                            ImGui::Indent();
+                            for (const auto& g : groups) {
+                                if (ImGui::TreeNodeEx(g.first.c_str(), ImGuiTreeNodeFlags_DefaultOpen)) {
+                                    int visibleCnt = 0;
+                                    SensorData sensorData;
+                                    bool hasData = false;
+                                    if (m_IsConnected && m_RobotAPI) {
+                                        sensorData = m_RobotAPI->GetSensorData();
+                                        hasData = sensorData.is_valid;
+                                    }
+                                    for (const auto* f : g.second) {
+                                        if (!f->visible) continue;
+                                        ++visibleCnt;
+                                        float val = 0.0f;
+                                        if (hasData) {
+                                            if (f->field_path == "temperature.value") val = (float)sensorData.temperature.value;
+                                            else if (f->field_path == "humidity.value") val = (float)sensorData.humidity.value;
+                                            else if (f->field_path == "depth.value") val = (float)sensorData.depth.value;
+                                        }
+                                        if (hasData)
+                                            ImGui::Text("  %s = %.2f", f->name.c_str(), val);
+                                        else
+                                            ImGui::Text("  %s = --", f->name.c_str());
+                                    }
+                                    if (visibleCnt == 0) ImGui::TextDisabled("  (no visible fields)");
+                                    ImGui::TreePop();
+                                }
+                            }
+                            ImGui::Unindent();
+                        }
+                    }
                 }
-                else
-                {
-                    ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Sensor data offline or invalid");
-                }
-            }
-            else
-            {
-                ImGui::TextDisabled("Robot API Not Connected");
             }
         }
         ImGui::End();
@@ -366,7 +506,20 @@ void Robot_UI_Layer::OnUIRender()
             m_NodeEditor->SetAvailableOutputTargets(targets);
         }
 
-        m_NodeEditor->Draw();
+        m_NodeEditorOpen = m_NodeEditor->Draw();
+    }
+
+    // 推力曲线编辑器窗口
+    if (m_ThrustCurveEditorOpen && m_ThrustCurveEditor)
+    {
+        m_ThrustCurveEditor->Draw();
+        m_ThrustCurveEditorOpen = m_ThrustCurveEditor->IsOpen();
+    }
+
+    // 协议配置窗口
+    if (m_OptionPanel && m_OptionPanel->GetRobotConfig())
+    {
+        m_OptionPanel->GetRobotConfig()->DrawProtocolConfigWindow();
     }
 }
 
@@ -377,6 +530,7 @@ void Robot_UI_Layer::ShowNodeEditor()
 
 void Robot_UI_Layer::ShowThrustCurveEditor()
 {
+    m_ThrustCurveEditor->Open();
     m_ThrustCurveEditorOpen = true;
 }
 
@@ -432,6 +586,20 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
                 ImGui::EndMenu();
             }
 
+            if (ImGui::BeginMenu("Editor"))
+            {
+                if (ImGui::MenuItem("Node Editor"))
+                {
+                    uiLayer->ShowNodeEditor();
+                }
+                if (ImGui::MenuItem("Thrust Curve Editor"))
+                {
+                    uiLayer->ShowThrustCurveEditor();
+                }
+                ImGui::EndMenu();
+            }
+                
+
             if (ImGui::BeginMenu("View"))
             {
                 ImGui::MenuItem("Live Streamer", nullptr, &uiLayer->GetLiveStreamerOpen());
@@ -444,10 +612,6 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
                 if (ImGui::MenuItem("Option"))
                 {
                     uiLayer->ShowOption();
-                }
-                if (ImGui::MenuItem("Node Editor"))
-                {
-                    uiLayer->ShowNodeEditor();
                 }
                 if (ImGui::MenuItem("About"))
                 {

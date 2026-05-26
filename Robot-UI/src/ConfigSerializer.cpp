@@ -16,6 +16,7 @@ bool ConfigSerializer::Save(const std::string& filepath,
                             const ImGuiStyleManager& styleManager,
                             const std::vector<StreamConfig>& streams,
                             const UIState& uiState,
+                            const ThrustCurve* editorCurve,
                             std::string* outError)
 {
     try
@@ -31,6 +32,7 @@ bool ConfigSerializer::Save(const std::string& filepath,
         EmitStyle(out, styleManager);
         EmitStreams(out, streams);
         EmitUIState(out, uiState);
+        if (editorCurve) EmitEditorCurve(out, *editorCurve);
 
         out << YAML::EndMap;  // robot_ui_config
         out << YAML::EndMap;  // root
@@ -69,6 +71,7 @@ bool ConfigSerializer::Load(const std::string& filepath,
                             ImGuiStyleManager& styleManager,
                             std::vector<StreamConfig>& streams,
                             UIState& uiState,
+                            ThrustCurve* editorCurve,
                             std::string* outError)
 {
     try
@@ -115,6 +118,15 @@ bool ConfigSerializer::Load(const std::string& filepath,
         {
             if (!ApplyUIState(uiNode, uiState, outError))
                 return false;
+        }
+
+        if (editorCurve)
+        {
+            if (const YAML::Node& curveNode = cfg["thrust_curve_editor"]; curveNode.IsDefined())
+            {
+                if (!ApplyEditorCurve(curveNode, *editorCurve, outError))
+                    return false;
+            }
         }
 
         return true;
@@ -195,6 +207,13 @@ void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const Robot_Config& c
             out << YAML::Key << "pt_mid_enc" << YAML::Value << static_cast<int>(m.curve.pt_mid.encoding);
             out << YAML::Key << "pt_end" << YAML::Value << m.curve.pt_end;
             out << YAML::Key << "pt_end_enc" << YAML::Value << static_cast<int>(m.curve.pt_end.encoding);
+            out << YAML::Key << "pwm_min" << YAML::Value << m.curve.pwm_min;
+            out << YAML::Key << "pwm_max" << YAML::Value << m.curve.pwm_max;
+            // Raw user points
+            if (!m.curve.raw_thrust.empty()) {
+                out << YAML::Key << "raw_thrust" << YAML::Value << YAML::Flow << m.curve.raw_thrust;
+                out << YAML::Key << "raw_pwm" << YAML::Value << YAML::Flow << m.curve.raw_pwm;
+            }
             out << YAML::EndMap;
         }
         out << YAML::EndSeq;
@@ -582,6 +601,15 @@ bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, Robot_Confi
                 if (const YAML::Node& n = mItem["pt_mid_enc"]; n.IsDefined()) bm.curve.pt_mid.encoding = static_cast<DataEncoding>(n.as<int>());
                 if (const YAML::Node& n = mItem["pt_end"]; n.IsDefined())  bm.curve.pt_end = n.as<double>();
                 if (const YAML::Node& n = mItem["pt_end_enc"]; n.IsDefined()) bm.curve.pt_end.encoding = static_cast<DataEncoding>(n.as<int>());
+                if (const YAML::Node& n = mItem["pwm_min"]; n.IsDefined())  bm.curve.pwm_min = n.as<float>();
+                if (const YAML::Node& n = mItem["pwm_max"]; n.IsDefined())  bm.curve.pwm_max = n.as<float>();
+                // Raw user points
+                if (const YAML::Node& rt = mItem["raw_thrust"]; rt.IsDefined() && rt.IsSequence()) {
+                    for (const auto& v : rt) bm.curve.raw_thrust.push_back(v.as<double>());
+                }
+                if (const YAML::Node& rp = mItem["raw_pwm"]; rp.IsDefined() && rp.IsSequence()) {
+                    for (const auto& v : rp) bm.curve.raw_pwm.push_back(v.as<float>());
+                }
                 // Backward compat: old single "encoding" key
                 if (const YAML::Node& n = mItem["encoding"]; n.IsDefined()) {
                     DataEncoding oldEnc = static_cast<DataEncoding>(n.as<int>());
@@ -956,4 +984,59 @@ std::string ConfigSerializer::SaveFileDialog(const char* filter, const char* def
     if (GetSaveFileNameA(&ofn))
         return filePath;
     return "";
+}
+
+// ============================================================================
+//  Thrust Curve Editor 独立曲线持久化
+// ============================================================================
+
+void ConfigSerializer::EmitEditorCurve(YAML::Emitter& out, const ThrustCurve& curve)
+{
+    out << YAML::Key << "thrust_curve_editor" << YAML::Value << YAML::BeginMap;
+
+    out << YAML::Key << "pwm_min" << YAML::Value << curve.pwm_min;
+    out << YAML::Key << "pwm_max" << YAML::Value << curve.pwm_max;
+    out << YAML::Key << "default_pwm" << YAML::Value << curve.default_pwm;
+    out << YAML::Key << "np_mid" << YAML::Value << curve.np_mid;
+    out << YAML::Key << "np_ini" << YAML::Value << curve.np_ini;
+    out << YAML::Key << "pp_ini" << YAML::Value << curve.pp_ini;
+    out << YAML::Key << "pp_mid" << YAML::Value << curve.pp_mid;
+    out << YAML::Key << "nt_end" << YAML::Value << curve.nt_end;
+    out << YAML::Key << "nt_mid" << YAML::Value << curve.nt_mid;
+    out << YAML::Key << "pt_mid" << YAML::Value << curve.pt_mid;
+    out << YAML::Key << "pt_end" << YAML::Value << curve.pt_end;
+
+    if (!curve.raw_thrust.empty()) {
+        out << YAML::Key << "raw_thrust" << YAML::Value << YAML::Flow << curve.raw_thrust;
+        out << YAML::Key << "raw_pwm" << YAML::Value << YAML::Flow << curve.raw_pwm;
+    }
+
+    out << YAML::EndMap;
+}
+
+bool ConfigSerializer::ApplyEditorCurve(const YAML::Node& node, ThrustCurve& curve, std::string* outError)
+{
+    (void)outError;
+
+    if (const YAML::Node& n = node["pwm_min"]; n.IsDefined()) curve.pwm_min = n.as<float>();
+    if (const YAML::Node& n = node["pwm_max"]; n.IsDefined()) curve.pwm_max = n.as<float>();
+    if (const YAML::Node& n = node["default_pwm"]; n.IsDefined()) curve.default_pwm = n.as<float>();
+    if (const YAML::Node& n = node["np_mid"]; n.IsDefined()) curve.np_mid.value = n.as<double>();
+    if (const YAML::Node& n = node["np_ini"]; n.IsDefined()) curve.np_ini.value = n.as<double>();
+    if (const YAML::Node& n = node["pp_ini"]; n.IsDefined()) curve.pp_ini.value = n.as<double>();
+    if (const YAML::Node& n = node["pp_mid"]; n.IsDefined()) curve.pp_mid.value = n.as<double>();
+    if (const YAML::Node& n = node["nt_end"]; n.IsDefined()) curve.nt_end.value = n.as<double>();
+    if (const YAML::Node& n = node["nt_mid"]; n.IsDefined()) curve.nt_mid.value = n.as<double>();
+    if (const YAML::Node& n = node["pt_mid"]; n.IsDefined()) curve.pt_mid.value = n.as<double>();
+    if (const YAML::Node& n = node["pt_end"]; n.IsDefined()) curve.pt_end.value = n.as<double>();
+
+    curve.raw_thrust.clear(); curve.raw_pwm.clear();
+    if (const YAML::Node& rt = node["raw_thrust"]; rt.IsDefined() && rt.IsSequence()) {
+        for (const auto& v : rt) curve.raw_thrust.push_back(v.as<double>());
+    }
+    if (const YAML::Node& rp = node["raw_pwm"]; rp.IsDefined() && rp.IsSequence()) {
+        for (const auto& v : rp) curve.raw_pwm.push_back(v.as<float>());
+    }
+
+    return true;
 }

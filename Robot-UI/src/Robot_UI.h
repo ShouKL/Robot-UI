@@ -45,11 +45,9 @@ public:
 	void FileOpen();
 	void FileSave();
 	void FileSaveAs();
-	void AutoSaveOnExit();  // 退出时自动保存到默认路径
 
 private:
 	void LoadConfigFile(const std::string& path);  // 静默加载（不弹框）
-	std::string GetDefaultConfigPath() const;       // exe 同目录下的 default_config.rbt
 	UIState CollectUIState() const;                  // 收集当前所有 UI 状态
 	void ApplyUIState(const UIState& st);            // 恢复 UI 状态
 

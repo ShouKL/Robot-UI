@@ -6,9 +6,8 @@
 
 // X=Thrust, Y=PWM Duty — internal storage (Thrust, PWM)
 // Raw points stored as (Thrust, PWM), displayed as-is.
-// Model: PWM = f(Thrust) with 5+1 control points:
-//   (nt_end, PWM-) → (nt_mid, np_mid) → (0, np_ini) → (pt_mid, pp_mid) → (pt_end, PWM+)
-//                                          ↕ origin not used
+// Fitted model: 6 control points connected as polyline:
+//   (nt_end,PwmMin)→(nt_mid,np_mid)→(0,np_ini)→(0,pp_ini)→(pt_mid,pp_mid)→(pt_end,PwmMax)
 
 inline double SamplePWM(const std::vector<ImVec2>& pts, double thrust) {
     if (pts.empty()) return 0.0;
@@ -24,42 +23,37 @@ inline double SamplePWM(const std::vector<ImVec2>& pts, double thrust) {
 }
 
 // Model: Thrust → PWM. p[0..3]=Thrust anchors, p[4..7]=PWM anchors (see FitAndApply)
-inline double EvalModel(double thrust, const double* p) {
-    double pwmm = p[8], pwmp = p[9];
-    if (thrust <= p[0]) return pwmm;
-    if (thrust >= p[3]) return pwmp;
-    if (thrust <= p[1]) { double t = (thrust-p[0])/(p[1]-p[0]); return pwmm + t*(p[5]-pwmm); }
-    if (thrust <= 0.0)  { double t = (thrust-p[1])/(0.0-p[1]);   return p[5] + t*(p[4]-p[5]); }
-    if (thrust <= p[2]) { double t = (thrust-0.0)/(p[2]-0.0);    return p[6] + t*(p[7]-p[6]); }
-    double t = (thrust-p[2])/(p[3]-p[2]); return p[7] + t*(pwmp-p[7]);
-}
 
 class ThrustCurveEditor {
 public:
     ThrustCurveEditor() = default;
     void Open(const char* motorName, ThrustCurve& curve);
-    void OpenStandalone(const char* motorName);
+    void Open();
     void Close() { m_Open = false; }
     bool IsOpen() const { return m_Open; }
     void Draw();
-    // Get the fitted curve as a formatted string for copy-paste
+    ThrustCurve& GetCurve() { return m_OwnCurve; }
     const char* GetOutputString() const { return m_OutputStr; }
 private:
     void DrawPlot();
-    void DrawPopupEditor();
+    void DrawPointTable();
     void SortRawPoints();
     void SortFitPoints();
     void LoadFromCurve();
-    void FitAndApply();
+    void Fit();
+    void SaveRawPointsToCurve();
+
+    void Save();   // commit changes to curve
+    void Revert();  // undo all changes, restore snapshot
 
     bool m_Open=false; char m_MotorName[128]={};
     ThrustCurve* m_Curve=nullptr;
     std::vector<ImVec2> m_RawPoints, m_FitPoints; // (Thrust, PWM)
     int m_SelectedIdx=-1;
     bool m_EditPopupOpen=false, m_PendingAdd=false;
-    bool m_Standalone=false;
-    float m_PwmMin=0.0f, m_PwmMax=0.0f;
+    float m_PwmMin=0.0f, m_PwmMax=0.0f, m_DefaultPwm=0.0f;
     float m_AnchorNP_INI=0.0f,m_AnchorNP_MID=0.0f,m_AnchorPP_INI=0.0f,m_AnchorPP_MID=0.0f;
     ThrustCurve m_OwnCurve;
+    ThrustCurve m_Snapshot;   // backup on Open, restored on Revert
     char m_OutputStr[512]={};
 };

@@ -55,6 +55,11 @@ struct ThrustCurve {
     EncodedValue nt_mid{0, DataEncoding::Float32};
     EncodedValue pt_mid{0, DataEncoding::Float32};
     EncodedValue pt_end{0, DataEncoding::Float32};
+    float pwm_min = 0.0f;
+    float pwm_max = 0.0f;
+    float default_pwm = 500.0f;
+    std::vector<double> raw_thrust;
+    std::vector<float> raw_pwm;
 };
 
 struct BrushlessMotor {

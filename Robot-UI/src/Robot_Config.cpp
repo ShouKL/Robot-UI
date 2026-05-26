@@ -189,27 +189,29 @@ void Robot_Config::DrawRobotConfigPanel() {
                         ev.encoding = IndexToEncoding(idx);
                 };
 
-                // Thrust curve — single formatted string (np_ini, np_mid, pp_ini, pp_mid, nt_end, nt_mid, pt_mid, pt_end)
+                // Thrust curve — single formatted string (np_ini, np_mid, pp_ini, pp_mid, nt_end, nt_mid, pt_mid, pt_end, pwm_min, pwm_max)
                 {
                     char curveBuf[256] = {};
                     _snprintf_s(curveBuf, sizeof(curveBuf),
-                        "%.3f, %.3f, %.3f, %.3f,  %.3f, %.3f, %.3f, %.3f",
+                        "%.3f, %.3f, %.3f, %.3f,  %.3f, %.3f, %.3f, %.3f,  %.3f, %.3f",
                         m.curve.np_ini.value, m.curve.np_mid.value,
                         m.curve.pp_ini.value, m.curve.pp_mid.value,
                         m.curve.nt_end.value, m.curve.nt_mid.value,
-                        m.curve.pt_mid.value, m.curve.pt_end.value);
+                        m.curve.pt_mid.value, m.curve.pt_end.value,
+                        m.curve.pwm_min, m.curve.pwm_max);
 
-                    ImGui::Text("Thrust Curve (np_ini,np_mid,pp_ini,pp_mid, nt_end,nt_mid,pt_mid,pt_end):");
+                    ImGui::Text("Thrust Curve (np_ini,np_mid,pp_ini,pp_mid, nt_end,nt_mid,pt_mid,pt_end, pwm_min,pwm_max):");
                     ImGui::PushItemWidth(-120);
                     if (ImGui::InputText("##CurveStr", curveBuf, sizeof(curveBuf)))
                     {
-                        double v[8] = {};
-                        sscanf_s(curveBuf, "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf",
-                            &v[0],&v[1],&v[2],&v[3],&v[4],&v[5],&v[6],&v[7]);
+                        double v[10] = {};
+                        sscanf_s(curveBuf, "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf",
+                            &v[0],&v[1],&v[2],&v[3],&v[4],&v[5],&v[6],&v[7],&v[8],&v[9]);
                         m.curve.np_ini.value=v[0]; m.curve.np_mid.value=v[1];
                         m.curve.pp_ini.value=v[2]; m.curve.pp_mid.value=v[3];
                         m.curve.nt_end.value=v[4]; m.curve.nt_mid.value=v[5];
                         m.curve.pt_mid.value=v[6]; m.curve.pt_end.value=v[7];
+                        m.curve.pwm_min=v[8]; m.curve.pwm_max=v[9];
                     }
                     ImGui::PopItemWidth();
                 }
@@ -356,7 +358,6 @@ void Robot_Config::DrawRobotConfigPanel() {
 // ==================== 协议配置独立子窗口（在 OnUIRender 中调用） ====================
 void Robot_Config::DrawProtocolConfigWindow() {
     if (!m_ProtocolConfigOpen) return;
-    if (!m_IsEditing) return;
 
     ImGui::SetNextWindowSize(ImVec2(700, 500), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin("Protocol Field Configuration", &m_ProtocolConfigOpen)) {
