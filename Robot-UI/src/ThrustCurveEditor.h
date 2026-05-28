@@ -1,4 +1,5 @@
 #pragma once
+#include "EditDraftBase.h"
 #include "Robot_API/robot_api.h"
 #include "implot.h"
 #include <vector>
@@ -24,12 +25,12 @@ inline double SamplePWM(const std::vector<ImVec2>& pts, double thrust) {
 
 // Model: Thrust → PWM. p[0..3]=Thrust anchors, p[4..7]=PWM anchors (see FitAndApply)
 
-class ThrustCurveEditor {
+class ThrustCurveEditor : public EditDraftBase {
 public:
     ThrustCurveEditor() = default;
     void Open(const char* motorName, ThrustCurve& curve);
     void Open();
-    void Close() { m_Open = false; }
+    void Close() { m_Open = false; CancelEdit(); }
     bool IsOpen() const { return m_Open; }
     void Draw();
     ThrustCurve& GetCurve() { return m_OwnCurve; }

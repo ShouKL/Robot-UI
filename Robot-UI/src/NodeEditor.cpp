@@ -1,19 +1,16 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "NodeEditor.h"
+#include "Walnut/Core/Log.h"
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imgui_node_editor.h>
 #include <yaml-cpp/yaml.h>
 #include <algorithm>
 #include <queue>
-#include <mutex>
 #include <unordered_map>
 
 namespace ed = ax::NodeEditor;
 
-// ============================================================================
-// ManualSplitter — works with ImGui 1.87 (no SplitterBehavior available)
-// ============================================================================
 static void ManualSplitter(const char* id, float* size, float minSize, float thickness, bool reverse = false)
 {
     ImGui::PushID(id);
@@ -47,9 +44,6 @@ static void ManualSplitter(const char* id, float* size, float minSize, float thi
     ImGui::PopID();
 }
 
-// ============================================================================
-// GetIconColor — per-pin-type coloring
-// ============================================================================
 static ImColor GetIconColor(PinType type)
 {
     switch (type)
@@ -59,9 +53,6 @@ static ImColor GetIconColor(PinType type)
     }
 }
 
-// ============================================================================
-// GetNodeTitle / GetNodeHeaderColor
-// ============================================================================
 static const char* GetNodeTitle(NodeType type)
 {
     switch (type)
@@ -297,7 +288,6 @@ EditorNode* NodeEditor::SpawnOutput()
 
 void NodeEditor::AddNode(NodeType type)
 {
-    // 新节点放在画布原点 (0, 0)
     AddNodeAt(type, ImVec2(0, 0), false);
 }
 
@@ -370,15 +360,45 @@ void NodeEditor::AddNodeAt(NodeType type, const ImVec2& pos, bool fromScreen)
 // ============================================================================
 // Clear
 // ============================================================================
-void NodeEditor::Clear()
+void NodeEditor::Clear_NoLock()
 {
+    // NOTE: caller must hold m_EvalMutex (unique_lock)
     m_Nodes.clear();
     m_Links.clear();
-    m_LastKeyValues.clear();
     m_LastOutputs.clear();
     ResetIDs();
     m_Modified = false;
     m_NavigateFrame = 1;
+    // m_LastKeyValues is owned by m_KvMutex — not cleared here
+}
+
+void NodeEditor::Clear()
+{
+    Clear_NoLock();
+}
+
+// ============================================================================
+// RequestLoadGraph — thread-safe pending load (called from any thread)
+// ============================================================================
+void NodeEditor::RequestLoadGraph(const std::string& yaml)
+{
+    m_PendingGraphYaml = yaml;
+}
+
+void NodeEditor::ProcessPendingLoad()
+{
+    std::string yaml;
+    {
+            if (m_PendingGraphYaml.empty()) return;
+        yaml = std::move(m_PendingGraphYaml);
+        m_PendingGraphYaml.clear();
+    }
+    LoadGraphYaml(yaml);
+}
+
+void NodeEditor::SetKeyValues(const std::map<std::string, float>& kv)
+{
+    m_LastKeyValues = kv;
 }
 
 // ============================================================================
@@ -920,11 +940,10 @@ void NodeEditor::DrawNodeContents(EditorNode& node)
 // ============================================================================
 void NodeEditor::DrawKeyValuesSidebar(float sideWidth) const
 {
-    // Snapshot under lock (written by gamepad thread)
+    // Snapshot under correct lock (m_KvMutex — same lock as SetKeyValues)
     std::map<std::string, float> snapshot;
     {
-        std::shared_lock<std::shared_mutex> lock(m_EvalMutex);
-        snapshot = m_LastKeyValues;
+            snapshot = m_LastKeyValues;
     }
 
     ImGui::BeginChild("##KVSide", ImVec2(sideWidth, 0), true);
@@ -967,8 +986,7 @@ void NodeEditor::DrawOutputValuesSidebar(float sideWidth) const
     // Snapshot under lock (written by gamepad thread)
     std::map<std::string, float> snapshot;
     {
-        std::shared_lock<std::shared_mutex> lock(m_EvalMutex);
-        snapshot = m_LastOutputs;
+            snapshot = m_LastOutputs;
     }
 
     ImGui::BeginChild("##OVSide", ImVec2(sideWidth, 0), true);
@@ -1072,6 +1090,18 @@ void NodeEditor::DrawMenuBar()
 // ============================================================================
 bool NodeEditor::Draw()
 {
+    // Process any graph load requested from another thread (must run on UI thread for ed API)
+    ProcessPendingLoad();
+
+    // Update sidebar output values for display
+    {
+        std::map<std::string, float> kvSnapshot;
+        {
+                    kvSnapshot = m_LastKeyValues;
+        }
+        m_LastOutputs = EvaluateCompute(kvSnapshot);
+    }
+
     bool open = true;
     ed::SetCurrentEditor(m_EditorCtx);
 
@@ -1156,7 +1186,8 @@ bool NodeEditor::Draw()
     }
 
     // --- Draw nodes ---
-    for (auto& node : m_Nodes)
+    {
+            for (auto& node : m_Nodes)
     {
         ed::PushStyleColor(ed::StyleColor_NodeBg,        ImColor(60, 60, 60, 200));
         ed::PushStyleColor(ed::StyleColor_NodeBorder,    node.Color);
@@ -1210,6 +1241,7 @@ bool NodeEditor::Draw()
     // --- Draw links ---
     for (auto& link : m_Links)
         ed::Link(link.ID, link.StartPinID, link.EndPinID, link.Color, 2.0f);
+    } // end shared_lock
 
     // ==================================================================
     // Create — link / node creation handling
@@ -1255,12 +1287,9 @@ bool NodeEditor::Draw()
                 }
                 else
                 {
-                    // We need Output → Input direction.
-                    // The startPin should be the output, endPin should be input.
                     auto* outPin = startPin;
                     auto* inPin  = endPin;
 
-                    // Check if both are same kind (both inputs or both outputs)
                     bool startIsInput  = false;
                     bool endIsInput    = false;
                     for (auto& n : m_Nodes)
@@ -1269,7 +1298,6 @@ bool NodeEditor::Draw()
                         for (auto& p : n.Outputs) { if (p.ID == startPinId) startIsInput = false; if (p.ID == endPinId) endIsInput = false; }
                     }
 
-                    // Simple heuristic: swap if start is input and end is output
                     if (startIsInput && !endIsInput)
                     {
                         std::swap(startPin, endPin);
@@ -1285,8 +1313,7 @@ bool NodeEditor::Draw()
                     showLabel("+ Create Link", ImColor(32, 45, 32, 180));
                     if (ed::AcceptNewItem(ImColor(128, 255, 128), 4.0f))
                     {
-                        std::unique_lock<std::shared_mutex> lock(m_EvalMutex);
-                        m_Links.emplace_back(GetNextId(), startPinId, endPinId);
+                                            m_Links.emplace_back(GetNextId(), startPinId, endPinId);
                         m_Links.back().Color = GetIconColor(startPin->Type);
                         m_Modified = true;
                     }
@@ -1308,14 +1335,10 @@ bool NodeEditor::Draw()
     }
     ed::EndCreate();
 
-    // ==================================================================
-    // Delete
-    // ==================================================================
     if (ed::BeginDelete())
     {
         {
-            std::unique_lock<std::shared_mutex> lock(m_EvalMutex);
-        ed::NodeId nodeId = 0;
+                ed::NodeId nodeId = 0;
         while (ed::QueryDeletedNode(&nodeId))
         {
             if (ed::AcceptDeletedItem())
@@ -1344,9 +1367,6 @@ bool NodeEditor::Draw()
     }
     ed::EndDelete();
 
-    // ==================================================================
-    // Origin marker — 原点红色十字标记
-    // ==================================================================
     {
         ed::Suspend();
         ImVec2 originScreen = ed::CanvasToScreen(ImVec2(0, 0));
@@ -1366,9 +1386,6 @@ bool NodeEditor::Draw()
         ed::Resume();
     }
 
-    // ==================================================================
-    // Context menus + Deferred KeySource combo (all inside Suspend)
-    // ==================================================================
     {
         ed::Suspend();
 
@@ -1382,7 +1399,6 @@ bool NodeEditor::Draw()
         else if (ed::ShowBackgroundContextMenu())
             ImGui::OpenPopup("Create New Node");
 
-        // --- Deferred OutputTarget combo ---
         if (m_OutputComboRequested)
         {
             ImGui::OpenPopup("##OutputComboPopup");
@@ -1390,7 +1406,6 @@ bool NodeEditor::Draw()
             m_OutputComboRequested = false;
         }
 
-        // --- Deferred KeySource combo ---
         if (m_KeySourcePopupRequested)
         {
             ImGui::OpenPopup("##KeySourcePopup");
@@ -1414,13 +1429,11 @@ bool NodeEditor::Draw()
             ImGui::EndPopup();
         }
 
-        // -- Pin Context Menu --
         if (ImGui::BeginPopup("Pin Context Menu"))
         {
             if (ImGui::MenuItem("Break Links"))
             {
-                std::unique_lock<std::shared_mutex> lock(m_EvalMutex);
-                int pid = (int)contextPinId.Get();
+                            int pid = (int)contextPinId.Get();
                 m_Links.erase(
                     std::remove_if(m_Links.begin(), m_Links.end(),
                         [pid](auto& l) { return (int)l.StartPinID.Get() == pid || (int)l.EndPinID.Get() == pid; }),
@@ -1438,10 +1451,8 @@ bool NodeEditor::Draw()
             ImGui::EndPopup();
         }
 
-        // -- Create New Node --
         if (ImGui::BeginPopup("Create New Node"))
         {
-            std::unique_lock<std::shared_mutex> lock(m_EvalMutex);
             if (ImGui::MenuItem("Key Source"))   AddNode(NodeType::KeySource);
             if (ImGui::MenuItem("Const Value"))  AddNode(NodeType::ConstValue);
             ImGui::Separator();
@@ -1466,7 +1477,6 @@ bool NodeEditor::Draw()
             ImGui::EndPopup();
         }
 
-        // -- OutputCombo Popup --
         if (ImGui::BeginPopup("##OutputComboPopup"))
         {
             auto* node = FindNode(m_OutputComboNodeId);
@@ -1494,7 +1504,6 @@ bool NodeEditor::Draw()
             m_OutputComboNodeId = 0;
         }
 
-        // -- KeySource Popup --
         if (ImGui::BeginPopup("##KeySourcePopup"))
         {
             auto* node = FindNode(m_KeySourcePopupNodeId);
@@ -1546,53 +1555,226 @@ bool NodeEditor::Draw()
     return open;
 }
 
-// ============================================================================
-// Evaluate
-// ============================================================================
-void NodeEditor::EvaluateGraph(const std::map<std::string, float>& keyValues)
+static float ComputeNodeOutput(const EditorNode& node,
+    const std::map<std::string, float>& keyValues,
+    const std::unordered_map<int, float>& pinVals)
 {
-    std::unique_lock<std::shared_mutex> lock(m_EvalMutex);
-    m_LastKeyValues = keyValues;
-    m_LastOutputs.clear();
-    if (m_Nodes.empty()) return;
+    switch (node.Type)
+    {
+    case NodeType::KeySource:
+        return (keyValues.count(node.KeyName) > 0) ? keyValues.at(node.KeyName) : 0.0f;
+    case NodeType::ConstValue:
+        return node.Value;
+    case NodeType::Add:
+    {
+        float a = 0, b = 0;
+        for (auto& pin : node.Inputs) {
+            auto it = pinVals.find((int)pin.ID.Get());
+            if (it != pinVals.end()) (pin.Name == "A" ? a : b) = it->second;
+        }
+        return a + b;
+    }
+    case NodeType::Multiply:
+    {
+        float a = 0, b = 0;
+        for (auto& pin : node.Inputs) {
+            auto it = pinVals.find((int)pin.ID.Get());
+            if (it != pinVals.end()) (pin.Name == "A" ? a : b) = it->second;
+        }
+        return a * b;
+    }
+    case NodeType::Subtract:
+    {
+        float a = 0, b = 0;
+        for (auto& pin : node.Inputs) {
+            auto it = pinVals.find((int)pin.ID.Get());
+            if (it != pinVals.end()) (pin.Name == "A" ? a : b) = it->second;
+        }
+        return a - b;
+    }
+    case NodeType::Divide:
+    {
+        float a = 0, b = 0;
+        for (auto& pin : node.Inputs) {
+            auto it = pinVals.find((int)pin.ID.Get());
+            if (it != pinVals.end()) (pin.Name == "A" ? a : b) = it->second;
+        }
+        return (b != 0.0f) ? (a / b) : 0.0f;
+    }
+    case NodeType::Scale:
+    {
+        float in = 0;
+        if (!node.Inputs.empty()) {
+            auto it = pinVals.find((int)node.Inputs[0].ID.Get());
+            if (it != pinVals.end()) in = it->second;
+        }
+        return in * node.Factor;
+    }
+    case NodeType::Clamp:
+    {
+        float in = 0;
+        if (!node.Inputs.empty()) {
+            auto it = pinVals.find((int)node.Inputs[0].ID.Get());
+            if (it != pinVals.end()) in = it->second;
+        }
+        return std::clamp(in, node.MinVal, node.MaxVal);
+    }
+    case NodeType::Compare:
+    {
+        float a = 0, b = 0;
+        for (auto& pin : node.Inputs) {
+            auto it = pinVals.find((int)pin.ID.Get());
+            if (it != pinVals.end()) (pin.Name == "A" ? a : b) = it->second;
+        }
+        switch (node.OpMode) {
+        case 0: return (a > b) ? 1.0f : 0.0f;
+        case 1: return (a >= b) ? 1.0f : 0.0f;
+        case 2: return (a <= b) ? 1.0f : 0.0f;
+        case 3: return (a < b) ? 1.0f : 0.0f;
+        case 4: return (a == b) ? 1.0f : 0.0f;
+        case 5: return (a != b) ? 1.0f : 0.0f;
+        default: return (a > b) ? 1.0f : 0.0f;
+        }
+    }
+    case NodeType::And:
+    {
+        float a = 0, b = 0;
+        for (auto& pin : node.Inputs) {
+            auto it = pinVals.find((int)pin.ID.Get());
+            if (it != pinVals.end()) (pin.Name == "A" ? a : b) = it->second;
+        }
+        return ((a >= 0.5f) && (b >= 0.5f)) ? 1.0f : 0.0f;
+    }
+    case NodeType::Or:
+    {
+        float a = 0, b = 0;
+        for (auto& pin : node.Inputs) {
+            auto it = pinVals.find((int)pin.ID.Get());
+            if (it != pinVals.end()) (pin.Name == "A" ? a : b) = it->second;
+        }
+        return ((a >= 0.5f) || (b >= 0.5f)) ? 1.0f : 0.0f;
+    }
+    case NodeType::Not:
+    {
+        float in = 0;
+        if (!node.Inputs.empty()) {
+            auto it = pinVals.find((int)node.Inputs[0].ID.Get());
+            if (it != pinVals.end()) in = it->second;
+        }
+        return (in >= 0.5f) ? 0.0f : 1.0f;
+    }
+    case NodeType::If:
+    {
+        float cond = 0, tv = 0, fv = 0;
+        for (auto& pin : node.Inputs) {
+            auto it = pinVals.find((int)pin.ID.Get());
+            if (it != pinVals.end()) {
+                if      (pin.Name == "Cond")  cond = it->second;
+                else if (pin.Name == "True")  tv   = it->second;
+                else if (pin.Name == "False") fv   = it->second;
+            }
+        }
+        return (cond >= 0.5f) ? tv : fv;
+    }
+    case NodeType::While:
+    {
+        float cond = 0, val = 0;
+        for (auto& pin : node.Inputs) {
+            auto it = pinVals.find((int)pin.ID.Get());
+            if (it != pinVals.end()) {
+                if      (pin.Name == "Cond") cond = it->second;
+                else if (pin.Name == "Val")  val  = it->second;
+            }
+        }
+        return (cond >= 0.5f) ? val : 0.0f;
+    }
+    case NodeType::CustomOutput:
+    {
+        float in = 0;
+        if (!node.Inputs.empty()) {
+            auto it = pinVals.find((int)node.Inputs[0].ID.Get());
+            if (it != pinVals.end()) in = it->second;
+        }
+        return in;
+    }
+    }
+    return 0.0f;
+}
 
-    // ---- Topological sort by link dependencies ----
-    // Pin IDs are independent; resolve via FindPin to get node IDs
+static std::vector<int> TopoSortNodes(const std::vector<EditorNode>& nodes, const std::vector<EditorLink>& links)
+{
     std::unordered_map<int, std::vector<int>> adj;
     std::unordered_map<int, int> indeg;
 
-    for (auto& node : m_Nodes)
+    for (const auto& node : nodes)
         indeg[(int)node.ID.Get()] = 0;
 
-    for (auto& link : m_Links)
+    for (const auto& link : links)
     {
-        auto* fromPin = FindPin(link.StartPinID);
-        auto* toPin   = FindPin(link.EndPinID);
-        if (!fromPin || !toPin || !fromPin->Node || !toPin->Node)
-            continue;
-        int fromNode = (int)fromPin->Node->ID.Get();
-        int toNode   = (int)toPin->Node->ID.Get();
+        int fromNode = -1, toNode = -1;
+        for (const auto& n : nodes) {
+            for (const auto& p : n.Inputs)  { if (p.ID == link.EndPinID)   toNode   = (int)n.ID.Get(); }
+            for (const auto& p : n.Outputs) { if (p.ID == link.StartPinID) fromNode = (int)n.ID.Get(); }
+        }
+        if (fromNode < 0 || toNode < 0) continue;
         adj[fromNode].push_back(toNode);
         indeg[toNode]++;
     }
 
-    // Kahn
     std::queue<int> qq;
     for (auto& [id, d] : indeg)
         if (d == 0) qq.push(id);
 
     std::vector<int> order;
-    while (!qq.empty())
-    {
+    while (!qq.empty()) {
         int id = qq.front(); qq.pop();
         order.push_back(id);
         for (int nxt : adj[id])
             if (--indeg[nxt] == 0)
                 qq.push(nxt);
     }
+    return order;
+}
 
-    // ---- Evaluate in topological order ----
-    std::unordered_map<int, float> pinVals; // pinId → value
+std::map<std::string, float> NodeEditor::EvaluateCompute(const std::map<std::string, float>& keyValues) const
+{
+    std::map<std::string, float> outputs;
+    if (m_Nodes.empty()) return outputs;
+
+    auto order = TopoSortNodes(m_Nodes, m_Links);
+    std::unordered_map<int, float> pinVals;
+
+    for (int nid : order)
+    {
+        const EditorNode* node = nullptr;
+        for (const auto& n : m_Nodes)
+            if ((int)n.ID.Get() == nid) { node = &n; break; }
+        if (!node) continue;
+
+        float out = ComputeNodeOutput(*node, keyValues, pinVals);
+
+        if (node->Type == NodeType::CustomOutput && !node->OutputTarget.empty())
+            outputs[node->OutputTarget] = out;
+
+        // Propagate output to connected pins
+        if (!node->Outputs.empty()) {
+            int outPinId = (int)node->Outputs[0].ID.Get();
+            for (const auto& link : m_Links)
+                if ((int)link.StartPinID.Get() == outPinId)
+                    pinVals[(int)link.EndPinID.Get()] = out;
+        }
+    }
+    return outputs;
+}
+
+void NodeEditor::EvaluateGraph(const std::map<std::string, float>& keyValues)
+{
+    // NOTE: do NOT write m_LastKeyValues here — it's owned by m_KvMutex (SetKeyValues)
+    m_LastOutputs.clear();
+    if (m_Nodes.empty()) return;
+
+    auto order = TopoSortNodes(m_Nodes, m_Links);
+    std::unordered_map<int, float> pinVals;
 
     for (int nid : order)
     {
@@ -1601,203 +1783,28 @@ void NodeEditor::EvaluateGraph(const std::map<std::string, float>& keyValues)
             if ((int)n.ID.Get() == nid) { node = &n; break; }
         if (!node) continue;
 
-        float out = 0.0f;
+        float out = ComputeNodeOutput(*node, keyValues, pinVals);
 
-        switch (node->Type)
-        {
-        case NodeType::KeySource:
-            out = keyValues.count(node->KeyName) ? keyValues.at(node->KeyName) : 0.0f;
-            break;
-        case NodeType::ConstValue:
-            out = node->Value;
-            break;
-        case NodeType::Add:
+        // Update sidebar display fields (UI thread only)
+        if (node->Type == NodeType::Add || node->Type == NodeType::Multiply
+            || node->Type == NodeType::Subtract || node->Type == NodeType::Divide
+            || node->Type == NodeType::And || node->Type == NodeType::Or
+            || node->Type == NodeType::Compare || node->Type == NodeType::If
+            || node->Type == NodeType::While)
         {
             float a = 0, b = 0;
-            for (auto& pin : node->Inputs)
-            {
+            for (auto& pin : node->Inputs) {
                 auto it = pinVals.find((int)pin.ID.Get());
-                if (it != pinVals.end())
-                    (pin.Name == "A" ? a : b) = it->second;
+                if (it != pinVals.end()) (pin.Name == "A" ? a : b) = it->second;
             }
             node->InputA = a; node->InputB = b;
-            out = a + b;
-            break;
         }
-        case NodeType::Multiply:
-        {
-            float a = 0, b = 0;
-            for (auto& pin : node->Inputs)
-            {
-                auto it = pinVals.find((int)pin.ID.Get());
-                if (it != pinVals.end())
-                    (pin.Name == "A" ? a : b) = it->second;
-            }
-            node->InputA = a; node->InputB = b;
-            out = a * b;
-            break;
-        }
-        case NodeType::Subtract:
-        {
-            float a = 0, b = 0;
-            for (auto& pin : node->Inputs)
-            {
-                auto it = pinVals.find((int)pin.ID.Get());
-                if (it != pinVals.end())
-                    (pin.Name == "A" ? a : b) = it->second;
-            }
-            node->InputA = a; node->InputB = b;
-            out = a - b;
-            break;
-        }
-        case NodeType::Divide:
-        {
-            float a = 0, b = 0;
-            for (auto& pin : node->Inputs)
-            {
-                auto it = pinVals.find((int)pin.ID.Get());
-                if (it != pinVals.end())
-                    (pin.Name == "A" ? a : b) = it->second;
-            }
-            node->InputA = a; node->InputB = b;
-            out = (b != 0.0f) ? (a / b) : 0.0f;
-            break;
-        }
-        case NodeType::Scale:
-        {
-            float in = 0;
-            if (!node->Inputs.empty())
-            {
-                auto it = pinVals.find((int)node->Inputs[0].ID.Get());
-                if (it != pinVals.end()) in = it->second;
-            }
-            out = in * node->Factor;
-            break;
-        }
-        case NodeType::Clamp:
-        {
-            float in = 0;
-            if (!node->Inputs.empty())
-            {
-                auto it = pinVals.find((int)node->Inputs[0].ID.Get());
-                if (it != pinVals.end()) in = it->second;
-            }
-            out = std::clamp(in, node->MinVal, node->MaxVal);
-            break;
-        }
-        case NodeType::Compare:
-        {
-            float a = 0, b = 0;
-            for (auto& pin : node->Inputs)
-            {
-                auto it = pinVals.find((int)pin.ID.Get());
-                if (it != pinVals.end())
-                    (pin.Name == "A" ? a : b) = it->second;
-            }
-            node->InputA = a; node->InputB = b;
-            // OpMode: 0=>, 1=>=, 2=<=, 3=<, 4==, 5=!=
-            switch (node->OpMode) {
-            case 0: out = (a > b) ? 1.0f : 0.0f; break;
-            case 1: out = (a >= b) ? 1.0f : 0.0f; break;
-            case 2: out = (a <= b) ? 1.0f : 0.0f; break;
-            case 3: out = (a < b) ? 1.0f : 0.0f; break;
-            case 4: out = (a == b) ? 1.0f : 0.0f; break;
-            case 5: out = (a != b) ? 1.0f : 0.0f; break;
-            default: out = (a > b) ? 1.0f : 0.0f; break;
-            }
-            break;
-        }
-        case NodeType::And:
-        {
-            float a = 0, b = 0;
-            for (auto& pin : node->Inputs)
-            {
-                auto it = pinVals.find((int)pin.ID.Get());
-                if (it != pinVals.end())
-                    (pin.Name == "A" ? a : b) = it->second;
-            }
-            node->InputA = a; node->InputB = b;
-            out = ((a >= 0.5f) && (b >= 0.5f)) ? 1.0f : 0.0f;
-            break;
-        }
-        case NodeType::Or:
-        {
-            float a = 0, b = 0;
-            for (auto& pin : node->Inputs)
-            {
-                auto it = pinVals.find((int)pin.ID.Get());
-                if (it != pinVals.end())
-                    (pin.Name == "A" ? a : b) = it->second;
-            }
-            node->InputA = a; node->InputB = b;
-            out = ((a >= 0.5f) || (b >= 0.5f)) ? 1.0f : 0.0f;
-            break;
-        }
-        case NodeType::Not:
-        {
-            float in = 0;
-            if (!node->Inputs.empty())
-            {
-                auto it = pinVals.find((int)node->Inputs[0].ID.Get());
-                if (it != pinVals.end()) in = it->second;
-            }
-            out = (in >= 0.5f) ? 0.0f : 1.0f;
-            break;
-        }
-        case NodeType::If:
-        {
-            float cond = 0, tv = 0, fv = 0;
-            for (auto& pin : node->Inputs)
-            {
-                auto it = pinVals.find((int)pin.ID.Get());
-                if (it != pinVals.end())
-                {
-                    if      (pin.Name == "Cond")  cond = it->second;
-                    else if (pin.Name == "True")  tv   = it->second;
-                    else if (pin.Name == "False") fv   = it->second;
-                }
-            }
-            node->InputA = cond; node->InputB = tv;
-            node->Factor = fv;  // 借用 Factor 暂存
-            out = (cond >= 0.5f) ? tv : fv;
-            break;
-        }
-        case NodeType::While:
-        {
-            float cond = 0, val = 0;
-            for (auto& pin : node->Inputs)
-            {
-                auto it = pinVals.find((int)pin.ID.Get());
-                if (it != pinVals.end())
-                {
-                    if      (pin.Name == "Cond") cond = it->second;
-                    else if (pin.Name == "Val")  val  = it->second;
-                }
-            }
-            node->InputA = cond; node->InputB = val;
-            out = (cond >= 0.5f) ? val : 0.0f;
-            break;
-        }
-        case NodeType::CustomOutput:
-        {
-            float in = 0;
-            if (!node->Inputs.empty())
-            {
-                auto it = pinVals.find((int)node->Inputs[0].ID.Get());
-                if (it != pinVals.end()) in = it->second;
-            }
-            out = in;
-            if (!node->OutputTarget.empty())
-                m_LastOutputs[node->OutputTarget] = out;
-            break;
-        }
-        }
-
         node->Value = out;
 
-        // Propagate output pin value to connected input pins
-        if (!node->Outputs.empty())
-        {
+        if (node->Type == NodeType::CustomOutput && !node->OutputTarget.empty())
+            m_LastOutputs[node->OutputTarget] = out;
+
+        if (!node->Outputs.empty()) {
             int outPinId = (int)node->Outputs[0].ID.Get();
             for (auto& link : m_Links)
                 if ((int)link.StartPinID.Get() == outPinId)
@@ -1808,14 +1815,13 @@ void NodeEditor::EvaluateGraph(const std::map<std::string, float>& keyValues)
 
 std::map<std::string, float> NodeEditor::Evaluate(const std::map<std::string, float>& keyValues)
 {
-    EvaluateGraph(keyValues);
-    return m_LastOutputs;
+    return EvaluateCompute(keyValues);
 }
 
 void NodeEditor::EvaluateIntoActuator(const std::map<std::string, float>& keyValues, ActuatorData& data)
 {
-    EvaluateGraph(keyValues);
-    for (const auto& [target, val] : m_LastOutputs)
+    auto outputs = EvaluateCompute(keyValues);
+    for (const auto& [target, val] : outputs)
         WriteOutputToActuator(target, val, data);
 }
 
@@ -1824,6 +1830,7 @@ void NodeEditor::EvaluateIntoActuator(const std::map<std::string, float>& keyVal
 // ============================================================================
 std::string NodeEditor::GetGraphYaml() const
 {
+    ed::SetCurrentEditor(m_EditorCtx);
     YAML::Emitter out;
     out << YAML::BeginMap;
 
@@ -1883,7 +1890,7 @@ bool NodeEditor::LoadGraphYaml(const std::string& yamlStr)
         YAML::Node root = YAML::Load(yamlStr);
         if (!root.IsMap()) return false;
 
-        Clear();
+        Clear_NoLock();
         ed::SetCurrentEditor(m_EditorCtx);
 
         if (root["nodes"] && root["nodes"].IsSequence())

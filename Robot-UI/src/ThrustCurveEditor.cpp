@@ -1,19 +1,25 @@
 #include "ThrustCurveEditor.h"
+#include "Walnut/Core/Log.h"
 #include <cstdio>
 #include <cmath>
 
 void ThrustCurveEditor::Open(const char* n, ThrustCurve& c) {
+    WL_INFO_TAG("CURVE", "Open(external): motor={}, raw_pts={}", n, c.raw_thrust.size());
     _snprintf_s(m_MotorName,sizeof(m_MotorName),"%s",n); m_Curve=&c;
     m_Snapshot = *m_Curve;  // backup for undo
     LoadFromCurve(); m_SelectedIdx=-1; m_EditPopupOpen=false; m_Open=true;
+    BeginEdit();
     if(m_RawPoints.size()>=2){SortRawPoints();Fit();}
 }
 
 void ThrustCurveEditor::Open() {
+    WL_INFO_TAG("CURVE", "Open(internal): raw_pts={}, pwm_min={:.1f}, pwm_max={:.1f}", m_OwnCurve.raw_thrust.size(), m_OwnCurve.pwm_min, m_OwnCurve.pwm_max);
     _snprintf_s(m_MotorName,sizeof(m_MotorName),"Thrust Curve");
     m_Curve=&m_OwnCurve;
     m_Snapshot = *m_Curve;  // backup for undo
     LoadFromCurve(); m_SelectedIdx=-1; m_EditPopupOpen=false; m_Open=true; m_OutputStr[0]=0;
+    BeginEdit();
+    WL_INFO_TAG("CURVE", "Open: loaded {} raw pts, pwm=[{:.1f},{:.1f}]", m_RawPoints.size(), m_PwmMin, m_PwmMax);
     if(m_RawPoints.size()>=2){SortRawPoints();Fit();}
 }
 
@@ -26,12 +32,14 @@ void ThrustCurveEditor::Save() {
     m_Curve->default_pwm = m_DefaultPwm;
     // update snapshot so Close won't revert
     m_Snapshot = *m_Curve;
+    ApplyEdit();
 }
 
 void ThrustCurveEditor::Revert() {
     if(!m_Curve)return;
     *m_Curve = m_Snapshot;
     LoadFromCurve(); m_SelectedIdx=-1; m_EditPopupOpen=false; m_FitPoints.clear();
+    CancelEdit();
     // restore fitted curve from saved params
     double ne=m_Curve->nt_end.value, nm=m_Curve->nt_mid.value, pm=m_Curve->pt_mid.value, pe=m_Curve->pt_end.value;
     if (fabs(ne)+fabs(nm)+fabs(pm)+fabs(pe) >= 0.001) {
@@ -424,6 +432,7 @@ void ThrustCurveEditor::DrawPointTable(){
 
 void ThrustCurveEditor::Draw(){
     if(!m_Open)return;
+    WL_TRACE_TAG("CURVE", "Draw: begin ({} raw pts, {} fit pts)", m_RawPoints.size(), m_FitPoints.size());
     ImGui::SetNextWindowSize(ImVec2(900,550),ImGuiCond_FirstUseEver);
     if(!ImGui::Begin("Thrust Curve Editor",&m_Open)){ImGui::End();return;}
     char t[192];_snprintf_s(t,sizeof(t),"Motor: %s  |  %zu pts",m_MotorName,m_RawPoints.size());
@@ -447,6 +456,8 @@ void ThrustCurveEditor::Draw(){
 
     ImGui::Separator();
 
+    WL_TRACE_TAG("CURVE", "Draw: entering plot");
+
     // Draggable horizontal splitter between plot and table
     static float s_SplitPos = -1.0f;
     const float kSplitterWidth = 6.0f;
@@ -460,9 +471,11 @@ void ThrustCurveEditor::Draw(){
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
     // Left: plot pane
+    WL_TRACE_TAG("CURVE", "Draw: entering DrawPlot");
     ImGui::BeginChild("##PlotPane", ImVec2(s_SplitPos, 0), true);
     DrawPlot();
     ImGui::EndChild();
+    WL_TRACE_TAG("CURVE", "Draw: DrawPlot OK");
 
     ImGui::SameLine(0.0f, 0.0f);
 
@@ -485,9 +498,11 @@ void ThrustCurveEditor::Draw(){
 
     // Right: table pane
     float tableW = availW - s_SplitPos - kSplitterWidth;
+    WL_TRACE_TAG("CURVE", "Draw: entering DrawPointTable");
     ImGui::BeginChild("##TablePane", ImVec2(tableW, 0), true);
     DrawPointTable();
     ImGui::EndChild();
+    WL_TRACE_TAG("CURVE", "Draw: DrawPointTable OK");
 
     ImGui::PopStyleVar();
 

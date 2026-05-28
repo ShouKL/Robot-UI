@@ -1,11 +1,12 @@
 #include "OptionPanel.h"
+#include "Walnut/Core/Log.h"
 #include <algorithm>
 
 OptionPanel::OptionPanel()
 {
     m_GamepadMapper = std::make_unique<GamepadMapper>();
     m_ImGuiStyleManager = std::make_unique<ImGuiStyleManager>();
-    m_RobotConfig = std::make_unique<Robot_Config>();
+    m_RobotComponent = std::make_unique<RobotComponent>();
 }
 
 OptionPanel::~OptionPanel() {}
@@ -26,7 +27,11 @@ void OptionPanel::DrawOptionPanel()
         ImGui::TableSetColumnIndex(0);
         if (ImGui::BeginChild("SideBarChild", ImVec2(0, availableHeight), true))
         {
-            const char* items[] = { "Robot", "GamepadMapper", "Style" };
+            // 首次打开 Options 时统一拍照
+            if (!IsEditing())
+                BeginEdit();
+
+            const char* items[] = { "Component", "GamepadMapper", "Style" };
             int previous_id = selected_id;
             for (int i = 0; i < IM_ARRAYSIZE(items); i++) {
                 ImGui::PushID(i);
@@ -35,10 +40,6 @@ void OptionPanel::DrawOptionPanel()
                 }
                 ImGui::PopID();
             }
-
-            if (previous_id == 1 && selected_id != 1 && m_GamepadEditActive) {
-                // 离开 GamepadMapper 时不做操作，草稿保留到 Apply/Revert
-            }
         }
         ImGui::EndChild();
 
@@ -46,60 +47,46 @@ void OptionPanel::DrawOptionPanel()
         ImGui::TableSetColumnIndex(1);
         if (ImGui::BeginChild("SubSideBarChild", ImVec2(0, availableHeight), true))
         {
-            // ------ 机器人模式列表 ------
-            if (selected_id == 0 && m_RobotConfig) {
-                auto& modes = m_RobotConfig->GetModes();
-                int& edit_mode_index = m_RobotConfig->GetEditModeIndex();
-                for (int i = 0; i < (int)modes.size(); ++i) {
-                    ImGui::PushID(i);
-                    bool is_selected = (edit_mode_index == i);
-                    if (ImGui::Selectable(modes[i].name, is_selected, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, 30))) {
-                        edit_mode_index = i;
-                    }
-                    if (modes.size() > 1) {
-                        if (ImGui::BeginPopupContextItem()) {
-                            if (ImGui::MenuItem("Delete Mode")) {
-                                m_RobotConfig->DeleteMode(i);
-                                m_RobotConfigChanged = true;
+            if (selected_id == 0) {
+                if (m_RobotComponent) {
+                    auto& modes = m_RobotComponent->GetModes();
+                    int& editIdx = m_RobotComponent->GetEditModeIndex();
+                    for (int i = 0; i < (int)modes.size(); ++i) {
+                        ImGui::PushID(i);
+                        bool isSel = (editIdx == i);
+                        if (ImGui::Selectable(modes[i].name, isSel, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, 30)))
+                            editIdx = i;
+                        if (modes.size() > 1) {
+                            if (ImGui::BeginPopupContextItem()) {
+                                if (ImGui::MenuItem("Delete Mode"))
+                                    m_RobotComponent->DeleteMode(i);
+                                ImGui::EndPopup();
                             }
-                            ImGui::EndPopup();
                         }
+                        ImGui::PopID();
                     }
-                    ImGui::PopID();
-                }
-                if (ImGui::BeginPopupContextWindow("RobotModeListPopup", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
-                    if (ImGui::MenuItem("Add Mode")) {
-                        m_RobotConfig->AddMode();
-                        m_RobotConfigChanged = true;
+                    if (ImGui::BeginPopupContextWindow("RobotModeListPopup", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
+                        if (ImGui::MenuItem("Add Mode"))
+                            m_RobotComponent->AddMode();
+                        ImGui::EndPopup();
                     }
-                    ImGui::EndPopup();
                 }
             }
 
             // ------ 手柄映射模式列表 ------
             if (selected_id == 1 && m_GamepadMapper) {
                 auto& modes = m_GamepadMapper->GetModes();
-                int& editIdx = m_GamepadMapper->GetEditModeIndexRef();
+                int curIdx = m_GamepadMapper->GetSelectedModeIndex();
                 for (int i = 0; i < (int)modes.size(); ++i) {
                     ImGui::PushID(i);
-                    bool isSelected = (editIdx == i);
+                    bool isSelected = (curIdx == i);
                     if (ImGui::Selectable(modes[i].name, isSelected, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, 30))) {
-                        // 若已在编辑，仅切换草稿模式索引；否则先 BeginEdit 再切换
-                        if (m_GamepadEditActive)
-                            m_GamepadMapper->SwitchEditMode(i);
-                        else
-                            m_GamepadMapper->BeginEdit(i);
-                        m_LastGamepadEditIndex = i;
-                        m_GamepadEditActive = true;
+                        m_GamepadMapper->SetSelectedModeIndex(i);
                     }
                     if (modes.size() > 1) {
                         if (ImGui::BeginPopupContextItem()) {
                             if (ImGui::MenuItem("Delete Mode")) {
                                 m_GamepadMapper->DeleteMode(i);
-                                if (m_LastGamepadEditIndex == i) {
-                                    m_LastGamepadEditIndex = -1;
-                                    m_GamepadEditActive = false;
-                                }
                             }
                             ImGui::EndPopup();
                         }
@@ -109,8 +96,6 @@ void OptionPanel::DrawOptionPanel()
                 if (ImGui::BeginPopupContextWindow("GamepadModeListPopup", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
                     if (ImGui::MenuItem("Add Mode")) {
                         m_GamepadMapper->AddMode();
-                        m_LastGamepadEditIndex = m_GamepadMapper->GetEditModeIndexRef();
-                        m_GamepadEditActive = true;
                     }
                     ImGui::EndPopup();
                 }
@@ -125,26 +110,16 @@ void OptionPanel::DrawOptionPanel()
             ImGui::Indent(10.0f);
             ImGui::Spacing();
 
-            // 在 DrawOptionPanel() 中
             if (selected_id == 0) {
-                if (!m_RobotConfig->IsEditing()) {
-                    m_RobotConfig->BeginEdit();          // 进入草稿
+                if (m_RobotComponent) {
+                    m_RobotComponent->DrawRobotConfigPanel();
                 }
-                m_RobotConfig->SetAvailableModeNames(m_GamepadMapper->GetModeNames());
-                m_RobotConfig->DrawRobotConfigPanel();
+                else {
+                    ImGui::TextColored(ImVec4(1, 0.5f, 0, 1), "RobotComponent not connected.");
+                }
             }
             else if (selected_id == 1) {
                 if (m_GamepadMapper) {
-                    // 首次进入此页签：默认打开第一个模式
-                    if (!m_GamepadMapper->IsEditing() || m_LastGamepadEditIndex < 0) {
-                        int editIdx = 0;
-                        if (!m_GamepadMapper->IsEditing())
-                            m_GamepadMapper->BeginEdit(editIdx);
-                        else
-                            m_GamepadMapper->SwitchEditMode(editIdx);
-                        m_LastGamepadEditIndex = editIdx;
-                        m_GamepadEditActive = true;
-                    }
                     m_GamepadMapper->DrawGamepadMapper();
                 }
             }
@@ -162,61 +137,63 @@ void OptionPanel::DrawOptionPanel()
     }
 }
 
-bool OptionPanel::Apply()
+void OptionPanel::BeginEdit()
 {
-    bool configChanged = false;
-
-    // 1. 提交手柄映射编辑
-    if (m_GamepadMapper && m_GamepadMapper->IsEditing()) {
-        m_GamepadMapper->ApplyEdit();
-        m_GamepadEditActive = false;
-        m_LastGamepadEditIndex = -1;
-    }
-
-    // 2. 应用主题
-    if (m_ImGuiStyleManager) {
-        m_ImGuiStyleManager->ApplyImGuiStyle(
-            m_ImGuiStyleManager->GetTheme(),
-            m_ImGuiStyleManager->GetInvert(),
-            m_ImGuiStyleManager->GetAlpha());
-    }
-
-    // 3. 应用机器人参数
-    if (m_RobotConfig && m_RobotConfig->IsEditing()) {
-        m_RobotConfig->ApplyEdit();
-    }
-
-    // 4. 根据当前活跃的机器人模式，设置手柄活跃映射
-    if (m_RobotConfig && m_GamepadMapper) {
-        auto& active_modes = m_RobotConfig->GetActiveModes();
-        int active_idx = m_RobotConfig->GetActiveModeIndex();
-        if (!active_modes.empty() && active_idx < (int)active_modes.size()) {
-            const std::string& Mode = active_modes[active_idx].gamepad_mapping_Mode;
-            if (m_GamepadMapper->ModeExists(Mode)) {
-                m_GamepadMapper->SetActiveMode(Mode);
-            }
-        }
-    }
-
-    return configChanged;
+    if (IsEditing()) return;
+    EditDraftBase::BeginEdit();  // 设置 m_IsEditing = true
+    TakeSnapshots();
+    WL_INFO_TAG("CONFIG", "Options editing started");
 }
 
-void OptionPanel::Revert()
+void OptionPanel::ApplyEdit()
 {
-    // 1. 撤销手柄映射编辑
-    if (m_GamepadMapper && m_GamepadMapper->IsEditing()) {
-        m_GamepadMapper->CancelEdit();
-        m_GamepadEditActive = false;
-        m_LastGamepadEditIndex = -1;
+    WL_INFO_TAG("CONFIG", "Applying configuration...");
+
+    // 统一：三个 tab 的修改已在原数据上，清快照即可
+    m_ComponentSnapshot.clear();
+    m_GamepadSnapshot.clear();
+
+    EditDraftBase::ApplyEdit();
+}
+
+void OptionPanel::CancelEdit()
+{
+    WL_INFO_TAG("CONFIG", "Reverting configuration...");
+
+    // 恢复 Component 快照
+    if (m_RobotComponent && !m_ComponentSnapshot.empty()) {
+        m_RobotComponent->GetModes() = m_ComponentSnapshot;
+        m_ComponentSnapshot.clear();
     }
 
-    // 2. 恢复主题
+    // 恢复 Gamepad 快照
+    if (m_GamepadMapper && !m_GamepadSnapshot.empty()) {
+        m_GamepadMapper->GetModes() = m_GamepadSnapshot;
+        m_GamepadSnapshot.clear();
+    }
+
+    // 恢复 Style 快照
     if (m_ImGuiStyleManager) {
-        m_ImGuiStyleManager->RevertStyle();
+        m_ImGuiStyleManager->ApplyImGuiStyle(
+            m_StyleSnapshot_Theme, m_StyleSnapshot_Invert, m_StyleSnapshot_Alpha);
     }
 
-    // 3. 恢复机器人配置
-    if (m_RobotConfig && m_RobotConfig->IsEditing()) {
-        m_RobotConfig->CancelEdit();
+    EditDraftBase::CancelEdit();
+}
+
+// ==================== 快照 ====================
+
+void OptionPanel::TakeSnapshots()
+{
+    if (m_RobotComponent)
+        m_ComponentSnapshot = m_RobotComponent->GetModes();
+
+    if (m_GamepadMapper)
+        m_GamepadSnapshot = m_GamepadMapper->GetModes();
+
+    if (m_ImGuiStyleManager) {
+        m_StyleSnapshot_Theme  = m_ImGuiStyleManager->GetTheme();
+        m_StyleSnapshot_Invert = m_ImGuiStyleManager->GetInvert();
+        m_StyleSnapshot_Alpha  = m_ImGuiStyleManager->GetAlpha();
     }
 }

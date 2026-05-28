@@ -1,10 +1,10 @@
 #include "GamepadMapper.h"
+#include "Walnut/Core/Log.h"
 #include <cmath>
 
 GamepadMapper::GamepadMapper() {
     m_GamepadImage = std::make_shared<Walnut::Image>("../asset/picture/gamepadmap.png");
 
-    // 按键定义（归一化坐标建议另行改造，此处保留原始坐标）
     m_Keys = std::vector<KeyInfo>{
         {ImVec2(938, 340), ImVec2(1250, 351), 17.0f, "Button_A", "A", GLFW_GAMEPAD_BUTTON_A, false},
         {ImVec2(987, 300), ImVec2(1250, 283), 17.0f, "Button_B", "B", GLFW_GAMEPAD_BUTTON_B, false},
@@ -39,19 +39,17 @@ GamepadMapper::GamepadMapper() {
 
 GamepadMapper::~GamepadMapper() {}
 
-// ================= 自定义键位管理 =================
-
 int GamepadMapper::AddKey(const std::string& keyName, bool isAnalog)
 {
+    if (m_Modes.empty() || m_SelectedModeIndex < 0 || m_SelectedModeIndex >= (int)m_Modes.size()) return -1;
     GamepadKey key;
     key.id       = m_NextKeyID++;
     key.name     = keyName;
     key.is_analog = isAnalog;
 
-    GamepadMode& mode = GetDisplayMode();
+    GamepadMode& mode = m_Modes[m_SelectedModeIndex];
     mode.keys.push_back(key);
 
-    // 同时在 mappings 中创建对应的 KeyMapping 条目
     KeyMapping km;
     km.key_id   = key.id;
     km.key_name = keyName;
@@ -64,13 +62,13 @@ int GamepadMapper::AddKey(const std::string& keyName, bool isAnalog)
 
 void GamepadMapper::RemoveKey(int keyId)
 {
-    GamepadMode& mode = GetDisplayMode();
+    if (m_Modes.empty() || m_SelectedModeIndex >= (int)m_Modes.size()) return;
+    GamepadMode& mode = m_Modes[m_SelectedModeIndex];
     mode.keys.erase(
         std::remove_if(mode.keys.begin(), mode.keys.end(),
             [keyId](const GamepadKey& k) { return k.id == keyId; }),
         mode.keys.end());
 
-    // 同时移除对应的 mapping
     mode.mappings.erase(
         std::remove_if(mode.mappings.begin(), mode.mappings.end(),
             [keyId](const KeyMapping& m) { return m.key_id == keyId; }),
@@ -79,7 +77,8 @@ void GamepadMapper::RemoveKey(int keyId)
 
 void GamepadMapper::RenameKey(int keyId, const std::string& newName)
 {
-    GamepadMode& mode = GetDisplayMode();
+    if (m_Modes.empty() || m_SelectedModeIndex >= (int)m_Modes.size()) return;
+    GamepadMode& mode = m_Modes[m_SelectedModeIndex];
     for (auto& k : mode.keys)
     {
         if (k.id == keyId) { k.name = newName; break; }
@@ -92,8 +91,9 @@ void GamepadMapper::RenameKey(int keyId, const std::string& newName)
 
 const std::vector<GamepadKey>& GamepadMapper::GetKeys() const
 {
-    const GamepadMode& mode = GetDisplayMode();
-    return mode.keys;
+    static const std::vector<GamepadKey> empty;
+    if (m_Modes.empty() || m_SelectedModeIndex >= (int)m_Modes.size()) return empty;
+    return m_Modes[m_SelectedModeIndex].keys;
 }
 
 void GamepadMapper::UpdateNextKeyID()
@@ -107,8 +107,6 @@ void GamepadMapper::UpdateNextKeyID()
     m_NextKeyID = maxId + 1;
 }
 
-// ================= 模式管理 =================
-
 std::vector<std::string> GamepadMapper::GetModeNames() const {
     std::vector<std::string> names;
     for (const auto& mode : m_Modes) {
@@ -118,17 +116,19 @@ std::vector<std::string> GamepadMapper::GetModeNames() const {
 }
 
 void GamepadMapper::SetActiveMode(const std::string& name) {
-    std::lock_guard<std::mutex> lock(m_ModeMutex);
     for (int i = 0; i < (int)m_Modes.size(); ++i) {
         if (m_Modes[i].name == name) {
-            m_ActiveModeIndex = i;
+            if (m_ActiveModeIndex != i) {
+                WL_INFO_TAG("GAMEPAD", "Active mode set: {} (index {})", name, i);
+                m_ActiveModeIndex = i;
+            }
             return;
         }
     }
+    WL_WARN_TAG("GAMEPAD", "SetActiveMode failed: mode '{}' not found", name);
 }
 
 void GamepadMapper::SetActiveModeByIndex(int index) {
-    std::lock_guard<std::mutex> lock(m_ModeMutex);
     if (index >= 0 && index < (int)m_Modes.size()) {
         m_ActiveModeIndex = index;
     }
@@ -146,9 +146,7 @@ void GamepadMapper::AddMode() {
         ++idx;
     }
     m_Modes.push_back(newMode);
-    int newIndex = (int)m_Modes.size() - 1;
-    m_SelectedModeIndex = newIndex;   // 新模式立即成为当前选中
-    BeginEdit(newIndex);
+    m_SelectedModeIndex = (int)m_Modes.size() - 1;
 }
 
 void GamepadMapper::DeleteMode(int index) {
@@ -156,20 +154,11 @@ void GamepadMapper::DeleteMode(int index) {
     if (index < 0 || index >= (int)m_Modes.size()) return;
     m_Modes.erase(m_Modes.begin() + index);
 
-    // 调整激活索引
     if (m_ActiveModeIndex >= (int)m_Modes.size())
         m_ActiveModeIndex = (int)m_Modes.size() - 1;
 
-    // 调整选中索引
-    if (m_SelectedModeIndex == index) {
-        int newSel = (index >= (int)m_Modes.size()) ? ((int)m_Modes.size() - 1) : index;
-        m_SelectedModeIndex = newSel;
-        BeginEdit(newSel);   // 如果当前正在编辑被删模式，进入邻近模式的编辑
-    }
-    else if (m_SelectedModeIndex > index) {
-        m_SelectedModeIndex--;
-    }
-    // 若编辑草稿的模式被删，已在上面处理
+    if (m_SelectedModeIndex >= (int)m_Modes.size())
+        m_SelectedModeIndex = std::max(0, (int)m_Modes.size() - 1);
 }
 
 bool GamepadMapper::ModeExists(const std::string& name) const {
@@ -187,65 +176,27 @@ const std::vector<GamepadMode>& GamepadMapper::GetModes() const {
     return m_Modes;
 }
 
-// ================= 草稿机制 =================
-
-void GamepadMapper::BeginEdit(int modeIndex) {
-    if (modeIndex < 0 || modeIndex >= (int)m_Modes.size()) return;
-    m_EditingMode = m_Modes[modeIndex];   // 深拷贝
-    m_EditingModeIndex = modeIndex;
-    m_IsEditing = true;
-    m_SelectedKey.clear();
-    RefreshBoundKeys();
-}
-
-void GamepadMapper::ApplyEdit() {
-    if (!m_IsEditing) return;
-    {
-        std::lock_guard<std::mutex> lock(m_ModeMutex);
-        m_Modes[m_EditingModeIndex] = m_EditingMode;
-    }
-    m_IsEditing = false;
-    m_SelectedKey.clear();
-}
-
-void GamepadMapper::CancelEdit() {
-    m_IsEditing = false;
-    m_SelectedKey.clear();
-    // 显示将回退到 m_Modes 中的原始模式（GetDisplayMode 会返回激活模式）
-}
-
-void GamepadMapper::SwitchEditMode(int modeIndex) {
-    if (!m_IsEditing) return;
-    if (modeIndex < 0 || modeIndex >= (int)m_Modes.size()) return;
-    m_EditingMode = m_Modes[modeIndex];   // 深拷贝新模式
-    m_EditingModeIndex = modeIndex;
-    m_SelectedKey.clear();
-    RefreshBoundKeys();
-}
-
-const GamepadMode& GamepadMapper::GetDisplayMode() const {
-    if (m_IsEditing) return m_EditingMode;
-    if (m_Modes.empty()) {
-        static const GamepadMode s_emptyMode;
-        return s_emptyMode;
-    }
-    return m_Modes[m_ActiveModeIndex];
-}
-
-GamepadMode& GamepadMapper::GetDisplayMode() {
-    if (m_IsEditing) return m_EditingMode;
-    if (m_Modes.empty()) {
+GamepadMode& GamepadMapper::GetSelectedMode() {
+    if (m_Modes.empty() || m_SelectedModeIndex < 0 || m_SelectedModeIndex >= (int)m_Modes.size()) {
         static GamepadMode s_emptyMode;
         return s_emptyMode;
     }
-    return m_Modes[m_ActiveModeIndex];
+    return m_Modes[m_SelectedModeIndex];
 }
 
-// ================= 绑定逻辑（操作编辑区） =================
+const GamepadMode& GamepadMapper::GetSelectedMode() const {
+    if (m_Modes.empty() || m_SelectedModeIndex < 0 || m_SelectedModeIndex >= (int)m_Modes.size()) {
+        static const GamepadMode s_emptyMode;
+        return s_emptyMode;
+    }
+    return m_Modes[m_SelectedModeIndex];
+}
 
 void GamepadMapper::BindKey() {
-    if (!m_IsEditing || m_SelectedKey.empty()) return;
-    auto& mappings = m_EditingMode.mappings;
+    if (m_SelectedKey.empty()) return;
+    if (m_Modes.empty() || m_SelectedModeIndex >= (int)m_Modes.size()) return;
+    auto& mode = m_Modes[m_SelectedModeIndex];
+    auto& mappings = mode.mappings;
     const auto& activeKeys = GetActivePhysicalKeys();
     for (auto& mapping : mappings) {
         if (mapping.key_name != m_SelectedKey) continue;
@@ -265,6 +216,7 @@ void GamepadMapper::BindKey() {
             mapping.gamepad_key = key.name;
             mapping.key_pos = key.pos;
             boundList.push_back(m_SelectedKey);
+            WL_INFO_TAG("GAMEPAD", "Key bound: '{}' -> '{}'", m_SelectedKey, key.name);
             m_SelectedKey.clear();
             break;
         }
@@ -274,8 +226,8 @@ void GamepadMapper::BindKey() {
 }
 
 void GamepadMapper::UnbindKey(const std::string& keyName) {
-    if (!m_IsEditing) return;
-    auto& mappings = m_EditingMode.mappings;
+    if (m_Modes.empty() || m_SelectedModeIndex >= (int)m_Modes.size()) return;
+    auto& mappings = m_Modes[m_SelectedModeIndex].mappings;
     for (auto& mapping : mappings) {
         if (mapping.key_name == keyName && mapping.is_bound) {
             // 防止空键污染
@@ -294,7 +246,8 @@ void GamepadMapper::UnbindKey(const std::string& keyName) {
 
 void GamepadMapper::RefreshBoundKeys() {
     m_KeyBoundActions.clear();
-    const GamepadMode& mode = GetDisplayMode();
+    if (m_Modes.empty() || m_SelectedModeIndex >= (int)m_Modes.size()) return;
+    const GamepadMode& mode = m_Modes[m_SelectedModeIndex];
     for (const auto& m : mode.mappings) {
         if (m.is_bound && !m.gamepad_key.empty()) {
             m_KeyBoundActions[m.gamepad_key].push_back(m.key_name);
@@ -302,9 +255,6 @@ void GamepadMapper::RefreshBoundKeys() {
     }
 }
 
-// ================= 手柄状态更新 =================
-
-// 原始值：不做任何映射/合成/死区处理，直接返回 GLFW 原始数据
 float GamepadMapper::CalcRawValue(const KeyInfo& key, const GLFWgamepadstate& state) {
     if (!key.is_axis) {
         return (state.buttons[key.glfw_id] != GLFW_RELEASE) ? 1.0f : 0.0f;
@@ -313,17 +263,11 @@ float GamepadMapper::CalcRawValue(const KeyInfo& key, const GLFWgamepadstate& st
     return state.axes[key.glfw_id];
 }
 
-// 激活程度 [0,1]：供绑定判断和画布显示使用
-//   扳机 (LT/RT)：闲置 = -1，全按 = +1 → (raw+1)/2
-//   摇杆轴：闲置 = 0，边缘 = ±1 → abs(raw)
-//   按钮：0 或 1 → 直接返回
 float GamepadMapper::CalcActivation(const KeyInfo& key, float rawVal) const {
     if (!key.is_axis) return rawVal;
     if (key.glfw_id == GLFW_GAMEPAD_AXIS_LEFT_TRIGGER || key.glfw_id == GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER) {
-        // 扳机闲置 = -1，映射到 [0, 1]
         return (rawVal + 1.0f) * 0.5f;
     }
-    // 摇杆轴闲置 = 0
     return std::abs(rawVal);
 }
 
@@ -331,13 +275,10 @@ void GamepadMapper::UpdateGamepadState() {
     UpdateRawJoystickState();
     UpdateAllKeyValues();
 
-    if (m_IsEditing) {
-        BindKey();
-    }
+    BindKey();
 }
 
 float GamepadMapper::GetKeyValue(const std::string& keyName) {
-    std::lock_guard<std::mutex> lock(m_ModeMutex);
     if (m_ActiveModeIndex < 0 || m_ActiveModeIndex >= (int)m_Modes.size()) return 0.0f;
     const auto& mappings = m_Modes[m_ActiveModeIndex].mappings;
     for (const auto& mapping : mappings) {
@@ -363,7 +304,6 @@ float GamepadMapper::GetKeyValue(const std::string& keyName) {
 
 std::vector<std::string> GamepadMapper::GetActiveModeBoundKeyNames() const
 {
-    std::lock_guard<std::mutex> lock(m_ModeMutex);
     std::vector<std::string> names;
     if (m_ActiveModeIndex < 0 || m_ActiveModeIndex >= (int)m_Modes.size())
         return names;
@@ -377,23 +317,20 @@ std::vector<std::string> GamepadMapper::GetActiveModeBoundKeyNames() const
 // ================= 手柄类型 =================
 
 void GamepadMapper::SetGamepadType(GamepadType type) {
-    if (!m_IsEditing) return;
-    m_EditingMode.gamepad_type = type;
+    if (m_Modes.empty() || m_SelectedModeIndex >= (int)m_Modes.size()) return;
+    m_Modes[m_SelectedModeIndex].gamepad_type = type;
 }
 
 GamepadType GamepadMapper::GetGamepadType() const {
-    return GetDisplayMode().gamepad_type;
+    if (m_Modes.empty() || m_SelectedModeIndex >= (int)m_Modes.size()) return GamepadType::Xbox;
+    return m_Modes[m_SelectedModeIndex].gamepad_type;
 }
 
-// ================= 物理按键列表 =================
-
 const std::vector<KeyInfo>& GamepadMapper::GetActivePhysicalKeys() const {
-    if (GetDisplayMode().gamepad_type == GamepadType::Custom)
+    if (GetSelectedMode().gamepad_type == GamepadType::Custom)
         return m_CustomPhysicalKeys;
     return m_Keys;
 }
-
-// ================= 自定义手柄原始状态 =================
 
 void GamepadMapper::UpdateRawJoystickState() {
     m_CustomPresent = false;
@@ -454,17 +391,6 @@ void GamepadMapper::RebuildCustomKeys() {
     }
 }
 
-float GamepadMapper::CalcCustomKeyValue(const KeyInfo& key) const {
-    if (key.is_axis) {
-        if (key.glfw_id < (int)m_RawAxes.size())
-            return m_RawAxes[key.glfw_id];
-    } else {
-        if (key.glfw_id < (int)m_RawButtons.size())
-            return (m_RawButtons[key.glfw_id] != 0) ? 1.0f : 0.0f;
-    }
-    return 0.0f;
-}
-
 void GamepadMapper::UpdateAllKeyValues() {
     m_RawKeyValues.clear();
 
@@ -487,10 +413,6 @@ void GamepadMapper::UpdateAllKeyValues() {
             m_RawKeyValues[name] = m_RawAxes[i];
         }
     }
-}
-
-float GamepadMapper::CalcXboxKeyValue(const KeyInfo& key, const GLFWgamepadstate& state) {
-    return CalcRawValue(key, state);
 }
 
 // ================= UI 绘制（内部辅助） =================
@@ -692,12 +614,12 @@ void GamepadMapper::DrawCustomCanvas() {
 
 
 void GamepadMapper::DrawGamepadMapper() {
-    if (!m_IsEditing) {
-        ImGui::TextColored(ImVec4(1, 0.5f, 0, 1), "Not in edit mode. Call BeginEdit() first.");
+    if (m_Modes.empty() || m_SelectedModeIndex < 0 || m_SelectedModeIndex >= (int)m_Modes.size()) {
+        ImGui::TextColored(ImVec4(1, 0.5f, 0, 1), "No mode selected.");
         return;
     }
 
-    GamepadMode& mode = m_EditingMode;
+    GamepadMode& mode = m_Modes[m_SelectedModeIndex];
     ImGui::InputText("Mode Name", mode.name, sizeof(mode.name));
 
     // 手柄类型选择

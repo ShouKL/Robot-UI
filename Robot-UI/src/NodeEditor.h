@@ -1,17 +1,13 @@
 #pragma once
 
+#include "EditDraftBase.h"
 #include <vector>
 #include <string>
 #include <map>
 #include <set>
 #include <functional>
-#include <shared_mutex>
 #include <imgui_node_editor.h>
 #include "Robot_API/robot_api.h"
-
-// ============================================================================
-// Enums
-// ============================================================================
 
 enum class PinType
 {
@@ -100,17 +96,6 @@ struct EditorLink
 };
 
 // ============================================================================
-// NodeIdLess — for use in std::map
-// ============================================================================
-struct NodeIdLess
-{
-    bool operator()(const ax::NodeEditor::NodeId& a, const ax::NodeEditor::NodeId& b) const
-    {
-        return a.AsPointer() < b.AsPointer();
-    }
-};
-
-// ============================================================================
 // KeyNameList
 // ============================================================================
 using KeyNameList = std::vector<std::string>;
@@ -127,7 +112,7 @@ struct OutputTargetInfo {
 // ============================================================================
 // NodeEditor class
 // ============================================================================
-class NodeEditor
+class NodeEditor : public EditDraftBase
 {
 public:
     NodeEditor();
@@ -164,10 +149,13 @@ public:
     // Evaluate node graph: key values → map of output-target → value
     std::map<std::string, float> Evaluate(const std::map<std::string, float>& keyValues);
 
+    // Pure compute — thread-safe, shared_lock, no member mutation, no ed API
+    std::map<std::string, float> EvaluateCompute(const std::map<std::string, float>& keyValues) const;
+
     // Directly write evaluated outputs into an ActuatorData
     void EvaluateIntoActuator(const std::map<std::string, float>& keyValues, ActuatorData& data);
 
-    // Update key-value snapshot for sidebar display (without ActuatorData output)
+    // Update key-value & output snapshots for sidebar display (UI thread only)
     void EvaluateGraph(const std::map<std::string, float>& keyValues);
 
     // Get the current YAML (for the caller to persist)
@@ -176,6 +164,14 @@ public:
 
     bool IsModified() const { return m_Modified; }
     void Clear();
+    void Clear_NoLock();
+
+    // Thread-safe: defer graph load to UI thread
+    void RequestLoadGraph(const std::string& yaml);
+    void ProcessPendingLoad();
+
+    // Thread-safe: set key-values snapshot for sidebar display (called from gamepad thread)
+    void SetKeyValues(const std::map<std::string, float>& kv);
 
 private:
     // -- Factory --
@@ -237,10 +233,6 @@ private:
     std::map<std::string, double>      m_FieldValues;   // actuator field_path → current value
     std::set<std::string>              m_AnalogKeys;  // 模拟键名集合，用于侧边栏区分显示
 
-    // Thread safety: shared_mutex allows concurrent reads (sidebars + EvaluateGraph)
-    // while serializing writes (node/link edits)
-    mutable std::shared_mutex m_EvalMutex;
-
     // Mode switching
     std::vector<std::string>  m_ModeNames;
     int                       m_SelectedModeIdx = 0;
@@ -255,6 +247,9 @@ private:
     ax::NodeEditor::NodeId m_OutputComboNodeId = 0;
     bool m_KeySourcePopupRequested = false;
     ax::NodeEditor::NodeId m_KeySourcePopupNodeId = 0;
+
+    // -- pending load from another thread --
+    std::string m_PendingGraphYaml;
 
     // -- viewport origin --
     int  m_NavigateFrame = 0;    // >0 时将在该帧导航到原点，倒计时

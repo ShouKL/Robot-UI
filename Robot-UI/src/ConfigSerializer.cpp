@@ -1,8 +1,9 @@
 #include "ConfigSerializer.h"
-#include "Robot_Config.h"
+#include "RobotComponent.h"
 #include "GamepadMapper.h"
 #include "imgui_style.h"
 #include "LiveStream.h"
+#include "Walnut/Core/Log.h"
 
 #include <fstream>
 #include <cstring>
@@ -11,7 +12,7 @@
 #include <commdlg.h>
 
 bool ConfigSerializer::Save(const std::string& filepath,
-                            const Robot_Config& robotConfig,
+                            const RobotComponent& robotConfig,
                             const GamepadMapper& gamepadMapper,
                             const ImGuiStyleManager& styleManager,
                             const std::vector<StreamConfig>& streams,
@@ -21,6 +22,7 @@ bool ConfigSerializer::Save(const std::string& filepath,
 {
     try
     {
+        WL_INFO_TAG("CONFIG", "Saving config: {}", filepath);
         YAML::Emitter out;
         out << YAML::BeginMap;
 
@@ -40,6 +42,7 @@ bool ConfigSerializer::Save(const std::string& filepath,
         if (!out.good())
         {
             if (outError) *outError = "YAML emit error: " + out.GetLastError();
+            WL_ERROR_TAG("CONFIG", "YAML emit error: {}", out.GetLastError());
             return false;
         }
 
@@ -47,6 +50,7 @@ bool ConfigSerializer::Save(const std::string& filepath,
         if (!ofs.is_open())
         {
             if (outError) *outError = "Cannot open file for writing: " + filepath;
+            WL_ERROR_TAG("CONFIG", "Cannot open file for writing: {}", filepath);
             return false;
         }
         ofs << out.c_str();
@@ -56,17 +60,19 @@ bool ConfigSerializer::Save(const std::string& filepath,
     catch (const YAML::Exception& e)
     {
         if (outError) *outError = std::string("Save YAML exception: ") + e.what();
+        WL_ERROR_TAG("CONFIG", "Save YAML exception: {}", e.what());
         return false;
     }
     catch (const std::exception& e)
     {
         if (outError) *outError = std::string("Save exception: ") + e.what();
+        WL_ERROR_TAG("CONFIG", "Save exception: {}", e.what());
         return false;
     }
 }
 
 bool ConfigSerializer::Load(const std::string& filepath,
-                            Robot_Config& robotConfig,
+                            RobotComponent& robotConfig,
                             GamepadMapper& gamepadMapper,
                             ImGuiStyleManager& styleManager,
                             std::vector<StreamConfig>& streams,
@@ -76,6 +82,7 @@ bool ConfigSerializer::Load(const std::string& filepath,
 {
     try
     {
+        WL_INFO_TAG("CONFIG", "Loading config: {}", filepath);
         YAML::Node doc = YAML::LoadFile(filepath);
         if (!doc.IsMap())
         {
@@ -134,16 +141,19 @@ bool ConfigSerializer::Load(const std::string& filepath,
     catch (const YAML::BadFile& e)
     {
         if (outError) *outError = std::string("Cannot open file: ") + e.what();
+        WL_ERROR_TAG("CONFIG", "Cannot open config file: {}", e.what());
         return false;
     }
     catch (const YAML::Exception& e)
     {
         if (outError) *outError = std::string("Load YAML exception: ") + e.what();
+        WL_ERROR_TAG("CONFIG", "Load YAML exception: {}", e.what());
         return false;
     }
     catch (const std::exception& e)
     {
         if (outError) *outError = std::string("Load exception: ") + e.what();
+        WL_ERROR_TAG("CONFIG", "Load exception: {}", e.what());
         return false;
     }
 }
@@ -152,7 +162,7 @@ bool ConfigSerializer::Load(const std::string& filepath,
 //  YAML 写入（基于 yaml-cpp Emitter）
 // ============================================================================
 
-void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const Robot_Config& config)
+void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const RobotComponent& config)
 {
     out << YAML::Key << "robot" << YAML::Value << YAML::BeginMap;
 
@@ -422,7 +432,7 @@ static void SafeStrCpy(char* dst, size_t dstSize, const std::string& src)
     dst[dstSize - 1] = '\0';
 }
 
-bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, Robot_Config& config, std::string* outError)
+bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, RobotComponent& config, std::string* outError)
 {
     const YAML::Node& modesNode = robotNode["modes"];
     if (!modesNode.IsDefined() || !modesNode.IsSequence())
@@ -436,11 +446,7 @@ bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, Robot_Confi
         return false;
     }
 
-    if (config.IsEditing())
-        config.CancelEdit();
-    config.BeginEdit();
-
-    auto& editModes = config.GetModes();
+    auto& modes = config.GetModes();
 
     std::vector<RobotMode> loadedModes;
 
@@ -664,32 +670,24 @@ bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, Robot_Confi
         loadedModes.push_back(mode);
     }
 
-    // 清理旧模式（保留一个位置给 loadedModes[0]）
-    while (static_cast<int>(editModes.size()) > 1)
-        config.DeleteMode(0);
+    // 直接替换全部模式
+    while ((int)modes.size() > (int)loadedModes.size())
+        config.DeleteMode((int)modes.size() - 1);
+    while ((int)modes.size() < (int)loadedModes.size())
+        config.AddMode();
 
-    if (!loadedModes.empty())
-    {
-        // 如果编辑列表为空（首次启动加载），先添加一个空模式占位
-        if (editModes.empty())
-            config.AddMode();
-
-        editModes[0] = loadedModes[0];
-        for (size_t i = 1; i < loadedModes.size(); ++i)
-        {
-            config.AddMode();
-            editModes.back() = loadedModes[i];
-        }
-    }
+    for (size_t i = 0; i < loadedModes.size(); ++i)
+        modes[i] = loadedModes[i];
 
     if (const YAML::Node& n = robotNode["active_mode"]; n.IsDefined())
     {
         int idx = n.as<int>();
-        if (idx >= 0 && idx < static_cast<int>(editModes.size()))
+        if (idx >= 0 && idx < static_cast<int>(modes.size()))
+        {
             config.GetEditModeIndex() = idx;
+            config.SetActiveModeIndex(idx);
+        }
     }
-
-    config.ApplyEdit();
     return true;
 }
 
@@ -706,9 +704,6 @@ bool ConfigSerializer::ApplyGamepadMapper(const YAML::Node& gamepadNode, Gamepad
         if (outError) *outError = "gamepad section missing or invalid 'modes'";
         return false;
     }
-
-    if (mapper.IsEditing())
-        mapper.CancelEdit();
 
     std::vector<GamepadMode> loadedModes;
     for (const auto& item : modesNode)
@@ -800,11 +795,8 @@ bool ConfigSerializer::ApplyGamepadMapper(const YAML::Node& gamepadNode, Gamepad
         return false;
     }
 
-    // 直接替换全部模式（不经过草稿机制，保持编辑状态不变）
+    // 直接替换全部模式
     {
-        if (mapper.IsEditing())
-            mapper.CancelEdit();
-        // 确保模式数量匹配
         auto& modes = mapper.GetModes();
         while ((int)modes.size() > (int)loadedModes.size())
             mapper.DeleteMode((int)modes.size() - 1);
@@ -927,65 +919,6 @@ bool ConfigSerializer::ApplyUIState(const YAML::Node& node, UIState& uiState, st
     if (const YAML::Node& n = node["gamepad_active_mode"];      n.IsDefined()) uiState.gamepad_active_mode      = n.as<int>();
     return true;
 }
-
-// ============================================================================
-//  节点图持久化辅助方法
-// ============================================================================
-
-std::string ConfigSerializer::EmitNodeGraphYaml(const std::string& nodeGraph)
-{
-    // node_graph is already a YAML string produced by NodeEditor::GetGraphYaml().
-    // We pass it through — it gets stored as YAML::Literal inside EmitRobotConfig.
-    return nodeGraph;
-}
-
-bool ConfigSerializer::ApplyNodeGraphYaml(const YAML::Node& node, std::string& nodeGraph)
-{
-    if (node.IsDefined() && node.IsScalar())
-    {
-        nodeGraph = node.as<std::string>();
-        return true;
-    }
-    return false;
-}
-
-// ============================================================================
-//  文件对话框（Win32 封装）
-// ============================================================================
-
-std::string ConfigSerializer::OpenFileDialog(const char* filter)
-{
-    HWND hwnd = GetActiveWindow();
-    char filePath[MAX_PATH] = "";
-    OPENFILENAMEA ofn = {};
-    ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = hwnd;
-    ofn.lpstrFilter = filter;
-    ofn.lpstrFile = filePath;
-    ofn.nMaxFile = sizeof(filePath);
-    ofn.Flags = OFN_FILEMUSTEXIST | OFN_HIDEREADONLY | OFN_NOCHANGEDIR;
-    if (GetOpenFileNameA(&ofn))
-        return filePath;
-    return "";
-}
-
-std::string ConfigSerializer::SaveFileDialog(const char* filter, const char* defaultExt)
-{
-    HWND hwnd = GetActiveWindow();
-    char filePath[MAX_PATH] = "";
-    OPENFILENAMEA ofn = {};
-    ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = hwnd;
-    ofn.lpstrFilter = filter;
-    ofn.lpstrFile = filePath;
-    ofn.nMaxFile = sizeof(filePath);
-    ofn.lpstrDefExt = defaultExt;
-    ofn.Flags = OFN_OVERWRITEPROMPT | OFN_HIDEREADONLY | OFN_NOCHANGEDIR;
-    if (GetSaveFileNameA(&ofn))
-        return filePath;
-    return "";
-}
-
 // ============================================================================
 //  Thrust Curve Editor 独立曲线持久化
 // ============================================================================

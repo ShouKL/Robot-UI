@@ -36,6 +36,7 @@ project "Robot-UI"
       "../Walnut/vendor/glfw/include",
       "../Walnut/vendor/glm",
       "../Walnut/vendor/yaml-cpp/include",
+      "../Walnut/vendor/spdlog/include",
 
       "../Walnut/Walnut/Platform/GUI",
       "../Walnut/Walnut/Source",
@@ -73,6 +74,7 @@ project "Robot-UI"
 
    filter "system:windows"
       systemversion "latest"
+      buildoptions { "/utf-8" }
       defines { "WL_PLATFORM_WINDOWS", "YAML_CPP_STATIC_DEFINE" }
 
    filter "configurations:Debug"

@@ -17,6 +17,7 @@
 #include "NodeEditor.h"
 #include "ThrustCurveEditor.h"
 #include "RobotCommManager.h"
+#include "RobotStatus.h"
 #include "Robot_API/robot_api.h"
 #include "imgui.h"
 #include <memory>
@@ -51,12 +52,10 @@ public:
 
 private:
 	void LoadConfigFile(const std::string& path);  // 静默加载（不弹框）
-	UIState CollectUIState() const;                  // 收集当前所有 UI 状态
 	void ApplyUIState(const UIState& st);            // 恢复 UI 状态
 
 	bool m_AboutOpen;
 	bool m_OptionOpen;
-	bool m_SimulationOpen;
 	bool m_LiveStreamerOpen;
 	bool m_RobotStatusOpen;
 	bool m_RobotCommOpen = true;
@@ -68,6 +67,7 @@ private:
 	std::unique_ptr<NodeEditor> m_NodeEditor;
 	std::unique_ptr<ThrustCurveEditor> m_ThrustCurveEditor;
 	std::unique_ptr<RobotCommManager> m_RobotCommManager;
+	std::unique_ptr<RobotStatus> m_RobotStatus;
 
 	std::atomic<std::shared_ptr<const ActuatorData>> m_CurrentCommand;
 
