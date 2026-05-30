@@ -62,48 +62,56 @@ struct StreamConfig
 
 class LiveStream : public EditDraftBase {
 public:
+    // ======== 构造/析构 ========
     LiveStream();
     ~LiveStream();
-    bool Open(const StreamConfig& config); //  GStreamer
-    void Close();                          //
-    void Update();                         //  GPU
-    // UI
-    void* GetDescriptorSet() const { return m_image ? m_image->GetDescriptorSet() : nullptr; } //  ImGui  ID
+
+    // ======== 流控制 ========
+    bool Open(const StreamConfig& config);
+    void Close();
+    void Update();
+
+    // ======== 状态查询 ========
+    void* GetDescriptorSet() const { return m_image ? m_image->GetDescriptorSet() : nullptr; }
     bool IsReady() const { return m_image != nullptr; }
-    //
     int GetWidth() const { return m_width; }
     int GetHeight() const { return m_height; }
     int GetFPS() const { return m_currentFPS; }
     std::string GetLastErrorMsg() const { return m_lastErrorMsg; }
-    // ImGui
+
+    // ======== 配置访问 ========
     void DrawStreamConfigPanel();
     const StreamConfig& GetStreamConfig() const { return m_StreamConfig; }
     StreamConfig& GetStreamConfig() { return m_StreamConfig; }
+
 private:
-    //
-    std::string BuildPipelineString(const StreamConfig& config); //  GStreamer
-    //  UI
+    // ======== GStreamer 管线构建 ========
+    std::string BuildPipelineString(const StreamConfig& config);
+    static GstFlowReturn OnNewSample(GstAppSink* sink, gpointer user_data);
+
+    // ======== UI 子面板 ========
     void DrawConnectionSettings();
     void DrawProtocolCodecSettings();
     void DrawNetworkBufferSettings();
     void DrawDecoderRenderingSettings();
-private:
+
+    // ======== GStreamer 状态 ========
     StreamConfig m_StreamConfig;
-    // GStreamer
     GstElement* m_pipeline = nullptr;
-    //  GStreamer
-    static GstFlowReturn OnNewSample(GstAppSink* sink, gpointer user_data);
-    //
+
+    // ======== 帧数据 ========
     std::mutex m_mutex;
-    std::vector<uint8_t> m_pixels;       //  (CPU)
-    std::vector<uint8_t> m_localBuffer;  //
+    std::vector<uint8_t> m_pixels;       // CPU 帧缓冲
+    std::vector<uint8_t> m_localBuffer;
     int m_width = 0, m_height = 0;
-    bool m_hasNewFrame = false;          //
-    //
+    bool m_hasNewFrame = false;
+
+    // ======== FPS 统计 ========
     int m_frameCount = 0;
     int m_currentFPS = 0;
     double m_lastFpsTime = 0.0;
     std::string m_lastErrorMsg;
-    // GPU  Walnut
+
+    // ======== GPU 纹理 (Walnut) ========
     std::shared_ptr<Walnut::Image> m_image = nullptr;
 };

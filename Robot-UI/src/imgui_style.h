@@ -34,6 +34,7 @@ class ImGuiStyleManager
 
 private:
 
+	// ======== 主题数据 ========
 	ImGuiTheme m_Theme = ImGuiTheme::WalnutDefault;
 
 	ImGuiStyle& mStyle;
@@ -48,12 +49,14 @@ private:
 
 public:
 
+	// ======== 主题查询 ========
 	ImGuiTheme GetTheme() const { return m_Theme; }
 
 	bool GetInvert() const { return m_bStyleInvert; }
 
 	float GetAlpha() const { return m_Alpha; }
 
+	// ======== 主题定义 ========
 	ImGuiStyleManager& WalnutDefaultTheme();
 
 	ImGuiStyleManager& CinderTheme();
@@ -72,6 +75,7 @@ public:
 
 	ImGuiStyleManager& LightTheme();
 
+	// ======== 主题切换与样式应用 ========
 	void DrawStylePanel();
 
 	void ApplyImGuiStyle(ImGuiTheme theme, bool invert_mode = false, float alpha = 1.0f);
@@ -82,24 +86,18 @@ public:
 
 	void RevertStyle();
 
+	// ======== 构造/析构 ========
 	ImGuiStyleManager();
 
 	~ImGuiStyleManager();
 
 private:
-
+	// ======== 运行时状态 ========
 	ImGuiTheme m_ActiveTheme = ImGuiTheme::WalnutDefault;
-
 	bool m_bStyleInvert = false;
-
 	float m_Alpha = 1.0f;
-
 	bool m_ActiveBStyleInvert = false;
-
 	float m_ActiveAlpha = 1.0f;
-
 	ImGuiStyle m_DefaultStyle;
-
 	float m_PreviewTimer = 0.0f;
-
 };

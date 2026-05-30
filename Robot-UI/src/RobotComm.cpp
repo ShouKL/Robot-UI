@@ -29,7 +29,7 @@ static void HexEdit(const char* label, std::vector<uint8_t>& bytes) {
 
 // ==================== 主窗口 ====================
 void RobotComm::DrawWindow(ProtocolSendConfig& sendCfg, ProtocolReceiveConfig& recvCfg,
-                                ActuatorData& actuator, bool hasTemp, bool hasHum, bool hasDep) {
+                                ActuatorConfig& actuator, const SensorConfig& sensor) {
     if (!m_Open) return;
 
     ImGui::SetNextWindowSize(ImVec2(700, 500), ImGuiCond_FirstUseEver);
@@ -46,7 +46,7 @@ void RobotComm::DrawWindow(ProtocolSendConfig& sendCfg, ProtocolReceiveConfig& r
         }
         if (ImGui::BeginTabItem("Receive Fields")) {
             m_TabIndex = 1;
-            DrawReceiveFieldConfig(recvCfg, hasTemp, hasHum, hasDep);
+            DrawReceiveFieldConfig(recvCfg, sensor);
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();
@@ -96,7 +96,7 @@ void RobotComm::DrawWindow(ProtocolSendConfig& sendCfg, ProtocolReceiveConfig& r
 }
 
 // ==================== 发送协议字段配置 ====================
-void RobotComm::DrawSendFieldConfig(ProtocolSendConfig& cfg, ActuatorData& actuator) {
+void RobotComm::DrawSendFieldConfig(ProtocolSendConfig& cfg, ActuatorConfig& actuator) {
     auto& fields = cfg.fields;
     auto encodingNames = GetEncodingNames();
 
@@ -123,7 +123,7 @@ void RobotComm::DrawSendFieldConfig(ProtocolSendConfig& cfg, ActuatorData& actua
         fields.push_back(f);
     }
 
-    auto components = GetSendComponents(actuator, false, false, false);
+    auto components = GetSendComponents(actuator, SensorConfig{});
 
     if (ImGui::BeginChild("SendFieldsScroll", ImVec2(0, 260), true)) {
         if (ImGui::BeginTable("SendFieldsTable", 7,
@@ -261,10 +261,10 @@ void RobotComm::DrawSendFieldConfig(ProtocolSendConfig& cfg, ActuatorData& actua
 }
 
 // ==================== 接收协议字段配置 ====================
-void RobotComm::DrawReceiveFieldConfig(ProtocolReceiveConfig& cfg, bool hasTemp, bool hasHum, bool hasDep) {
+void RobotComm::DrawReceiveFieldConfig(ProtocolReceiveConfig& cfg, const SensorConfig& sensor) {
     auto& fields = cfg.fields;
     auto encodingNames = GetEncodingNames();
-    auto components = GetRecvComponents(hasTemp, hasHum, hasDep);
+    auto components = GetRecvComponents(sensor);
 
     if (ImGui::CollapsingHeader("Frame Format", ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::Text("Header:"); HexEdit("##RecvHeader", cfg.header);
@@ -431,9 +431,11 @@ void RobotComm::DrawReceiveFieldConfig(ProtocolReceiveConfig& cfg, bool hasTemp,
 // ==================== 控制面板 ====================
 void RobotComm::DrawControlPanel(RobotCommConfig& cfg, bool isConnected, int nodeId,
                                   RobotComponent* robotCfg,
+                                  GamepadMapper* gamepadMapper,
                                   std::function<void(int)> onConnect,
                                   std::function<void()>   onDisconnect,
-                                  std::function<void(int)> onActiveModeChanged) {
+                                  std::function<void(int, int)> onActiveModeChanged,
+                                  std::function<void(int, int)> onGamepadModeChanged) {
     ImGui::TextDisabled("ID: %d | Status: %s", nodeId, isConnected ? "CONNECTED" : "OFFLINE");
     ImGui::Separator();
     ImGui::Spacing();
@@ -449,10 +451,11 @@ void RobotComm::DrawControlPanel(RobotCommConfig& cfg, bool isConnected, int nod
                     for (int i = 0; i < (int)modes.size(); ++i) {
                         bool isSelected = (i == activeIdx);
                         if (ImGui::Selectable(modes[i].name, isSelected)) {
+                            int oldIdx = activeIdx;
                             robotCfg->SetActiveModeIndex(i);
                             robotCfg->GetEditModeIndex() = i;
                             if (onActiveModeChanged)
-                                onActiveModeChanged(i);
+                                onActiveModeChanged(oldIdx, i);
                         }
                         if (isSelected) ImGui::SetItemDefaultFocus();
                     }
@@ -461,6 +464,32 @@ void RobotComm::DrawControlPanel(RobotCommConfig& cfg, bool isConnected, int nod
             }
         } else {
             ImGui::TextDisabled("Robot config not available");
+        }
+    }
+
+    // 当前使用的游戏手柄模式
+    if (ImGui::CollapsingHeader("Gamepad Mode", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (gamepadMapper) {
+            auto& gpModes = gamepadMapper->GetModes();
+            int gpIdx = gamepadMapper->GetActiveModeIndex();
+            if (!gpModes.empty() && gpIdx >= 0 && gpIdx < (int)gpModes.size()) {
+                std::string gpPreview = gpModes[gpIdx].name;
+                if (ImGui::BeginCombo("##GamepadModeSelect", gpPreview.c_str())) {
+                    for (int i = 0; i < (int)gpModes.size(); ++i) {
+                        bool isSelected = (i == gpIdx);
+                        if (ImGui::Selectable(gpModes[i].name, isSelected)) {
+                            int oldGpIdx = gpIdx;
+                            gamepadMapper->SetActiveModeByIndex(i);
+                            if (onGamepadModeChanged)
+                                onGamepadModeChanged(oldGpIdx, i);
+                        }
+                        if (isSelected) ImGui::SetItemDefaultFocus();
+                    }
+                    ImGui::EndCombo();
+                }
+            }
+        } else {
+            ImGui::TextDisabled("Gamepad config not available");
         }
     }
 

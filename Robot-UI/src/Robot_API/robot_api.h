@@ -50,6 +50,15 @@ struct SensorData {
     bool is_valid = false;
 };
 
+// ================== 传感器配置 (Sensor Config) ==================
+// 与 ActuatorConfig 并列，描述模式中有哪些传感器
+
+struct SensorConfig {
+    bool has_temperature = false;
+    bool has_humidity    = false;
+    bool has_depth       = false;
+};
+
 // ================== 执行器数据结构 (Actuator) ==================
 
 struct ThrustCurve {
@@ -90,7 +99,7 @@ struct MotionControl {
     EncodedValue rz{0, DataEncoding::Float32};
 };
 
-struct ActuatorData {
+struct ActuatorConfig {
     std::map<int, BrushlessMotor> brushlessmotor;
     std::map<int, Servo> servo;
     MotionControl motion;
@@ -142,6 +151,30 @@ struct ProtocolSendConfig {
     ChecksumType checksum = ChecksumType::Sum8;
     bool include_length = true;
     std::vector<SendField> fields;
+};
+
+// ================== 机器人模式配置 (RobotMode) ==================
+// 包含一个模式的全部配置：执行器、传感器、协议、网络等
+
+struct RobotMode {
+    char name[64] = "";
+    std::string gamepad_mapping_Mode;
+    std::string node_graph;  // 旧版单节点图（兼容）
+    std::map<std::string, std::string> node_graph_pairs;  // gamepadModeName → graph yaml
+
+    // 执行器与传感器并列
+    ActuatorConfig  actuator_config;
+    SensorConfig  sensor_config;
+
+    // 协议配置
+    ProtocolSendConfig    protocol_send;
+    ProtocolReceiveConfig protocol_receive;
+
+    // 网络
+    std::string host_ip;
+    int remote_port   = 0;
+    int local_port    = 0;
+    int protocol_type = 0;
 };
 
 // ================== Inline 工具函数 ==================
@@ -217,8 +250,8 @@ struct FieldSubField {
     std::string label;       // "X", "Target Speed", "Curve np_mid", "Value"
 };
 
-// 从 ActuatorData + sensor 标志生成可用组件列表
-inline std::vector<FieldComponent> GetSendComponents(const ActuatorData& data, bool hasTemp, bool hasHum, bool hasDep) {
+// 从 ActuatorConfig + SensorConfig 生成可用组件列表
+inline std::vector<FieldComponent> GetSendComponents(const ActuatorConfig& data, const SensorConfig& /*sensor*/) {
     std::vector<FieldComponent> comps;
     if (data.has_motion)
         comps.push_back({"motion", "Motion", "motion.", false});
@@ -243,11 +276,11 @@ inline std::vector<FieldComponent> GetSendComponents(const ActuatorData& data, b
     return comps;
 }
 
-inline std::vector<FieldComponent> GetRecvComponents(bool hasTemp, bool hasHum, bool hasDep) {
+inline std::vector<FieldComponent> GetRecvComponents(const SensorConfig& sensor) {
     std::vector<FieldComponent> comps;
-    if (hasTemp) comps.push_back({"temp", "Temperature", "temperature.", true});
-    if (hasHum)  comps.push_back({"hum",  "Humidity",    "humidity.",    true});
-    if (hasDep)  comps.push_back({"depth","Depth",       "depth.",       true});
+    if (sensor.has_temperature) comps.push_back({"temp", "Temperature", "temperature.", true});
+    if (sensor.has_humidity)    comps.push_back({"hum",  "Humidity",    "humidity.",    true});
+    if (sensor.has_depth)       comps.push_back({"depth","Depth",       "depth.",       true});
     return comps;
 }
 
@@ -343,13 +376,13 @@ inline std::string MakeFieldPath(const FieldComponent& comp, const FieldSubField
     return comp.path_prefix + sf.key;
 }
 
-/// 根据 field_path 从 ActuatorData 中取出对应 double 值
+/// 根据 field_path 从 ActuatorConfig 中取出对应 double 值
 /// 支持路径格式：
 ///   "motion.x" / "motion.y" / ... / "motion.rz"
 ///   "brushlessmotor.<id>.target_speed"
 ///   "brushlessmotor.<id>.curve.np_mid" / ... / ".pt_end"
 ///   "servo.<id>.angle"
-inline bool GetActuatorField(const ActuatorData& data, const std::string& path, double& out) {
+inline bool GetActuatorField(const ActuatorConfig& data, const std::string& path, double& out) {
     auto split = [](const std::string& s, char delim) -> std::vector<std::string> {
         std::vector<std::string> parts;
         std::stringstream ss(s);
@@ -415,7 +448,7 @@ inline bool GetActuatorField(const ActuatorData& data, const std::string& path, 
 }
 
 /// 根据 SendField 列表构建 payload 字节流
-inline std::vector<uint8_t> BuildPayload(const ActuatorData& data, const std::vector<SendField>& fields) {
+inline std::vector<uint8_t> BuildPayload(const ActuatorConfig& data, const std::vector<SendField>& fields) {
     std::vector<uint8_t> payload;
     for (const auto& f : fields) {
         double val = 0.0;
@@ -519,8 +552,8 @@ inline uint16_t ComputeChecksum(ChecksumType type, const uint8_t* data, size_t l
     }
 }
 
-/// 根据 ProtocolSendConfig 将 ActuatorData 序列化为完整帧
-inline std::vector<uint8_t> BuildFrame(const ActuatorData& data, const ProtocolSendConfig& cfg) {
+/// 根据 ProtocolSendConfig 将 ActuatorConfig 序列化为完整帧
+inline std::vector<uint8_t> BuildFrame(const ActuatorConfig& data, const ProtocolSendConfig& cfg) {
     std::vector<uint8_t> payload = BuildPayload(data, cfg.fields);
 
     std::vector<uint8_t> frame;
@@ -707,7 +740,7 @@ public:
     virtual SensorData GetSensorData() = 0;
 
     // 发送执行器数据（使用内部存储的协议配置）
-    virtual void SendActuatorData(const ActuatorData& data) = 0;
+    virtual void SendActuatorData(const ActuatorConfig& data) = 0;
 
     // 设置协议发送配置
     virtual void SetProtocolConfig(const ProtocolSendConfig& config) = 0;

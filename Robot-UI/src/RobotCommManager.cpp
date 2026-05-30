@@ -56,9 +56,11 @@ bool RobotCommManager::Connect(int id) {
 
         // 同步 active_mode_index 到 Comm 面板所选模式
         if (m_RobotComponent) {
-            m_RobotComponent->SetActiveModeIndex(m_RobotComponent->GetEditModeIndex());
+            int oldIdx = m_RobotComponent->GetActiveModeIndex();
+            int newIdx = m_RobotComponent->GetEditModeIndex();
+            m_RobotComponent->SetActiveModeIndex(newIdx);
             if (m_OnActiveModeChanged)
-                m_OnActiveModeChanged(m_RobotComponent->GetActiveModeIndex());
+                m_OnActiveModeChanged(oldIdx, newIdx);
         }
 
         WL_INFO_TAG("COMM", "Connected successfully: {} ({})", cfg.name, cfg.host_ip);
@@ -79,7 +81,7 @@ void RobotCommManager::Disconnect() {
 }
 
 // ==================== 数据收发 ====================
-void RobotCommManager::SendActuatorData(const ActuatorData& data) {
+void RobotCommManager::SendActuatorData(const ActuatorConfig& data) {
     if (m_IsConnected)
         m_RobotAPI->SendActuatorData(data);
 }
@@ -95,6 +97,43 @@ std::vector<RobotCommConfig> RobotCommManager::GetAllConfigs() const {
     std::vector<RobotCommConfig> out;
     for (const auto& n : m_Nodes) out.push_back(n.config);
     return out;
+}
+
+void RobotCommManager::LoadConfigs(const std::vector<RobotCommConfig>& configs, int activeId) {
+    // 断开现有连接
+    if (m_IsConnected) Disconnect();
+
+    // 清空现有节点
+    m_Nodes.clear();
+    m_ActiveId = -1;
+
+    // 从配置列表重建节点
+    for (const auto& cfg : configs) {
+        RobotCommNode node;
+        node.id = NextId();
+        node.config = cfg;
+        m_Nodes.push_back(node);
+    }
+
+    // 恢复活跃节点
+    if (!m_Nodes.empty()) {
+        if (activeId >= 0) {
+            // 查找匹配的节点（通过名字和配置匹配，因为 ID 会重新分配）
+            // 如果 activeId 在范围内，直接使用索引
+            if (activeId < (int)m_Nodes.size()) {
+                m_ActiveId = m_Nodes[activeId].id;
+                m_Nodes[activeId].isSelected = true;
+            } else {
+                m_ActiveId = m_Nodes[0].id;
+                m_Nodes[0].isSelected = true;
+            }
+        } else {
+            m_ActiveId = m_Nodes[0].id;
+            m_Nodes[0].isSelected = true;
+        }
+    }
+
+    WL_INFO_TAG("COMM", "Loaded {} comm configs", configs.size());
 }
 
 RobotCommConfig* RobotCommManager::GetActiveConfig() {
@@ -139,9 +178,11 @@ void RobotCommManager::DrawUI(const char* windowName, bool* p_open) {
             if (ImGui::BeginTabItem("Network")) {
                 m_RobotComm.DrawControlPanel(selNode->config, selNode->isConnected, selNode->id,
                                              m_RobotComponent,
+                                             m_GamepadMapper,
                                              [this](int id) { Connect(id); },
                                              [this]() { Disconnect(); },
-                                             m_OnActiveModeChanged);
+                                             m_OnActiveModeChanged,
+                                             m_OnGamepadModeChanged);
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem("Protocol")) {
@@ -157,7 +198,7 @@ void RobotCommManager::DrawUI(const char* windowName, bool* p_open) {
                             }
                             if (ImGui::BeginTabItem("Receive Fields")) {
                                 m_RobotComm.DrawReceiveFieldConfig(mode.protocol_receive,
-                                    mode.has_temperature, mode.has_humidity, mode.has_depth);
+                                    mode.sensor_config);
                                 ImGui::EndTabItem();
                             }
                             ImGui::EndTabBar();

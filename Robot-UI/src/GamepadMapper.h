@@ -3,6 +3,7 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <imgui.h>
 #include <GLFW/glfw3.h>
 #include <algorithm>
@@ -45,50 +46,70 @@ struct GamepadMode {
 
 class GamepadMapper {
 public:
+    // ======== 构造/析构 ========
     GamepadMapper();
     ~GamepadMapper();
 
-    void DrawGamepadMapper();
+    // ======== 游戏手柄状态更新 ========
     void UpdateGamepadState();
+    float GetKeyValue(const std::string& keyName);
+    std::vector<std::string> GetActiveModeBoundKeyNames() const;
+    bool IsCustomConnected() const { return m_CustomPresent; }
 
+    // ======== 键位管理 ========
     int  AddKey(const std::string& keyName, bool isAnalog);
     void RemoveKey(int keyId);
     void RenameKey(int keyId, const std::string& newName);
     const std::vector<GamepadKey>& GetKeys() const;
     void UpdateNextKeyID();
 
-    float GetKeyValue(const std::string& keyName);
-
-    std::vector<std::string> GetActiveModeBoundKeyNames() const;
-
+    // ======== 手柄类型 ========
     void SetGamepadType(GamepadType type);
     GamepadType GetGamepadType() const;
-    bool IsCustomConnected() const { return m_CustomPresent; }
 
+    // ======== 模式管理 ========
     std::vector<std::string> GetModeNames() const;
     int  GetActiveModeIndex() const { return m_ActiveModeIndex; }
-
     void SetActiveMode(const std::string& name);
     void SetActiveModeByIndex(int index);
-
     void AddMode();
     void DeleteMode(int index);
     bool ModeExists(const std::string& name) const;
-
     const std::vector<GamepadMode>& GetModes() const;
     std::vector<GamepadMode>& GetModes();
     int GetSelectedModeIndex() const { return m_SelectedModeIndex; }
     void SetSelectedModeIndex(int idx) { if (idx >= 0 && idx < (int)m_Modes.size()) m_SelectedModeIndex = idx; }
 
-private:
-    std::shared_ptr<Walnut::Image> m_GamepadImage;
+    // ======== UI 绘制 ========
+    void DrawGamepadMapper();
 
+private:
+    // ======== UI 绘制辅助 ========
     void DrawXboxCanvas();
     void DrawCustomCanvas();
 
-    std::map<std::string, float> m_KeyValues;      // 物理按键名 → 当前值（统一强度表）
+    // ======== 物理按键读取 ========
+    const std::vector<KeyInfo>& GetActivePhysicalKeys() const;
+    void UpdateRawJoystickState();        // 读取原始 joystick 状态
+    void RebuildCustomKeys();             // 重建自定义手柄物理按键
+    void UpdateAllKeyValues();            // 更新 m_KeyValues（每帧调用）
+    GamepadMode& GetSelectedMode();
+    const GamepadMode& GetSelectedMode() const;
 
-    // 自定义手柄原始状态
+    // ======== UI 图片 ========
+    std::shared_ptr<Walnut::Image> m_GamepadImage;
+
+    // ======== 按键状态 ========
+    std::map<std::string, float> m_KeyValues;      // 物理按键名 → 当前值（统一强度表）
+    std::map<std::string, std::vector<std::string>> m_KeyBoundActions; // 物理键 → 绑定的自定义键名列表
+    std::string m_SelectedKey;
+    int m_NextKeyID = 1;
+
+    // ======== Xbox 物理按键 ========
+    static constexpr float k_VisualDeadzone = 0.15f;
+    static constexpr float k_BindThreshold  = 0.5f;
+
+    // ======== 自定义手柄原始状态 ========
     bool                    m_CustomPresent = false;
     int                     m_CustomButtonCount = 0;
     int                     m_CustomAxisCount = 0;
@@ -96,27 +117,10 @@ private:
     std::vector<float>      m_RawAxes;
     std::vector<KeyInfo>    m_CustomPhysicalKeys;   // 自定义手柄物理按键（动态生成）
 
-    static constexpr float k_VisualDeadzone = 0.15f;
-    static constexpr float k_BindThreshold  = 0.5f;
-
-    // 返回当前手柄类型对应的物理按键列表
-    const std::vector<KeyInfo>& GetActivePhysicalKeys() const;
-
-    void UpdateAllKeyValues();            // 更新 m_KeyValues（每帧调用）
-    void RebuildCustomKeys();             // 重建自定义手柄物理按键
-    void UpdateRawJoystickState();        // 读取原始 joystick 状态
-
+    // ======== 模式数据 ========
     std::vector<GamepadMode> m_Modes;
     int m_ActiveModeIndex = 0;
     int m_SelectedModeIndex = 0;    // UI 中当前选中的模式索引
-
-    GamepadMode& GetSelectedMode();
-    const GamepadMode& GetSelectedMode() const;
-
-    std::map<std::string, std::vector<std::string>> m_KeyBoundActions; // 物理键 → 绑定的自定义键名列表
-    std::string m_SelectedKey;
-
-    int m_NextKeyID = 1;
 
     // Rename popup state
     bool        m_RenamePopupOpen = false;
@@ -130,6 +134,7 @@ private:
 
     std::vector<KeyInfo> m_Keys;                       // Xbox 物理按键定义（带画布坐标）
     std::map<std::string, float> m_RawKeyValues;       // 物理按键原始值（未处理，供 GetKeyValue/画布/绑定使用）
+    mutable std::mutex m_RawKeyValuesMutex;            // 保护 m_RawKeyValues（UI线程写，GamepadRoutine线程读）
 
     GLFWgamepadstate m_LastState;
 

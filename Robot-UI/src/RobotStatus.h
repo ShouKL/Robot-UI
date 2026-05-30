@@ -1,50 +1,67 @@
 #pragma once
 
 #include "Robot_API/robot_api.h"
-#include "RobotComponent.h"
-#include <memory>
-#include <string>
 #include "RobotCommManager.h"
+#include "NodeGraph.h"
 #include "Walnut/Core/Log.h"
 #include <imgui.h>
-#include <map>
-#include <vector>
 #include <cstdlib>
+#include <map>
+#include <memory>
+#include <shared_mutex>
+#include <string>
+#include <vector>
+
+// ============================================================================
+// RobotStatus — 运行时状态监控
+// 持有 const RobotMode* 指针指向 RobotComponent 中的活跃模式（不持有拷贝）
+// ============================================================================
 
 class RobotStatus
 {
 public:
     RobotStatus();
 
-    void ApplyFromRobotComponent(const RobotComponent& comp);
+    // ---- 活跃模式管理 ----
+    void               SetActiveMode(const RobotMode* mode);
+    // 加载当前活跃模式的节点图（根据 gamepadModeName 查找 node_graph_pairs）
+    void               LoadGraph(const std::string& gamepadModeName);
+    // 节点图求值：key values → ActuatorConfig（线程安全，可在 GamepadRoutine 中调用）
+    void               EvaluateIntoActuator(const std::map<std::string, float>& keyValues, ActuatorConfig& data);
+    bool               HasGraphEvaluator()    const;
+    bool               HasActiveMode()        const;
+    const RobotMode*   GetActiveModePtr()     const;
+    const std::string  GetActiveModeName()    const;
 
-    void UpdateCommandData(std::shared_ptr<const ActuatorData> cmd);
+    // ---- 活跃模式配置快捷访问 ----
+    const ActuatorConfig&        GetAppliedActuator()     const;
+    const ProtocolSendConfig&    GetAppliedSendConfig()   const;
+    const ProtocolReceiveConfig& GetAppliedRecvConfig()   const;
+    const SensorConfig&          GetSensorConfig()        const;
+    bool HasTemperature()  const;
+    bool HasHumidity()     const;
+    bool HasDepth()        const;
+
+    // ---- 运行时数据更新 ----
+    void UpdateCommandData(std::shared_ptr<const ActuatorConfig> cmd);
     void UpdateSensorData(const SensorData& sensor, bool valid);
 
+    // ---- 运行时数据访问 ----
+    std::shared_ptr<const ActuatorConfig> GetCurrentCommand() const;
+    SensorData  GetCurrentSensor() const;
+    bool        IsSensorValid()    const;
+
+    // ---- UI ----
     void DrawWindow(bool* p_open, RobotCommManager* commManager = nullptr);
 
-    const ActuatorData&          GetAppliedActuator()        const { return m_AppliedActuator; }
-    const ProtocolSendConfig&    GetAppliedSendConfig()      const { return m_AppliedSendConfig; }
-    const ProtocolReceiveConfig& GetAppliedRecvConfig()      const { return m_AppliedRecvConfig; }
-    const std::string&           GetActiveModeName()         const { return m_ActiveModeName; }
-    bool HasTemperature() const { return m_HasTemperature; }
-    bool HasHumidity()    const { return m_HasHumidity; }
-    bool HasDepth()       const { return m_HasDepth; }
-
-    std::shared_ptr<const ActuatorData> GetCurrentCommand() const { return m_CurrentCommand; }
-    const SensorData& GetCurrentSensor() const { return m_CurrentSensor; }
-    bool IsSensorValid() const { return m_SensorValid; }
-
 private:
-    ActuatorData          m_AppliedActuator;
-    ProtocolSendConfig    m_AppliedSendConfig;
-    ProtocolReceiveConfig m_AppliedRecvConfig;
-    std::string           m_ActiveModeName;
-    bool m_HasTemperature = false;
-    bool m_HasHumidity    = false;
-    bool m_HasDepth       = false;
+    const RobotMode*                            m_ActiveMode    = nullptr;   // 指向 RobotComponent 中的模式
+    std::unique_ptr<NodeGraph>                  m_GraphEvaluator;              // headless 节点图求值器
+    std::shared_ptr<const ActuatorConfig>       m_CurrentCommand;
+    SensorData                                  m_CurrentSensor;
+    bool                                        m_SensorValid   = false;
 
-    std::shared_ptr<const ActuatorData> m_CurrentCommand;
-    SensorData m_CurrentSensor;
-    bool       m_SensorValid = false;
+    // 多线程保护：m_ActiveMode + m_GraphEvaluator 由 m_StatusMutex 保护
+    // （GamepadRoutine 读，OnActiveModeChanged 回调写）
+    mutable std::shared_mutex                   m_StatusMutex;
 };

@@ -20,59 +20,70 @@
 #include "RobotStatus.h"
 #include "Robot_API/robot_api.h"
 #include "imgui.h"
-#include <memory>
-#include <thread>
 #include <atomic>
+#include <memory>
 #include <string>
+#include <thread>
+
+// ============================================================================
+// Robot_UI_Layer — 主入口层（Walnut Layer）
+// 协调所有子系统，管理菜单栏和窗口生命周期
+// ============================================================================
 
 class Robot_UI_Layer : public Walnut::Layer
 {
 public:
-	Robot_UI_Layer();
-	~Robot_UI_Layer();
+    Robot_UI_Layer();
+    ~Robot_UI_Layer();
 
-	virtual void OnUIRender() override;
+    // ---- Walnut 生命周期 ----
+    virtual void OnUIRender() override;
 
-	void ShowOption() { m_OptionOpen = true; }
-	void ShowAbout() { m_AboutOpen = true; }
-	void ShowRobotStatus() { m_RobotStatusOpen = true; }
-	void ShowNodeEditor();
-	void ShowThrustCurveEditor();
-	void ShowRobotCommConfig();
-	void SyncNodeEditorModes();
+    // ---- 窗口显示控制 ----
+    void ShowOption()            { m_OptionOpen = true; }
+    void ShowAbout()             { m_AboutOpen = true; }
+    void ShowRobotStatus()       { m_RobotStatusOpen = true; }
+    void ShowNodeEditor();
+    void ShowThrustCurveEditor();
+    void ShowRobotCommConfig();
 
-	bool& GetLiveStreamerOpen() { return m_LiveStreamerOpen; }
-	bool& GetShowRobotComm() { return m_RobotCommOpen; }
-	bool& GetShowRobotStatus() { return m_RobotStatusOpen; }
+    // ---- 窗口状态访问 ----
+    bool& GetLiveStreamerOpen()  { return m_LiveStreamerOpen; }
+    bool& GetShowRobotComm()     { return m_RobotCommOpen; }
+    bool& GetShowRobotStatus()   { return m_RobotStatusOpen; }
 
-	// File 菜单操作
-	void FileOpen();
-	void FileSave();
-	void FileSaveAs();
+    // ---- 文件操作 ----
+    void FileOpen();
+    void FileSave();
+    void FileSaveAs();
 
 private:
-	void LoadConfigFile(const std::string& path);  // 静默加载（不弹框）
-	void ApplyUIState(const UIState& st);            // 恢复 UI 状态
+    void LoadConfigFile(const std::string& path);
+    void ApplyUIState(const UIState& st);
+    void GamepadRoutine();
 
-	bool m_AboutOpen;
-	bool m_OptionOpen;
-	bool m_LiveStreamerOpen;
-	bool m_RobotStatusOpen;
-	bool m_RobotCommOpen = true;
-	bool m_NodeEditorOpen;
-	bool m_ThrustCurveEditorOpen = false;
+    // 窗口开关状态
+    bool m_AboutOpen;
+    bool m_OptionOpen;
+    bool m_LiveStreamerOpen;
+    bool m_RobotStatusOpen;
+    bool m_RobotCommOpen            = true;
+    bool m_NodeEditorOpen;
+    bool m_ThrustCurveEditorOpen    = false;
 
-	std::unique_ptr<OptionPanel> m_OptionPanel;
-	std::unique_ptr<StreamManager> m_StreamManager;
-	std::unique_ptr<NodeEditor> m_NodeEditor;
-	std::unique_ptr<ThrustCurveEditor> m_ThrustCurveEditor;
-	std::unique_ptr<RobotCommManager> m_RobotCommManager;
-	std::unique_ptr<RobotStatus> m_RobotStatus;
+    // 子系统
+    std::unique_ptr<OptionPanel>      m_OptionPanel;
+    std::unique_ptr<StreamManager>    m_StreamManager;
+    std::unique_ptr<NodeEditor>       m_NodeEditor;
+    std::unique_ptr<ThrustCurveEditor> m_ThrustCurveEditor;
+    std::unique_ptr<RobotCommManager> m_RobotCommManager;
+    std::unique_ptr<RobotStatus>      m_RobotStatus;
 
-	std::atomic<std::shared_ptr<const ActuatorData>> m_CurrentCommand;
+    // 文件状态
+    std::string m_CurrentSavePath;
 
-	std::thread m_GamepadThread;
-	std::atomic<bool> m_Running;
-	std::string m_CurrentSavePath;  // 当前 .rbt 保存路径（空=未保存过）
-	void GamepadRoutine();
+    // 手柄线程
+    std::thread m_GamepadThread;
+    std::atomic<bool> m_Running;
+    std::atomic<std::shared_ptr<const ActuatorConfig>> m_CurrentCommand;
 };

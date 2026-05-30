@@ -16,6 +16,7 @@ StreamManager::~StreamManager() {
         m_devices.clear();                                // 清空容器，触发 unique_ptr 自动释放
 }
 
+// ======== 设备管理 ========
 void StreamManager::AddDevice(const char* name, const char* ip) {
     DeviceNode node;                                 // 创建一个新的设备节点
     node.id = m_nextId++;                            // 分配唯一 ID 并递增计数器
@@ -56,6 +57,24 @@ std::vector<StreamConfig> StreamManager::GetAllStreamConfigs() const {
     return configs;
 }
 
+void StreamManager::LoadAllConfigs(const std::vector<StreamConfig>& configs) {
+    // 关闭并清空现有设备
+    for (auto& node : m_devices) {
+        if (node.isStreaming)
+            node.stream->Close();
+    }
+    m_devices.clear();
+
+    // 从配置列表重建设备
+    for (const auto& cfg : configs) {
+        DeviceNode node;
+        node.id = m_nextId++;
+        node.stream = std::make_unique<LiveStream>();
+        node.stream->GetStreamConfig() = cfg;
+        m_devices.push_back(std::move(node));
+    }
+}
+
 void StreamManager::UpdateAll() {
     for (auto& node : m_devices) {                    // 遍历所有设备
         if (node.isStreaming) {                       // 只有正在运行的设备才执行更新
@@ -64,6 +83,7 @@ void StreamManager::UpdateAll() {
     }
 }
 
+// ======== UI 绘制 ========
 void StreamManager::DrawUI(const char* windowName, bool* p_open) {
     // 渲染“设备列表”主窗口，带菜单栏
     ImGui::Begin(windowName, p_open, ImGuiWindowFlags_MenuBar);

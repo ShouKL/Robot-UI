@@ -1,5 +1,6 @@
 #include "LiveStream.h"
 
+// ======== 辅助函数 ========
 static void DrawPropertyLabel(const char* label) {
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
@@ -19,6 +20,7 @@ LiveStream::LiveStream() {
 
 LiveStream::~LiveStream() { Close(); }
 
+// ======== GStreamer 管线构建 ========
 std::string LiveStream::BuildPipelineString(const StreamConfig& config) {
     std::stringstream ss;
     std::string codecStr = (config.codec == CodecType::H265) ? "h265" : "h264";
@@ -198,10 +200,10 @@ void LiveStream::Update() {
 void LiveStream::DrawConnectionSettings() {
     if (ImGui::CollapsingHeader("Connection Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (ImGui::BeginTable("ConnTable", 2, ImGuiTableFlags_SizingStretchProp)) {
-            DrawPropertyLabel("Camera Name"); ImGui::InputText("##Name", m_StreamConfig.name, 128);
-            DrawPropertyLabel("IP Address");  ImGui::InputText("##IP", m_StreamConfig.ip, 64);
-            DrawPropertyLabel("Username");    ImGui::InputText("##User", m_StreamConfig.user, 64);
-            DrawPropertyLabel("Password");    ImGui::InputText("##Pass", m_StreamConfig.pass, 64, ImGuiInputTextFlags_Password);
+            DrawPropertyLabel("Camera Name"); ImGui::InputText("##Name", m_StreamConfig.name, IM_ARRAYSIZE(m_StreamConfig.name));
+            DrawPropertyLabel("IP Address");  ImGui::InputText("##IP", m_StreamConfig.ip, IM_ARRAYSIZE(m_StreamConfig.ip));
+            DrawPropertyLabel("Username");    ImGui::InputText("##User", m_StreamConfig.user, IM_ARRAYSIZE(m_StreamConfig.user));
+            DrawPropertyLabel("Password");    ImGui::InputText("##Pass", m_StreamConfig.pass, IM_ARRAYSIZE(m_StreamConfig.pass), ImGuiInputTextFlags_Password);
             DrawPropertyLabel("Port");        ImGui::InputInt("##Port", &m_StreamConfig.port);
             ImGui::EndTable();
         }

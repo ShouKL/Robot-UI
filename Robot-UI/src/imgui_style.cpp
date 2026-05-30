@@ -1,5 +1,6 @@
 ﻿#include "imgui_style.h"
 
+// ======== 主题定义 ========
 ImGuiStyleManager& ImGuiStyleManager::WalnutDefaultTheme()
 
 {
@@ -570,6 +571,7 @@ ImGuiStyleManager& ImGuiStyleManager::LightTheme()
 
 }
 
+// ======== 主题切换与样式应用 ========
 void ImGuiStyleManager::DrawStylePanel()
 
 {
@@ -642,6 +644,7 @@ void ImGuiStyleManager::DrawStylePanel()
 
 }
 
+// ======== 样式颜色设置 ========
 void ImGuiStyleManager::SetStyleColors(ImGuiTheme theme, bool bStyleInvert_, float alpha_)
 
 {
@@ -790,6 +793,7 @@ void ImGuiStyleManager::RevertStyle()
 
 }
 
+// ======== 构造/析构 ========
 ImGuiStyleManager::ImGuiStyleManager() : mStyle(ImGui::GetStyle()), mIO(ImGui::GetIO())
 
 {

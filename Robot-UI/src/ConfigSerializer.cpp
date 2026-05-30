@@ -1,5 +1,6 @@
 #include "ConfigSerializer.h"
 #include "RobotComponent.h"
+#include "RobotComm.h"
 #include "GamepadMapper.h"
 #include "imgui_style.h"
 #include "LiveStream.h"
@@ -18,11 +19,36 @@ bool ConfigSerializer::Save(const std::string& filepath,
                             const std::vector<StreamConfig>& streams,
                             const UIState& uiState,
                             const ThrustCurve* editorCurve,
+                            const std::vector<RobotCommConfig>& commConfigs,
+                            int commActiveId,
+                            const std::map<std::string, std::string>* graphMap,
                             std::string* outError)
 {
     try
     {
         WL_INFO_TAG("CONFIG", "Saving config: {}", filepath);
+
+        // 将 graphMap 同步到各 RobotMode 的 node_graph_pairs
+        if (graphMap) {
+            auto& modes = const_cast<RobotComponent&>(robotConfig).GetModes();
+            for (auto& mode : modes) {
+                mode.node_graph_pairs.clear();
+                for (const auto& [key, graph] : *graphMap) {
+                    // key = "robotModeName|gamepadModeName"
+                    std::string modeName = std::string(mode.name) + "|";
+                    if (key.substr(0, modeName.size()) == modeName) {
+                        std::string gpName = key.substr(modeName.size());
+                        mode.node_graph_pairs[gpName] = graph;
+                    }
+                }
+                // 更新旧版 node_graph 为当前 gamepad_mapping_Mode 对应的图
+                auto it = mode.node_graph_pairs.find(mode.gamepad_mapping_Mode);
+                if (it != mode.node_graph_pairs.end()) {
+                    mode.node_graph = it->second;
+                }
+            }
+        }
+
         YAML::Emitter out;
         out << YAML::BeginMap;
 
@@ -35,6 +61,7 @@ bool ConfigSerializer::Save(const std::string& filepath,
         EmitStreams(out, streams);
         EmitUIState(out, uiState);
         if (editorCurve) EmitEditorCurve(out, *editorCurve);
+        EmitRobotComm(out, commConfigs, commActiveId);
 
         out << YAML::EndMap;  // robot_ui_config
         out << YAML::EndMap;  // root
@@ -78,6 +105,9 @@ bool ConfigSerializer::Load(const std::string& filepath,
                             std::vector<StreamConfig>& streams,
                             UIState& uiState,
                             ThrustCurve* editorCurve,
+                            std::vector<RobotCommConfig>* commConfigs,
+                            int* commActiveId,
+                            std::map<std::string, std::string>* graphMap,
                             std::string* outError)
 {
     try
@@ -136,6 +166,30 @@ bool ConfigSerializer::Load(const std::string& filepath,
             }
         }
 
+        if (commConfigs)
+        {
+            int tmpActive = commActiveId ? *commActiveId : -1;
+            if (const YAML::Node& commNode = cfg["robot_comm"]; commNode.IsDefined())
+            {
+                if (!ApplyRobotComm(commNode, *commConfigs, tmpActive, outError))
+                    return false;
+            }
+            if (commActiveId) *commActiveId = tmpActive;
+        }
+
+        // 从 RobotMode 的 node_graph_pairs 构建 graphMap
+        if (graphMap) {
+            graphMap->clear();
+            for (const auto& mode : robotConfig.GetModes()) {
+                for (const auto& [gpName, graph] : mode.node_graph_pairs) {
+                    if (!graph.empty()) {
+                        std::string key = std::string(mode.name) + "|" + gpName;
+                        (*graphMap)[key] = graph;
+                    }
+                }
+            }
+        }
+
         return true;
     }
     catch (const YAML::BadFile& e)
@@ -184,12 +238,9 @@ void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const RobotComponent&
         out << YAML::Key << "has_motion" << YAML::Value << mode.actuator_config.has_motion;
 
         // Sensor 组件
-        out << YAML::Key << "has_temperature" << YAML::Value << mode.has_temperature;
-        out << YAML::Key << "has_humidity" << YAML::Value << mode.has_humidity;
-        out << YAML::Key << "has_depth" << YAML::Value << mode.has_depth;
-        out << YAML::Key << "temp_encoding"  << YAML::Value << static_cast<int>(mode.temp_encoding);
-        out << YAML::Key << "hum_encoding"   << YAML::Value << static_cast<int>(mode.hum_encoding);
-        out << YAML::Key << "depth_encoding" << YAML::Value << static_cast<int>(mode.depth_encoding);
+        out << YAML::Key << "has_temperature" << YAML::Value << mode.sensor_config.has_temperature;
+        out << YAML::Key << "has_humidity" << YAML::Value << mode.sensor_config.has_humidity;
+        out << YAML::Key << "has_depth" << YAML::Value << mode.sensor_config.has_depth;
 
         out << YAML::Key << "brushless_motors" << YAML::Value << YAML::BeginSeq;
         for (const auto& pair : mode.actuator_config.brushlessmotor)
@@ -258,6 +309,16 @@ void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const RobotComponent&
         // 节点图数据
         if (!mode.node_graph.empty())
             out << YAML::Key << "node_graph" << YAML::Value << YAML::Literal << mode.node_graph;
+
+        // 节点图组合数据 (gamepadModeName → graph yaml)
+        if (!mode.node_graph_pairs.empty()) {
+            out << YAML::Key << "node_graph_pairs" << YAML::Value << YAML::BeginMap;
+            for (const auto& [gpName, graph] : mode.node_graph_pairs) {
+                if (!graph.empty())
+                    out << YAML::Key << gpName << YAML::Value << YAML::Literal << graph;
+            }
+            out << YAML::EndMap;
+        }
 
         // 协议发送配置
         {
@@ -477,16 +538,26 @@ bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, RobotCompon
         if (const YAML::Node& n = item["has_motion"]; n.IsDefined())      mode.actuator_config.has_motion = n.as<bool>();
 
         // Sensor 组件
-        if (const YAML::Node& n = item["has_temperature"]; n.IsDefined()) mode.has_temperature = n.as<bool>();
-        if (const YAML::Node& n = item["has_humidity"]; n.IsDefined())    mode.has_humidity = n.as<bool>();
-        if (const YAML::Node& n = item["has_depth"]; n.IsDefined())       mode.has_depth = n.as<bool>();
-        if (const YAML::Node& n = item["temp_encoding"]; n.IsDefined())   mode.temp_encoding  = static_cast<DataEncoding>(n.as<int>());
-        if (const YAML::Node& n = item["hum_encoding"]; n.IsDefined())    mode.hum_encoding   = static_cast<DataEncoding>(n.as<int>());
-        if (const YAML::Node& n = item["depth_encoding"]; n.IsDefined())  mode.depth_encoding = static_cast<DataEncoding>(n.as<int>());
+        if (const YAML::Node& n = item["has_temperature"]; n.IsDefined()) mode.sensor_config.has_temperature = n.as<bool>();
+        if (const YAML::Node& n = item["has_humidity"]; n.IsDefined())    mode.sensor_config.has_humidity = n.as<bool>();
+        if (const YAML::Node& n = item["has_depth"]; n.IsDefined())       mode.sensor_config.has_depth = n.as<bool>();
 
         // 读取节点图
         if (const YAML::Node& n = item["node_graph"]; n.IsDefined() && n.IsScalar())
             mode.node_graph = n.as<std::string>();
+
+        // 读取节点图组合数据 (gamepadModeName → graph yaml)
+        if (const YAML::Node& pairs = item["node_graph_pairs"]; pairs.IsDefined() && pairs.IsMap()) {
+            for (auto it = pairs.begin(); it != pairs.end(); ++it) {
+                std::string gpName = it->first.as<std::string>();
+                std::string graph = it->second.as<std::string>();
+                mode.node_graph_pairs[gpName] = graph;
+            }
+        }
+        // 兼容旧版：如果没有 node_graph_pairs，用 node_graph 填充
+        if (mode.node_graph_pairs.empty() && !mode.node_graph.empty()) {
+            mode.node_graph_pairs[mode.gamepad_mapping_Mode] = mode.node_graph;
+        }
 
         // 读取协议发送配置
         const YAML::Node& ps = item["protocol_send"];
@@ -900,8 +971,11 @@ void ConfigSerializer::EmitUIState(YAML::Emitter& out, const UIState& uiState)
     out << YAML::Key << "robot_status_open"        << YAML::Value << uiState.robot_status_open;
     out << YAML::Key << "node_editor_open"         << YAML::Value << uiState.node_editor_open;
     out << YAML::Key << "thrust_curve_editor_open" << YAML::Value << uiState.thrust_curve_editor_open;
+    out << YAML::Key << "robot_comm_open"          << YAML::Value << uiState.robot_comm_open;
     out << YAML::Key << "robot_active_mode"        << YAML::Value << uiState.robot_active_mode;
     out << YAML::Key << "gamepad_active_mode"      << YAML::Value << uiState.gamepad_active_mode;
+    out << YAML::Key << "node_left_side_width"     << YAML::Value << uiState.node_left_side_width;
+    out << YAML::Key << "node_right_side_width"    << YAML::Value << uiState.node_right_side_width;
     out << YAML::EndMap;  // ui_state
 }
 
@@ -915,8 +989,11 @@ bool ConfigSerializer::ApplyUIState(const YAML::Node& node, UIState& uiState, st
     if (const YAML::Node& n = node["robot_status_open"];        n.IsDefined()) uiState.robot_status_open        = n.as<bool>();
     if (const YAML::Node& n = node["node_editor_open"];         n.IsDefined()) uiState.node_editor_open         = n.as<bool>();
     if (const YAML::Node& n = node["thrust_curve_editor_open"]; n.IsDefined()) uiState.thrust_curve_editor_open = n.as<bool>();
+    if (const YAML::Node& n = node["robot_comm_open"];          n.IsDefined()) uiState.robot_comm_open          = n.as<bool>();
     if (const YAML::Node& n = node["robot_active_mode"];        n.IsDefined()) uiState.robot_active_mode        = n.as<int>();
     if (const YAML::Node& n = node["gamepad_active_mode"];      n.IsDefined()) uiState.gamepad_active_mode      = n.as<int>();
+    if (const YAML::Node& n = node["node_left_side_width"];     n.IsDefined()) uiState.node_left_side_width     = n.as<float>();
+    if (const YAML::Node& n = node["node_right_side_width"];    n.IsDefined()) uiState.node_right_side_width    = n.as<float>();
     return true;
 }
 // ============================================================================
@@ -969,6 +1046,72 @@ bool ConfigSerializer::ApplyEditorCurve(const YAML::Node& node, ThrustCurve& cur
     }
     if (const YAML::Node& rp = node["raw_pwm"]; rp.IsDefined() && rp.IsSequence()) {
         for (const auto& v : rp) curve.raw_pwm.push_back(v.as<float>());
+    }
+
+    return true;
+}
+
+// ============================================================================
+//  Robot Comm 配置持久化
+// ============================================================================
+
+void ConfigSerializer::EmitRobotComm(YAML::Emitter& out,
+                                     const std::vector<RobotCommConfig>& configs,
+                                     int activeId)
+{
+    out << YAML::Key << "robot_comm" << YAML::Value << YAML::BeginMap;
+
+    out << YAML::Key << "active_id" << YAML::Value << activeId;
+
+    out << YAML::Key << "nodes" << YAML::Value << YAML::BeginSeq;
+    for (const auto& cfg : configs)
+    {
+        out << YAML::BeginMap;
+        out << YAML::Key << "name"          << YAML::Value << cfg.name;
+        out << YAML::Key << "host_ip"       << YAML::Value << cfg.host_ip;
+        out << YAML::Key << "remote_port"   << YAML::Value << cfg.remote_port;
+        out << YAML::Key << "local_port"    << YAML::Value << cfg.local_port;
+        out << YAML::Key << "transport_type" << YAML::Value << cfg.transport_type;
+        out << YAML::EndMap;
+    }
+    out << YAML::EndSeq;  // nodes
+
+    out << YAML::EndMap;  // robot_comm
+}
+
+bool ConfigSerializer::ApplyRobotComm(const YAML::Node& node,
+                                      std::vector<RobotCommConfig>& configs,
+                                      int& activeId,
+                                      std::string* outError)
+{
+    (void)outError;
+
+    if (const YAML::Node& n = node["active_id"]; n.IsDefined())
+        activeId = n.as<int>();
+
+    const YAML::Node& nodesNode = node["nodes"];
+    if (nodesNode.IsDefined() && nodesNode.IsSequence())
+    {
+        configs.clear();
+        for (const auto& item : nodesNode)
+        {
+            RobotCommConfig cfg;
+
+            auto readStr = [&](const char* key, char* dst, size_t dstSize) {
+                const YAML::Node& n = item[key];
+                if (n.IsDefined() && n.IsScalar())
+                    SafeStrCpy(dst, dstSize, n.as<std::string>());
+            };
+
+            readStr("name",    cfg.name,    sizeof(cfg.name));
+            readStr("host_ip", cfg.host_ip, sizeof(cfg.host_ip));
+
+            if (const YAML::Node& n = item["remote_port"];    n.IsDefined()) cfg.remote_port    = n.as<int>();
+            if (const YAML::Node& n = item["local_port"];     n.IsDefined()) cfg.local_port     = n.as<int>();
+            if (const YAML::Node& n = item["transport_type"]; n.IsDefined()) cfg.transport_type = n.as<int>();
+
+            configs.push_back(cfg);
+        }
     }
 
     return true;

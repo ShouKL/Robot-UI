@@ -24,6 +24,9 @@ public:
     // 序列化用：获取所有设备的流配置
     std::vector<StreamConfig> GetAllStreamConfigs() const;
 
+    // 从配置列表批量加载（替换所有现有设备）
+    void LoadAllConfigs(const std::vector<StreamConfig>& configs);
+
 private:
     std::vector<DeviceNode> m_devices;
     int m_nextId = 1000;

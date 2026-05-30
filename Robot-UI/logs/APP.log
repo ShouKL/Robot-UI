@@ -1,0 +1,62 @@
+[11:45:06] [info] APP: [APP] Robot UI application created
+[11:45:06] [info] APP: [APP] Robot UI initializing...
+[11:45:06] [info] APP: [ROBOT] RobotComponent created
+[11:45:06] [info] APP: [COMM] Config added: Default (id=1)
+[11:45:06] [info] APP: [ROBOT_STATUS] RobotStatus created (with headless graph evaluator)
+[11:45:06] [info] APP: [APP] Gamepad thread started
+[11:45:06] [info] APP: [APP] Loading default config: C:\Users\29164\Desktop\Robot-UI\bin\Debug-windows-x86_64\Robot-UI\default_config.rbt
+[11:45:06] [info] APP: [CONFIG] Loading config: C:\Users\29164\Desktop\Robot-UI\bin\Debug-windows-x86_64\Robot-UI\default_config.rbt
+[11:45:06] [info] APP: [GAMEPAD] Gamepad routine started (20Hz)
+[11:45:06] [info] APP: [ROBOT] Mode added: Mode 0
+[11:45:06] [info] APP: [ROBOT] Mode added: Mode 1
+[11:45:06] [info] APP: [CONFIG] Default config loaded: C:\Users\29164\Desktop\Robot-UI\bin\Debug-windows-x86_64\Robot-UI\default_config.rbt
+[11:45:06] [info] APP: [COMM] Loaded 1 comm configs
+[11:45:06] [info] APP: [ROBOT_STATUS] Active mode set to: ROV
+[11:45:06] [info] APP: [ROBOT_STATUS] Loaded graph for mode 'ROV' + gamepad ''
+[11:45:06] [info] APP: [APP] Robot UI initialized successfully
+[11:45:06] [info] APP: [CONFIG] Options editing started
+[11:45:08] [trace] APP: [GAMEPAD] Routine heartbeat #40 (connected=false)
+[11:45:10] [trace] APP: [GAMEPAD] Routine heartbeat #80 (connected=false)
+[11:45:12] [trace] APP: [GAMEPAD] Routine heartbeat #120 (connected=false)
+[11:45:14] [trace] APP: [GAMEPAD] Routine heartbeat #160 (connected=false)
+[11:45:16] [trace] APP: [GAMEPAD] Routine heartbeat #200 (connected=false)
+[11:45:18] [trace] APP: [GAMEPAD] Routine heartbeat #240 (connected=false)
+[11:45:20] [trace] APP: [GAMEPAD] Routine heartbeat #280 (connected=false)
+[11:45:22] [trace] APP: [GAMEPAD] Routine heartbeat #320 (connected=false)
+[11:45:24] [trace] APP: [GAMEPAD] Routine heartbeat #360 (connected=false)
+[11:45:26] [trace] APP: [GAMEPAD] Routine heartbeat #400 (connected=false)
+[11:45:28] [trace] APP: [GAMEPAD] Routine heartbeat #440 (connected=false)
+[11:45:30] [trace] APP: [GAMEPAD] Routine heartbeat #480 (connected=false)
+[11:45:33] [trace] APP: [GAMEPAD] Routine heartbeat #520 (connected=false)
+[11:45:35] [trace] APP: [GAMEPAD] Routine heartbeat #560 (connected=false)
+[11:45:37] [trace] APP: [GAMEPAD] Routine heartbeat #600 (connected=false)
+[11:45:39] [trace] APP: [GAMEPAD] Routine heartbeat #640 (connected=false)
+[11:45:41] [trace] APP: [GAMEPAD] Routine heartbeat #680 (connected=false)
+[11:45:43] [trace] APP: [GAMEPAD] Routine heartbeat #720 (connected=false)
+[11:45:45] [trace] APP: [GAMEPAD] Routine heartbeat #760 (connected=false)
+[11:45:47] [trace] APP: [GAMEPAD] Routine heartbeat #800 (connected=false)
+[11:45:49] [trace] APP: [GAMEPAD] Routine heartbeat #840 (connected=false)
+[11:45:51] [trace] APP: [GAMEPAD] Routine heartbeat #880 (connected=false)
+[11:45:53] [trace] APP: [GAMEPAD] Routine heartbeat #920 (connected=false)
+[11:45:55] [trace] APP: [GAMEPAD] Routine heartbeat #960 (connected=false)
+[11:45:57] [trace] APP: [GAMEPAD] Routine heartbeat #1000 (connected=false)
+[11:45:59] [trace] APP: [GAMEPAD] Routine heartbeat #1040 (connected=false)
+[11:46:01] [trace] APP: [GAMEPAD] Routine heartbeat #1080 (connected=false)
+[11:46:03] [trace] APP: [GAMEPAD] Routine heartbeat #1120 (connected=false)
+[11:46:05] [trace] APP: [GAMEPAD] Routine heartbeat #1160 (connected=false)
+[11:46:07] [trace] APP: [GAMEPAD] Routine heartbeat #1200 (connected=false)
+[11:46:09] [trace] APP: [GAMEPAD] Routine heartbeat #1240 (connected=false)
+[11:46:11] [trace] APP: [GAMEPAD] Routine heartbeat #1280 (connected=false)
+[11:46:13] [trace] APP: [GAMEPAD] Routine heartbeat #1320 (connected=false)
+[11:46:15] [trace] APP: [GAMEPAD] Routine heartbeat #1360 (connected=false)
+[11:46:17] [trace] APP: [GAMEPAD] Routine heartbeat #1400 (connected=false)
+[11:46:19] [trace] APP: [GAMEPAD] Routine heartbeat #1440 (connected=false)
+[11:46:21] [trace] APP: [GAMEPAD] Routine heartbeat #1480 (connected=false)
+[11:46:23] [trace] APP: [GAMEPAD] Routine heartbeat #1520 (connected=false)
+[11:46:25] [trace] APP: [GAMEPAD] Routine heartbeat #1560 (connected=false)
+[11:46:27] [trace] APP: [GAMEPAD] Routine heartbeat #1600 (connected=false)
+[11:46:29] [trace] APP: [GAMEPAD] Routine heartbeat #1640 (connected=false)
+[11:46:31] [trace] APP: [GAMEPAD] Routine heartbeat #1680 (connected=false)
+[11:46:33] [info] APP: [CONFIG] Saving config: C:\Users\29164\Desktop\Robot-UI\bin\Debug-windows-x86_64\Robot-UI\default_config.rbt
+[11:46:33] [info] APP: [CONFIG] Config saved successfully: C:\Users\29164\Desktop\Robot-UI\bin\Debug-windows-x86_64\Robot-UI\default_config.rbt
+[11:46:33] [trace] APP: [GAMEPAD] Routine heartbeat #1720 (connected=false)

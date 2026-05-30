@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cmath>
 
+// ======== 打开/关闭 ========
 void ThrustCurveEditor::Open(const char* n, ThrustCurve& c) {
     WL_INFO_TAG("CURVE", "Open(external): motor={}, raw_pts={}", n, c.raw_thrust.size());
     _snprintf_s(m_MotorName,sizeof(m_MotorName),"%s",n); m_Curve=&c;
@@ -23,6 +24,7 @@ void ThrustCurveEditor::Open() {
     if(m_RawPoints.size()>=2){SortRawPoints();Fit();}
 }
 
+// ======== 保存/恢复 ========
 void ThrustCurveEditor::Save() {
     if(!m_Curve)return;
     SaveRawPointsToCurve();

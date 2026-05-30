@@ -1,44 +1,48 @@
 #pragma once
+
+#include "GamepadMapper.h"
+#include "Robot_API/robot_api.h"
+#include <cstdint>
+#include <cstring>
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
-#include "Robot_API/robot_api.h"
-#include <cstring>
-#include <cstdint>
-#include "GamepadMapper.h"
 
-struct RobotMode {
-    char name[64] = "";
-    std::string gamepad_mapping_Mode;
-    std::string node_graph;
-    ActuatorData actuator_config;
-    ProtocolSendConfig protocol_send;
-    ProtocolReceiveConfig protocol_receive;
-    std::string host_ip;
-    int remote_port = 0;
-    int local_port = 0;
-    int protocol_type = 0;
-    bool has_temperature = false;
-    bool has_humidity = false;
-    bool has_depth = false;
-    DataEncoding temp_encoding  = DataEncoding::Float32;
-    DataEncoding hum_encoding   = DataEncoding::Float32;
-    DataEncoding depth_encoding = DataEncoding::Float32;
-};
+// ============================================================================
+// RobotComponent — 机器人模式配置编辑器
+// 持有 modes 向量，是所有机器人配置的数据源
+// ============================================================================
 
-class RobotComponent {
+class RobotComponent
+{
 public:
     RobotComponent();
     ~RobotComponent();
 
-    void DrawRobotConfigPanel();
-
+    // ---- 模式管理 ----
+    void AddMode();
+    void DeleteMode(int index);
     void NextActiveMode() {
         if (!modes.empty())
             active_mode_index = (active_mode_index + 1) % modes.size();
     }
-    ActuatorData GetActiveActuatorConfig() {
-        return modes.empty() ? ActuatorData() : modes[active_mode_index].actuator_config;
+
+    // ---- 模式数据访问 ----
+    std::vector<RobotMode>&       GetModes()          { return modes; }
+    const std::vector<RobotMode>& GetModes()          const { return modes; }
+    std::vector<RobotMode>&       GetActiveModes()    { return modes; }
+
+    int  GetActiveModeIndex() const { return active_mode_index; }
+    void SetActiveModeIndex(int idx) {
+        if (idx >= 0 && idx < (int)modes.size())
+            active_mode_index = idx;
+    }
+    int& GetEditModeIndex()       { return edit_mode_index; }
+    int  GetEditModeIndex() const { return edit_mode_index; }
+
+    // ---- 活跃模式配置快捷访问 ----
+    ActuatorConfig GetActiveActuatorConfig() {
+        return modes.empty() ? ActuatorConfig() : modes[active_mode_index].actuator_config;
     }
     const ProtocolSendConfig& GetActiveProtocolSendConfig() const {
         static ProtocolSendConfig defaultCfg;
@@ -48,27 +52,15 @@ public:
         static ProtocolReceiveConfig defaultCfg;
         return modes.empty() ? defaultCfg : modes[active_mode_index].protocol_receive;
     }
+    bool HasTemperature() const { return modes.empty() ? false : modes[active_mode_index].sensor_config.has_temperature; }
+    bool HasHumidity()    const { return modes.empty() ? false : modes[active_mode_index].sensor_config.has_humidity; }
+    bool HasDepth()       const { return modes.empty() ? false : modes[active_mode_index].sensor_config.has_depth; }
 
-    std::vector<RobotMode>& GetModes() { return modes; }
-    const std::vector<RobotMode>& GetModes() const { return modes; }
-    std::vector<RobotMode>& GetActiveModes() { return modes; }
-    int GetActiveModeIndex() const { return active_mode_index; }
-    void SetActiveModeIndex(int idx) {
-        if (idx >= 0 && idx < (int)modes.size())
-            active_mode_index = idx;
-    }
-
-    bool HasTemperature() const { return modes.empty() ? false : modes[active_mode_index].has_temperature; }
-    bool HasHumidity()    const { return modes.empty() ? false : modes[active_mode_index].has_humidity; }
-    bool HasDepth()       const { return modes.empty() ? false : modes[active_mode_index].has_depth; }
-
-    int& GetEditModeIndex() { return edit_mode_index; }
-
-    void AddMode();
-    void DeleteMode(int index);
+    // ---- UI ----
+    void DrawRobotConfigPanel();
 
 private:
     std::vector<RobotMode> modes;
-    int edit_mode_index = 0;
+    int edit_mode_index   = 0;
     int active_mode_index = 0;
 };

@@ -35,14 +35,14 @@ public:
     bool HardwareInit(int max_retries = 3) override;
 
     SensorData GetSensorData() override;
-    void SendActuatorData(const ActuatorData& data) override;
+    void SendActuatorData(const ActuatorConfig& data) override;
 
     void SetProtocolConfig(const ProtocolSendConfig& config) override;
     void SetProtocolReceiveConfig(const ProtocolReceiveConfig& config) override;
 
 private:
     SensorData m_CurrentSensorData;
-    ActuatorData m_CurrentActuatorData;
+    ActuatorConfig m_CurrentActuatorData;
     std::mutex m_DataMutex;
 
     int m_LocalPort;
@@ -58,6 +58,6 @@ private:
     sockaddr_in m_RemoteAddr;
 #endif
 
-    std::vector<uint8_t> SerializeActuatorData(const ActuatorData& data);
+    std::vector<uint8_t> SerializeActuatorData(const ActuatorConfig& data);
     SensorData DeserializeSensorData(const std::vector<uint8_t>& raw_data);
 };

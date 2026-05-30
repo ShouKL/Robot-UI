@@ -27,34 +27,51 @@ inline double SamplePWM(const std::vector<ImVec2>& pts, double thrust) {
 
 class ThrustCurveEditor : public EditDraftBase {
 public:
+    // ======== 构造/打开/关闭 ========
     ThrustCurveEditor() = default;
     void Open(const char* motorName, ThrustCurve& curve);
     void Open();
     void Close() { m_Open = false; CancelEdit(); }
     bool IsOpen() const { return m_Open; }
-    void Draw();
+
+    // ======== 数据访问 ========
     ThrustCurve& GetCurve() { return m_OwnCurve; }
     const char* GetOutputString() const { return m_OutputStr; }
+
+    // ======== UI 绘制 ========
+    void Draw();
+
 private:
+    // ======== UI 子面板 ========
     void DrawPlot();
     void DrawPointTable();
+
+    // ======== 数据操作 ========
     void SortRawPoints();
     void SortFitPoints();
     void LoadFromCurve();
     void Fit();
     void SaveRawPointsToCurve();
+    void Save();     // commit changes to curve
+    void Revert();   // undo all changes, restore snapshot
 
-    void Save();   // commit changes to curve
-    void Revert();  // undo all changes, restore snapshot
+    // ======== 状态 ========
+    bool m_Open = false;
+    char m_MotorName[128] = {};
+    ThrustCurve* m_Curve = nullptr;
 
-    bool m_Open=false; char m_MotorName[128]={};
-    ThrustCurve* m_Curve=nullptr;
+    // ======== 曲线数据 ========
     std::vector<ImVec2> m_RawPoints, m_FitPoints; // (Thrust, PWM)
-    int m_SelectedIdx=-1;
-    bool m_EditPopupOpen=false, m_PendingAdd=false;
-    float m_PwmMin=0.0f, m_PwmMax=0.0f, m_DefaultPwm=0.0f;
-    float m_AnchorNP_INI=0.0f,m_AnchorNP_MID=0.0f,m_AnchorPP_INI=0.0f,m_AnchorPP_MID=0.0f;
+    int m_SelectedIdx = -1;
+    bool m_EditPopupOpen = false, m_PendingAdd = false;
+
+    // ======== 曲线参数 ========
+    float m_PwmMin = 0.0f, m_PwmMax = 0.0f, m_DefaultPwm = 0.0f;
+    float m_AnchorNP_INI = 0.0f, m_AnchorNP_MID = 0.0f;
+    float m_AnchorPP_INI = 0.0f, m_AnchorPP_MID = 0.0f;
+
+    // ======== 快照/输出 ========
     ThrustCurve m_OwnCurve;
     ThrustCurve m_Snapshot;   // backup on Open, restored on Revert
-    char m_OutputStr[512]={};
+    char m_OutputStr[512] = {};
 };

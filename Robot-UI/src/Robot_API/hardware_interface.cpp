@@ -24,6 +24,7 @@ HardwareInterface::~HardwareInterface() {
 #endif
 }
 
+// ======== 初始化与连接 ========
 bool HardwareInterface::Initialize(const std::string& host_ip, int remote_port, int local_port) {
     std::lock_guard<std::mutex> lock(m_DataMutex);  // 线程安全锁
 
@@ -94,6 +95,7 @@ bool HardwareInterface::HardwareInit(int max_retries) {
     return false;
 }
 
+// ======== 数据收发 ========
 SensorData HardwareInterface::GetSensorData() {
     std::lock_guard<std::mutex> lock(m_DataMutex);  // 线程安全
 
@@ -122,7 +124,7 @@ SensorData HardwareInterface::GetSensorData() {
     return m_CurrentSensorData;  // 返回最新有效数据
 }
 
-void HardwareInterface::SendActuatorData(const ActuatorData& data) {
+void HardwareInterface::SendActuatorData(const ActuatorConfig& data) {
     std::lock_guard<std::mutex> lock(m_DataMutex);
     m_CurrentActuatorData = data;  // 保存当前控制指令
 
@@ -137,8 +139,9 @@ void HardwareInterface::SendActuatorData(const ActuatorData& data) {
 #endif
 }
 
+// ======== 协议配置 ========
 // 序列化：根据用户配置的 ProtocolSendConfig 动态构建帧
-std::vector<uint8_t> HardwareInterface::SerializeActuatorData(const ActuatorData& data) {
+std::vector<uint8_t> HardwareInterface::SerializeActuatorData(const ActuatorConfig& data) {
     return BuildFrame(data, m_ProtocolCfg);
 }
 

@@ -2,6 +2,7 @@
 #include "Walnut/Core/Log.h"
 #include <cmath>
 
+// ======== 构造/析构 ========
 GamepadMapper::GamepadMapper() {
     m_GamepadImage = std::make_shared<Walnut::Image>("../asset/picture/gamepadmap.png");
 
@@ -39,6 +40,7 @@ GamepadMapper::GamepadMapper() {
 
 GamepadMapper::~GamepadMapper() {}
 
+// ======== 键位管理 ========
 int GamepadMapper::AddKey(const std::string& keyName, bool isAnalog)
 {
     if (m_Modes.empty() || m_SelectedModeIndex < 0 || m_SelectedModeIndex >= (int)m_Modes.size()) return -1;
@@ -107,6 +109,7 @@ void GamepadMapper::UpdateNextKeyID()
     m_NextKeyID = maxId + 1;
 }
 
+// ======== 模式管理 ========
 std::vector<std::string> GamepadMapper::GetModeNames() const {
     std::vector<std::string> names;
     for (const auto& mode : m_Modes) {
@@ -192,6 +195,7 @@ const GamepadMode& GamepadMapper::GetSelectedMode() const {
     return m_Modes[m_SelectedModeIndex];
 }
 
+// ======== 绑定管理 ========
 void GamepadMapper::BindKey() {
     if (m_SelectedKey.empty()) return;
     if (m_Modes.empty() || m_SelectedModeIndex >= (int)m_Modes.size()) return;
@@ -271,6 +275,8 @@ float GamepadMapper::CalcActivation(const KeyInfo& key, float rawVal) const {
     return std::abs(rawVal);
 }
 
+// ======== 游戏手柄状态更新 ========
+
 void GamepadMapper::UpdateGamepadState() {
     UpdateRawJoystickState();
     UpdateAllKeyValues();
@@ -279,6 +285,7 @@ void GamepadMapper::UpdateGamepadState() {
 }
 
 float GamepadMapper::GetKeyValue(const std::string& keyName) {
+    std::lock_guard<std::mutex> lock(m_RawKeyValuesMutex);
     if (m_ActiveModeIndex < 0 || m_ActiveModeIndex >= (int)m_Modes.size()) return 0.0f;
     const auto& mappings = m_Modes[m_ActiveModeIndex].mappings;
     for (const auto& mapping : mappings) {
@@ -315,6 +322,8 @@ std::vector<std::string> GamepadMapper::GetActiveModeBoundKeyNames() const
 }
 
 // ================= 手柄类型 =================
+
+// ======== 手柄类型 ========
 
 void GamepadMapper::SetGamepadType(GamepadType type) {
     if (m_Modes.empty() || m_SelectedModeIndex >= (int)m_Modes.size()) return;
@@ -392,6 +401,7 @@ void GamepadMapper::RebuildCustomKeys() {
 }
 
 void GamepadMapper::UpdateAllKeyValues() {
+    std::lock_guard<std::mutex> lock(m_RawKeyValuesMutex);
     m_RawKeyValues.clear();
 
     // Xbox 按键
@@ -612,6 +622,7 @@ void GamepadMapper::DrawCustomCanvas() {
     }
 }
 
+// ======== UI 绘制 ========
 
 void GamepadMapper::DrawGamepadMapper() {
     if (m_Modes.empty() || m_SelectedModeIndex < 0 || m_SelectedModeIndex >= (int)m_Modes.size()) {

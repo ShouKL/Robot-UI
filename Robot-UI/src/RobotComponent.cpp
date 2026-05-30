@@ -95,13 +95,15 @@ void RobotComponent::DrawRobotConfigPanel() {
                     if (ImGui::InputText("##CurveStr", curveBuf, sizeof(curveBuf)))
                     {
                         double v[10] = {};
-                        sscanf_s(curveBuf, "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf",
+                        int parsed = sscanf_s(curveBuf, "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf",
                             &v[0],&v[1],&v[2],&v[3],&v[4],&v[5],&v[6],&v[7],&v[8],&v[9]);
-                        m.curve.np_ini.value=v[0]; m.curve.np_mid.value=v[1];
-                        m.curve.pp_ini.value=v[2]; m.curve.pp_mid.value=v[3];
-                        m.curve.nt_end.value=v[4]; m.curve.nt_mid.value=v[5];
-                        m.curve.pt_mid.value=v[6]; m.curve.pt_end.value=v[7];
-                        m.curve.pwm_min=v[8]; m.curve.pwm_max=v[9];
+                        if (parsed == 10) {
+                            m.curve.np_ini.value=v[0]; m.curve.np_mid.value=v[1];
+                            m.curve.pp_ini.value=v[2]; m.curve.pp_mid.value=v[3];
+                            m.curve.nt_end.value=v[4]; m.curve.nt_mid.value=v[5];
+                            m.curve.pt_mid.value=v[6]; m.curve.pt_end.value=v[7];
+                            m.curve.pwm_min=(float)v[8]; m.curve.pwm_max=(float)v[9];
+                        }
                     }
                     ImGui::PopItemWidth();
                 }
@@ -182,9 +184,9 @@ void RobotComponent::DrawRobotConfigPanel() {
     ImGui::Spacing();
     ImGui::Text("Sensors");
     ImGui::Separator();
-    ImGui::Checkbox("Temperature", &mode.has_temperature);
-    ImGui::Checkbox("Humidity",    &mode.has_humidity);
-    ImGui::Checkbox("Depth",       &mode.has_depth);
+    ImGui::Checkbox("Temperature", &mode.sensor_config.has_temperature);
+    ImGui::Checkbox("Humidity",    &mode.sensor_config.has_humidity);
+    ImGui::Checkbox("Depth",       &mode.sensor_config.has_depth);
     ImGui::PopID();
 
     // ==================== 底部分隔线 ====================

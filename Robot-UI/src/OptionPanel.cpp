@@ -152,7 +152,7 @@ void OptionPanel::ApplyEdit()
     // 统一：三个 tab 的修改已在原数据上，清快照即可
     m_ComponentSnapshot.clear();
     m_GamepadSnapshot.clear();
-
+    // RobotStatus 持有指向 RobotComponent 中模式的指针，修改自动生效，无需额外同步
     EditDraftBase::ApplyEdit();
 }
 
