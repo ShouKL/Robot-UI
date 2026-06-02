@@ -1,6 +1,8 @@
 #include "ConfigSerializer.h"
+#include "RobotComponentManager.h"
 #include "RobotComponent.h"
 #include "RobotComm.h"
+#include "GamepadMapperManager.h"
 #include "GamepadMapper.h"
 #include "imgui_style.h"
 #include "LiveStream.h"
@@ -13,8 +15,8 @@
 #include <commdlg.h>
 
 bool ConfigSerializer::Save(const std::string& filepath,
-                            const RobotComponent& robotConfig,
-                            const GamepadMapper& gamepadMapper,
+                            const RobotComponentManager& robotMgr,
+                            const GamepadMapperManager& gamepadMgr,
                             const ImGuiStyleManager& styleManager,
                             const std::vector<StreamConfig>& streams,
                             const UIState& uiState,
@@ -26,25 +28,26 @@ bool ConfigSerializer::Save(const std::string& filepath,
 {
     try
     {
-        WL_INFO_TAG("CONFIG", "Saving config: {}", filepath);
+        WL_INFO_TAG("component", "Saving component: {}", filepath);
 
         // 将 graphMap 同步到各 RobotMode 的 node_graph_pairs
         if (graphMap) {
-            auto& modes = const_cast<RobotComponent&>(robotConfig).GetModes();
-            for (auto& mode : modes) {
-                mode.node_graph_pairs.clear();
+            auto& comps = const_cast<RobotComponentManager&>(robotMgr).GetComponents();
+            for (auto& comp : comps) {
+                auto& item = comp.component;
+                item.node_graph_pairs.clear();
                 for (const auto& [key, graph] : *graphMap) {
                     // key = "robotModeName|gamepadModeName"
-                    std::string modeName = std::string(mode.name) + "|";
+                    std::string modeName = std::string(item.name) + "|";
                     if (key.substr(0, modeName.size()) == modeName) {
                         std::string gpName = key.substr(modeName.size());
-                        mode.node_graph_pairs[gpName] = graph;
+                        item.node_graph_pairs[gpName] = graph;
                     }
                 }
                 // 更新旧版 node_graph 为当前 gamepad_mapping_Mode 对应的图
-                auto it = mode.node_graph_pairs.find(mode.gamepad_mapping_Mode);
-                if (it != mode.node_graph_pairs.end()) {
-                    mode.node_graph = it->second;
+                auto it = item.node_graph_pairs.find(item.gamepad_mapping_Mode);
+                if (it != item.node_graph_pairs.end()) {
+                    item.node_graph = it->second;
                 }
             }
         }
@@ -55,8 +58,8 @@ bool ConfigSerializer::Save(const std::string& filepath,
         out << YAML::Key << "robot_ui_config" << YAML::Value << YAML::BeginMap;
         out << YAML::Key << "version" << YAML::Value << 1;
 
-        EmitRobotConfig(out, robotConfig);
-        EmitGamepadMapper(out, gamepadMapper);
+        EmitRobotConfig(out, robotMgr);
+        EmitGamepadMapper(out, gamepadMgr);
         EmitStyle(out, styleManager);
         EmitStreams(out, streams);
         EmitUIState(out, uiState);
@@ -69,7 +72,7 @@ bool ConfigSerializer::Save(const std::string& filepath,
         if (!out.good())
         {
             if (outError) *outError = "YAML emit error: " + out.GetLastError();
-            WL_ERROR_TAG("CONFIG", "YAML emit error: {}", out.GetLastError());
+            WL_ERROR_TAG("component", "YAML emit error: {}", out.GetLastError());
             return false;
         }
 
@@ -77,7 +80,7 @@ bool ConfigSerializer::Save(const std::string& filepath,
         if (!ofs.is_open())
         {
             if (outError) *outError = "Cannot open file for writing: " + filepath;
-            WL_ERROR_TAG("CONFIG", "Cannot open file for writing: {}", filepath);
+            WL_ERROR_TAG("component", "Cannot open file for writing: {}", filepath);
             return false;
         }
         ofs << out.c_str();
@@ -87,20 +90,20 @@ bool ConfigSerializer::Save(const std::string& filepath,
     catch (const YAML::Exception& e)
     {
         if (outError) *outError = std::string("Save YAML exception: ") + e.what();
-        WL_ERROR_TAG("CONFIG", "Save YAML exception: {}", e.what());
+        WL_ERROR_TAG("component", "Save YAML exception: {}", e.what());
         return false;
     }
     catch (const std::exception& e)
     {
         if (outError) *outError = std::string("Save exception: ") + e.what();
-        WL_ERROR_TAG("CONFIG", "Save exception: {}", e.what());
+        WL_ERROR_TAG("component", "Save exception: {}", e.what());
         return false;
     }
 }
 
 bool ConfigSerializer::Load(const std::string& filepath,
-                            RobotComponent& robotConfig,
-                            GamepadMapper& gamepadMapper,
+                            RobotComponentManager& robotMgr,
+                            GamepadMapperManager& gamepadMgr,
                             ImGuiStyleManager& styleManager,
                             std::vector<StreamConfig>& streams,
                             UIState& uiState,
@@ -112,7 +115,7 @@ bool ConfigSerializer::Load(const std::string& filepath,
 {
     try
     {
-        WL_INFO_TAG("CONFIG", "Loading config: {}", filepath);
+        WL_INFO_TAG("component", "Loading component: {}", filepath);
         YAML::Node doc = YAML::LoadFile(filepath);
         if (!doc.IsMap())
         {
@@ -129,13 +132,13 @@ bool ConfigSerializer::Load(const std::string& filepath,
 
         if (const YAML::Node& robotNode = cfg["robot"]; robotNode.IsDefined())
         {
-            if (!ApplyRobotConfig(robotNode, robotConfig, outError))
+            if (!ApplyRobotConfig(robotNode, robotMgr, outError))
                 return false;
         }
 
         if (const YAML::Node& gamepadNode = cfg["gamepad"]; gamepadNode.IsDefined())
         {
-            if (!ApplyGamepadMapper(gamepadNode, gamepadMapper, outError))
+            if (!ApplyGamepadMapper(gamepadNode, gamepadMgr, outError))
                 return false;
         }
 
@@ -180,10 +183,11 @@ bool ConfigSerializer::Load(const std::string& filepath,
         // 从 RobotMode 的 node_graph_pairs 构建 graphMap
         if (graphMap) {
             graphMap->clear();
-            for (const auto& mode : robotConfig.GetModes()) {
-                for (const auto& [gpName, graph] : mode.node_graph_pairs) {
+            for (const auto& comp : robotMgr.GetComponents()) {
+                const auto& item = comp.component;
+                for (const auto& [gpName, graph] : item.node_graph_pairs) {
                     if (!graph.empty()) {
-                        std::string key = std::string(mode.name) + "|" + gpName;
+                        std::string key = std::string(item.name) + "|" + gpName;
                         (*graphMap)[key] = graph;
                     }
                 }
@@ -195,19 +199,19 @@ bool ConfigSerializer::Load(const std::string& filepath,
     catch (const YAML::BadFile& e)
     {
         if (outError) *outError = std::string("Cannot open file: ") + e.what();
-        WL_ERROR_TAG("CONFIG", "Cannot open config file: {}", e.what());
+        WL_ERROR_TAG("component", "Cannot open component file: {}", e.what());
         return false;
     }
     catch (const YAML::Exception& e)
     {
         if (outError) *outError = std::string("Load YAML exception: ") + e.what();
-        WL_ERROR_TAG("CONFIG", "Load YAML exception: {}", e.what());
+        WL_ERROR_TAG("component", "Load YAML exception: {}", e.what());
         return false;
     }
     catch (const std::exception& e)
     {
         if (outError) *outError = std::string("Load exception: ") + e.what();
-        WL_ERROR_TAG("CONFIG", "Load exception: {}", e.what());
+        WL_ERROR_TAG("component", "Load exception: {}", e.what());
         return false;
     }
 }
@@ -216,34 +220,35 @@ bool ConfigSerializer::Load(const std::string& filepath,
 //  YAML 写入（基于 yaml-cpp Emitter）
 // ============================================================================
 
-void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const RobotComponent& config)
+void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const RobotComponentManager& robotMgr)
 {
     out << YAML::Key << "robot" << YAML::Value << YAML::BeginMap;
 
-    const auto& modes = config.GetModes();
+    const auto& comps = robotMgr.GetComponents();
 
-    out << YAML::Key << "modes" << YAML::Value << YAML::BeginSeq;
-    for (const auto& mode : modes)
+    out << YAML::Key << "items" << YAML::Value << YAML::BeginSeq;
+    for (const auto& comp : comps)
     {
+        const auto& item = comp.component;
         out << YAML::BeginMap;
 
-        out << YAML::Key << "name" << YAML::Value << mode.name;
-        out << YAML::Key << "gamepad_mapping" << YAML::Value << mode.gamepad_mapping_Mode;
-        out << YAML::Key << "host_ip" << YAML::Value << mode.host_ip;
-        out << YAML::Key << "remote_port" << YAML::Value << mode.remote_port;
-        out << YAML::Key << "local_port" << YAML::Value << mode.local_port;
-        out << YAML::Key << "protocol_type" << YAML::Value << mode.protocol_type;
+        out << YAML::Key << "name" << YAML::Value << item.name;
+        out << YAML::Key << "gamepad_mapping" << YAML::Value << item.gamepad_mapping_Mode;
+        out << YAML::Key << "host_ip" << YAML::Value << item.host_ip;
+        out << YAML::Key << "remote_port" << YAML::Value << item.remote_port;
+        out << YAML::Key << "local_port" << YAML::Value << item.local_port;
+        out << YAML::Key << "protocol_type" << YAML::Value << item.protocol_type;
 
         // Motion 组件
-        out << YAML::Key << "has_motion" << YAML::Value << mode.actuator_config.has_motion;
+        out << YAML::Key << "has_motion" << YAML::Value << item.actuator_config.has_motion;
 
         // Sensor 组件
-        out << YAML::Key << "has_temperature" << YAML::Value << mode.sensor_config.has_temperature;
-        out << YAML::Key << "has_humidity" << YAML::Value << mode.sensor_config.has_humidity;
-        out << YAML::Key << "has_depth" << YAML::Value << mode.sensor_config.has_depth;
+        out << YAML::Key << "has_temperature" << YAML::Value << item.sensor_config.has_temperature;
+        out << YAML::Key << "has_humidity" << YAML::Value << item.sensor_config.has_humidity;
+        out << YAML::Key << "has_depth" << YAML::Value << item.sensor_config.has_depth;
 
         out << YAML::Key << "brushless_motors" << YAML::Value << YAML::BeginSeq;
-        for (const auto& pair : mode.actuator_config.brushlessmotor)
+        for (const auto& pair : item.actuator_config.brushlessmotor)
         {
             const auto& m = pair.second;
             out << YAML::BeginMap;
@@ -280,7 +285,7 @@ void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const RobotComponent&
         out << YAML::EndSeq;
 
         out << YAML::Key << "servos" << YAML::Value << YAML::BeginSeq;
-        for (const auto& pair : mode.actuator_config.servo)
+        for (const auto& pair : item.actuator_config.servo)
         {
             const auto& s = pair.second;
             out << YAML::BeginMap;
@@ -294,8 +299,8 @@ void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const RobotComponent&
         out << YAML::EndSeq;  // servos
 
         // Motion 数据
-        if (mode.actuator_config.has_motion) {
-            const auto& mc = mode.actuator_config.motion;
+        if (item.actuator_config.has_motion) {
+            const auto& mc = item.actuator_config.motion;
             out << YAML::Key << "motion" << YAML::Value << YAML::BeginMap;
             out << YAML::Key << "x"  << YAML::Value << mc.x;  out << YAML::Key << "x_enc"  << YAML::Value << static_cast<int>(mc.x.encoding);
             out << YAML::Key << "y"  << YAML::Value << mc.y;  out << YAML::Key << "y_enc"  << YAML::Value << static_cast<int>(mc.y.encoding);
@@ -307,13 +312,13 @@ void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const RobotComponent&
         }
 
         // 节点图数据
-        if (!mode.node_graph.empty())
-            out << YAML::Key << "node_graph" << YAML::Value << YAML::Literal << mode.node_graph;
+        if (!item.node_graph.empty())
+            out << YAML::Key << "node_graph" << YAML::Value << YAML::Literal << item.node_graph;
 
         // 节点图组合数据 (gamepadModeName → graph yaml)
-        if (!mode.node_graph_pairs.empty()) {
+        if (!item.node_graph_pairs.empty()) {
             out << YAML::Key << "node_graph_pairs" << YAML::Value << YAML::BeginMap;
-            for (const auto& [gpName, graph] : mode.node_graph_pairs) {
+            for (const auto& [gpName, graph] : item.node_graph_pairs) {
                 if (!graph.empty())
                     out << YAML::Key << gpName << YAML::Value << YAML::Literal << graph;
             }
@@ -322,7 +327,7 @@ void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const RobotComponent&
 
         // 协议发送配置
         {
-            const auto& p = mode.protocol_send;
+            const auto& p = item.protocol_send;
             out << YAML::Key << "protocol_send" << YAML::Value << YAML::BeginMap;
 
             out << YAML::Key << "include_length" << YAML::Value << p.include_length;
@@ -354,7 +359,7 @@ void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const RobotComponent&
 
         // 协议接收配置
         {
-            const auto& pr = mode.protocol_receive;
+            const auto& pr = item.protocol_receive;
             out << YAML::Key << "protocol_receive" << YAML::Value << YAML::BeginMap;
 
             out << YAML::Key << "include_length" << YAML::Value << pr.include_length;
@@ -385,30 +390,30 @@ void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const RobotComponent&
             out << YAML::EndMap;  // protocol_receive
         }
 
-        out << YAML::EndMap;  // mode
+        out << YAML::EndMap;  // item
     }
-    out << YAML::EndSeq;  // modes
+    out << YAML::EndSeq;  // items
 
-    out << YAML::Key << "active_mode" << YAML::Value << config.GetActiveModeIndex();
+    out << YAML::Key << "active_mode" << YAML::Value << robotMgr.GetSelectedIndex();
     out << YAML::EndMap;
 }
 
-void ConfigSerializer::EmitGamepadMapper(YAML::Emitter& out, const GamepadMapper& mapper)
+void ConfigSerializer::EmitGamepadMapper(YAML::Emitter& out, const GamepadMapperManager& gamepadMgr)
 {
     out << YAML::Key << "gamepad" << YAML::Value << YAML::BeginMap;
 
-    const auto& modes = mapper.GetModes();
+    auto mappers = gamepadMgr.GetAllMappers();
 
-    out << YAML::Key << "modes" << YAML::Value << YAML::BeginSeq;
-    for (const auto& mode : modes)
+    out << YAML::Key << "items" << YAML::Value << YAML::BeginSeq;
+    for (const auto& item : mappers)
     {
         out << YAML::BeginMap;
-        out << YAML::Key << "name" << YAML::Value << mode.name;
-        out << YAML::Key << "gamepad_type" << YAML::Value << static_cast<int>(mode.gamepad_type);
+        out << YAML::Key << "name" << YAML::Value << item.name;
+        out << YAML::Key << "gamepad_type" << YAML::Value << static_cast<int>(item.gamepad_type);
 
         // 保存自定义键位定义（keys）
         out << YAML::Key << "keys" << YAML::Value << YAML::BeginSeq;
-        for (const auto& k : mode.keys)
+        for (const auto& k : item.keys)
         {
             out << YAML::BeginMap;
             out << YAML::Key << "key_id" << YAML::Value << k.id;
@@ -419,7 +424,7 @@ void ConfigSerializer::EmitGamepadMapper(YAML::Emitter& out, const GamepadMapper
         out << YAML::EndSeq;
 
         out << YAML::Key << "mappings" << YAML::Value << YAML::BeginSeq;
-        for (const auto& m : mode.mappings)
+        for (const auto& m : item.mappings)
         {
             out << YAML::BeginMap;
             out << YAML::Key << "key_id" << YAML::Value << m.key_id;
@@ -434,7 +439,7 @@ void ConfigSerializer::EmitGamepadMapper(YAML::Emitter& out, const GamepadMapper
     }
     out << YAML::EndSeq;
 
-    out << YAML::Key << "active_mode" << YAML::Value << mapper.GetActiveModeIndex();
+    out << YAML::Key << "active_mode" << YAML::Value << gamepadMgr.GetSelectedIndex();
     out << YAML::EndMap;
 }
 
@@ -493,35 +498,33 @@ static void SafeStrCpy(char* dst, size_t dstSize, const std::string& src)
     dst[dstSize - 1] = '\0';
 }
 
-bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, RobotComponent& config, std::string* outError)
+bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, RobotComponentManager& robotMgr, std::string* outError)
 {
-    const YAML::Node& modesNode = robotNode["modes"];
+    const YAML::Node& modesNode = robotNode["items"];
     if (!modesNode.IsDefined() || !modesNode.IsSequence())
     {
-        if (outError) *outError = "robot section missing 'modes'";
+        if (outError) *outError = "robot section missing 'items'";
         return false;
     }
     if (modesNode.size() == 0)
     {
-        if (outError) *outError = "robot modes list is empty";
+        if (outError) *outError = "robot items list is empty";
         return false;
     }
 
-    auto& modes = config.GetModes();
-
     std::vector<RobotMode> loadedModes;
 
-    for (const auto& item : modesNode)
+    for (const auto& modeNode : modesNode)
     {
         RobotMode mode;
 
         auto readStr = [&](const char* key, char* dst, size_t dstSize) {
-            const YAML::Node& n = item[key];
+            const YAML::Node& n = modeNode[key];
             if (n.IsDefined() && n.IsScalar())
                 SafeStrCpy(dst, dstSize, n.as<std::string>());
         };
         auto readStdStr = [&](const char* key, std::string& out) {
-            const YAML::Node& n = item[key];
+            const YAML::Node& n = modeNode[key];
             if (n.IsDefined() && n.IsScalar())
                 out = n.as<std::string>();
         };
@@ -530,24 +533,24 @@ bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, RobotCompon
         readStdStr("gamepad_mapping", mode.gamepad_mapping_Mode);
         readStdStr("host_ip", mode.host_ip);
 
-        if (const YAML::Node& n = item["remote_port"]; n.IsDefined()) mode.remote_port = n.as<int>();
-        if (const YAML::Node& n = item["local_port"]; n.IsDefined())  mode.local_port = n.as<int>();
-        if (const YAML::Node& n = item["protocol_type"]; n.IsDefined()) mode.protocol_type = n.as<int>();
+        if (const YAML::Node& n = modeNode["remote_port"]; n.IsDefined()) mode.remote_port = n.as<int>();
+        if (const YAML::Node& n = modeNode["local_port"]; n.IsDefined())  mode.local_port = n.as<int>();
+        if (const YAML::Node& n = modeNode["protocol_type"]; n.IsDefined()) mode.protocol_type = n.as<int>();
 
         // Motion 组件
-        if (const YAML::Node& n = item["has_motion"]; n.IsDefined())      mode.actuator_config.has_motion = n.as<bool>();
+        if (const YAML::Node& n = modeNode["has_motion"]; n.IsDefined())      mode.actuator_config.has_motion = n.as<bool>();
 
         // Sensor 组件
-        if (const YAML::Node& n = item["has_temperature"]; n.IsDefined()) mode.sensor_config.has_temperature = n.as<bool>();
-        if (const YAML::Node& n = item["has_humidity"]; n.IsDefined())    mode.sensor_config.has_humidity = n.as<bool>();
-        if (const YAML::Node& n = item["has_depth"]; n.IsDefined())       mode.sensor_config.has_depth = n.as<bool>();
+        if (const YAML::Node& n = modeNode["has_temperature"]; n.IsDefined()) mode.sensor_config.has_temperature = n.as<bool>();
+        if (const YAML::Node& n = modeNode["has_humidity"]; n.IsDefined())    mode.sensor_config.has_humidity = n.as<bool>();
+        if (const YAML::Node& n = modeNode["has_depth"]; n.IsDefined())       mode.sensor_config.has_depth = n.as<bool>();
 
         // 读取节点图
-        if (const YAML::Node& n = item["node_graph"]; n.IsDefined() && n.IsScalar())
+        if (const YAML::Node& n = modeNode["node_graph"]; n.IsDefined() && n.IsScalar())
             mode.node_graph = n.as<std::string>();
 
         // 读取节点图组合数据 (gamepadModeName → graph yaml)
-        if (const YAML::Node& pairs = item["node_graph_pairs"]; pairs.IsDefined() && pairs.IsMap()) {
+        if (const YAML::Node& pairs = modeNode["node_graph_pairs"]; pairs.IsDefined() && pairs.IsMap()) {
             for (auto it = pairs.begin(); it != pairs.end(); ++it) {
                 std::string gpName = it->first.as<std::string>();
                 std::string graph = it->second.as<std::string>();
@@ -560,7 +563,7 @@ bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, RobotCompon
         }
 
         // 读取协议发送配置
-        const YAML::Node& ps = item["protocol_send"];
+        const YAML::Node& ps = modeNode["protocol_send"];
         if (ps.IsDefined() && ps.IsMap())
         {
             auto& p = mode.protocol_send;
@@ -605,7 +608,7 @@ bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, RobotCompon
         }
 
         // 读取协议接收配置
-        const YAML::Node& pr = item["protocol_receive"];
+        const YAML::Node& pr = modeNode["protocol_receive"];
         if (pr.IsDefined() && pr.IsMap())
         {
             auto& rc = mode.protocol_receive;
@@ -652,7 +655,7 @@ bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, RobotCompon
         }
 
         mode.actuator_config.brushlessmotor.clear();
-        const YAML::Node& motors = item["brushless_motors"];
+        const YAML::Node& motors = modeNode["brushless_motors"];
         if (motors.IsDefined() && motors.IsSequence())
         {
             for (const auto& mItem : motors)
@@ -705,7 +708,7 @@ bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, RobotCompon
         }
 
         mode.actuator_config.servo.clear();
-        const YAML::Node& servos = item["servos"];
+        const YAML::Node& servos = modeNode["servos"];
         if (servos.IsDefined() && servos.IsSequence())
         {
             for (const auto& sItem : servos)
@@ -721,7 +724,7 @@ bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, RobotCompon
         }
 
         // 读取 Motion 数据
-        const YAML::Node& motionNode = item["motion"];
+        const YAML::Node& motionNode = modeNode["motion"];
         if (motionNode.IsDefined() && motionNode.IsMap()) {
             auto& mc = mode.actuator_config.motion;
             if (const YAML::Node& n = motionNode["x"]; n.IsDefined())  mc.x = n.as<double>();
@@ -741,67 +744,58 @@ bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, RobotCompon
         loadedModes.push_back(mode);
     }
 
-    // 直接替换全部模式
-    while ((int)modes.size() > (int)loadedModes.size())
-        config.DeleteMode((int)modes.size() - 1);
-    while ((int)modes.size() < (int)loadedModes.size())
-        config.AddMode();
-
-    for (size_t i = 0; i < loadedModes.size(); ++i)
-        modes[i] = loadedModes[i];
-
+    // 使用 LoadComponents 重建组件列表
+    int activeIdx = robotMgr.GetSelectedIndex();
     if (const YAML::Node& n = robotNode["active_mode"]; n.IsDefined())
     {
-        int idx = n.as<int>();
-        if (idx >= 0 && idx < static_cast<int>(modes.size()))
-        {
-            config.GetEditModeIndex() = idx;
-            config.SetActiveModeIndex(idx);
-        }
+        activeIdx = n.as<int>();
+        if (activeIdx < 0 || activeIdx >= static_cast<int>(loadedModes.size()))
+            activeIdx = 0;
     }
+    robotMgr.LoadComponents(loadedModes, activeIdx);
     return true;
 }
 
-bool ConfigSerializer::ApplyGamepadMapper(const YAML::Node& gamepadNode, GamepadMapper& mapper, std::string* outError)
+bool ConfigSerializer::ApplyGamepadMapper(const YAML::Node& gamepadNode, GamepadMapperManager& gamepadMgr, std::string* outError)
 {
-    // 读取每个模式自己的 gamepad_type（旧版全局字段仅作 fallback，新版在 mode 内）
+    // 读取每个模式自己的 gamepad_type（旧版全局字段仅作 fallback，新版在 item 内）
     GamepadType fallbackType = GamepadType::Xbox;
     if (const YAML::Node& n = gamepadNode["gamepad_type"]; n.IsDefined())
         fallbackType = static_cast<GamepadType>(n.as<int>());
 
-    const YAML::Node& modesNode = gamepadNode["modes"];
+    const YAML::Node& modesNode = gamepadNode["items"];
     if (!modesNode.IsDefined() || !modesNode.IsSequence())
     {
-        if (outError) *outError = "gamepad section missing or invalid 'modes'";
+        if (outError) *outError = "gamepad section missing or invalid 'items'";
         return false;
     }
 
-    std::vector<GamepadMode> loadedModes;
-    for (const auto& item : modesNode)
+    std::vector<GamepadMapper> loadedModes;
+    for (const auto& modeNode : modesNode)
     {
-        GamepadMode mode;
+        GamepadMapper mapper;
 
-        if (const YAML::Node& n = item["name"]; n.IsDefined() && n.IsScalar())
+        if (const YAML::Node& n = modeNode["name"]; n.IsDefined() && n.IsScalar())
         {
-            SafeStrCpy(mode.name, sizeof(mode.name), n.as<std::string>());
+            SafeStrCpy(mapper.name, sizeof(mapper.name), n.as<std::string>());
         }
         else
         {
-            SafeStrCpy(mode.name, sizeof(mode.name), "Default");
+            SafeStrCpy(mapper.name, sizeof(mapper.name), "Default");
         }
 
-        // 读取每个模式的手柄类型（优先 mode 内字段，fallback 到全局字段）
-        if (const YAML::Node& n = item["gamepad_type"]; n.IsDefined())
-            mode.gamepad_type = static_cast<GamepadType>(n.as<int>());
+        // 读取每个模式的手柄类型（优先 item 内字段，fallback 到全局字段）
+        if (const YAML::Node& n = modeNode["gamepad_type"]; n.IsDefined())
+            mapper.gamepad_type = static_cast<GamepadType>(n.as<int>());
         else
-            mode.gamepad_type = fallbackType;
+            mapper.gamepad_type = fallbackType;
 
-        mode.mappings.clear();
-        mode.keys.clear();
+        mapper.mappings.clear();
+        mapper.keys.clear();
 
         // 读取自定义键位定义（keys）
         int maxKeyId = 0;
-        const YAML::Node& keysNode = item["keys"];
+        const YAML::Node& keysNode = modeNode["keys"];
         if (keysNode.IsDefined() && keysNode.IsSequence())
         {
             for (const auto& kItem : keysNode)
@@ -810,12 +804,12 @@ bool ConfigSerializer::ApplyGamepadMapper(const YAML::Node& gamepadNode, Gamepad
                 if (const YAML::Node& n = kItem["key_id"]; n.IsDefined())   gk.id = n.as<int>();
                 if (const YAML::Node& n = kItem["key_name"]; n.IsDefined()) gk.name = n.as<std::string>();
                 if (const YAML::Node& n = kItem["analog"]; n.IsDefined())   gk.is_analog = n.as<bool>();
-                mode.keys.push_back(gk);
+                mapper.keys.push_back(gk);
                 if (gk.id > maxKeyId) maxKeyId = gk.id;
             }
         }
 
-        const YAML::Node& mappings = item["mappings"];
+        const YAML::Node& mappings = modeNode["mappings"];
         if (mappings.IsDefined() && mappings.IsSequence())
         {
             for (const auto& mItem : mappings)
@@ -839,53 +833,42 @@ bool ConfigSerializer::ApplyGamepadMapper(const YAML::Node& gamepadNode, Gamepad
                 if (const YAML::Node& n = mItem["analog"]; n.IsDefined()) km.is_analog = n.as<bool>();
 
                 km.key_pos = ImVec2();
-                mode.mappings.push_back(km);
+                mapper.mappings.push_back(km);
                 if (km.key_id > maxKeyId) maxKeyId = km.key_id;
             }
         }
 
         // 如果没有 keys 数据（旧格式），从 mappings 重建 keys
-        if (mode.keys.empty() && !mode.mappings.empty())
+        if (mapper.keys.empty() && !mapper.mappings.empty())
         {
-            for (const auto& m : mode.mappings)
+            for (const auto& m : mapper.mappings)
             {
                 GamepadKey gk;
                 gk.id = m.key_id;
                 gk.name = m.key_name;
                 gk.is_analog = m.is_analog;
-                mode.keys.push_back(gk);
+                mapper.keys.push_back(gk);
             }
         }
 
-        loadedModes.push_back(mode);
+        loadedModes.push_back(mapper);
     }
 
     if (loadedModes.empty())
     {
-        if (outError) *outError = "gamepad modes list is empty";
+        if (outError) *outError = "gamepad items list is empty";
         return false;
     }
 
-    // 直接替换全部模式
-    {
-        auto& modes = mapper.GetModes();
-        while ((int)modes.size() > (int)loadedModes.size())
-            mapper.DeleteMode((int)modes.size() - 1);
-        while ((int)modes.size() < (int)loadedModes.size())
-            mapper.AddMode();
-
-        for (size_t i = 0; i < loadedModes.size(); ++i)
-            modes[i] = loadedModes[i];
-    }
-
+    // 使用 LoadMappers 重建映射列表
+    int activeIdx = gamepadMgr.GetSelectedIndex();
     if (const YAML::Node& n = gamepadNode["active_mode"]; n.IsDefined())
     {
-        int idx = n.as<int>();
-        if (idx >= 0 && idx < static_cast<int>(loadedModes.size()))
-            mapper.SetActiveModeByIndex(idx);
+        activeIdx = n.as<int>();
+        if (activeIdx < 0 || activeIdx >= static_cast<int>(loadedModes.size()))
+            activeIdx = 0;
     }
-
-    mapper.UpdateNextKeyID();
+    gamepadMgr.LoadMappers(loadedModes, activeIdx);
 
     return true;
 }
@@ -1116,3 +1099,5 @@ bool ConfigSerializer::ApplyRobotComm(const YAML::Node& node,
 
     return true;
 }
+
+

@@ -11,12 +11,9 @@
 #include "Walnut/Application.h"
 #include "Walnut/Layer.h"
 #include "OptionPanel.h"
-#include "LiveStream.h"
-#include "StreamManager.h"
 #include "ConfigSerializer.h"
-#include "NodeEditor.h"
 #include "ThrustCurveEditor.h"
-#include "RobotCommManager.h"
+#include "RobotSettingPanel.h"
 #include "RobotStatus.h"
 #include "Robot_API/robot_api.h"
 #include "imgui.h"
@@ -41,15 +38,12 @@ public:
 
     // ---- 窗口显示控制 ----
     void ShowOption()            { m_OptionOpen = true; }
+    void ShowRobotSetting()      { m_RobotSettingPanel->Open(); }
     void ShowAbout()             { m_AboutOpen = true; }
     void ShowRobotStatus()       { m_RobotStatusOpen = true; }
-    void ShowNodeEditor();
     void ShowThrustCurveEditor();
-    void ShowRobotCommConfig();
 
     // ---- 窗口状态访问 ----
-    bool& GetLiveStreamerOpen()  { return m_LiveStreamerOpen; }
-    bool& GetShowRobotComm()     { return m_RobotCommOpen; }
     bool& GetShowRobotStatus()   { return m_RobotStatusOpen; }
 
     // ---- 文件操作 ----
@@ -65,19 +59,15 @@ private:
     // 窗口开关状态
     bool m_AboutOpen;
     bool m_OptionOpen;
-    bool m_LiveStreamerOpen;
     bool m_RobotStatusOpen;
-    bool m_RobotCommOpen            = true;
-    bool m_NodeEditorOpen;
+    bool m_RobotSettingOpen    = false;
     bool m_ThrustCurveEditorOpen    = false;
 
     // 子系统
-    std::unique_ptr<OptionPanel>      m_OptionPanel;
-    std::unique_ptr<StreamManager>    m_StreamManager;
-    std::unique_ptr<NodeEditor>       m_NodeEditor;
+    std::unique_ptr<OptionPanel>       m_OptionPanel;
+    std::unique_ptr<RobotSettingPanel> m_RobotSettingPanel;
     std::unique_ptr<ThrustCurveEditor> m_ThrustCurveEditor;
-    std::unique_ptr<RobotCommManager> m_RobotCommManager;
-    std::unique_ptr<RobotStatus>      m_RobotStatus;
+    std::unique_ptr<RobotStatus>       m_RobotStatus;
 
     // 文件状态
     std::string m_CurrentSavePath;

@@ -5,52 +5,14 @@
 #include <algorithm>
 #include <cctype>
 
-RobotComponent::RobotComponent() {
-    modes.clear();
-    active_mode_index = 0;
-    WL_INFO_TAG("ROBOT", "RobotComponent created");
-}
+void RobotComponent::DrawConfigPanel() {
+    auto& item = component;
 
-RobotComponent::~RobotComponent() {}
+    ImGui::InputText("Name", item.name, sizeof(item.name));
 
-// ==================== 模式增删 ====================
+    auto& actuator_config = item.actuator_config;
 
-void RobotComponent::AddMode() {
-    RobotMode new_mode;
-    int idx = 0;
-    while (true) {
-        snprintf(new_mode.name, sizeof(new_mode.name), "Mode %d", idx);
-        bool exists = false;
-        for (auto& m : modes)
-            if (strcmp(m.name, new_mode.name) == 0) { exists = true; break; }
-        if (!exists) break;
-        ++idx;
-    }
-    modes.push_back(new_mode);
-    edit_mode_index = (int)modes.size() - 1;
-    WL_INFO_TAG("ROBOT", "Mode added: {}", modes.back().name);
-}
-
-void RobotComponent::DeleteMode(int index) {
-    if (modes.empty()) return;
-    if (index < 0 || index >= (int)modes.size()) return;
-    modes.erase(modes.begin() + index);
-    if (edit_mode_index >= (int)modes.size())
-        edit_mode_index = std::max(0, (int)modes.size() - 1);
-}
-
-// ==================== UI 绘制（马达/舵机/Motion/Sensor） ====================
-
-void RobotComponent::DrawRobotConfigPanel() {
-    if (modes.empty()) return;
-    auto& mode = modes[edit_mode_index];
-
-    // ---------- 名称 ----------
-    ImGui::InputText("Name", mode.name, sizeof(mode.name));
-
-    auto& actuator_config = mode.actuator_config;
-
-    // 马达编辑
+    // ---- 马达编辑 ----
     ImGui::PushID("MotorsSection");
     bool motor_node_open = ImGui::TreeNode("Brushless Motors");
     if (ImGui::BeginPopupContextItem("MotorTreeCtx")) {
@@ -78,8 +40,6 @@ void RobotComponent::DrawRobotConfigPanel() {
                 strncpy(nameBuf, m.name.c_str(), sizeof(nameBuf) - 1);
                 if (ImGui::InputText("Name", nameBuf, sizeof(nameBuf)))
                     m.name = nameBuf;
-
-                // Thrust curve
                 {
                     char curveBuf[256] = {};
                     _snprintf_s(curveBuf, sizeof(curveBuf),
@@ -89,11 +49,9 @@ void RobotComponent::DrawRobotConfigPanel() {
                         m.curve.nt_end.value, m.curve.nt_mid.value,
                         m.curve.pt_mid.value, m.curve.pt_end.value,
                         m.curve.pwm_min, m.curve.pwm_max);
-
                     ImGui::Text("Thrust Curve (np_ini,np_mid,pp_ini,pp_mid, nt_end,nt_mid,pt_mid,pt_end, pwm_min,pwm_max):");
                     ImGui::PushItemWidth(-120);
-                    if (ImGui::InputText("##CurveStr", curveBuf, sizeof(curveBuf)))
-                    {
+                    if (ImGui::InputText("##CurveStr", curveBuf, sizeof(curveBuf))) {
                         double v[10] = {};
                         int parsed = sscanf_s(curveBuf, "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf",
                             &v[0],&v[1],&v[2],&v[3],&v[4],&v[5],&v[6],&v[7],&v[8],&v[9]);
@@ -107,7 +65,6 @@ void RobotComponent::DrawRobotConfigPanel() {
                     }
                     ImGui::PopItemWidth();
                 }
-
                 float fv = (float)m.target_speed.value;
                 ImGui::InputFloat("target_speed", &fv); m.target_speed.value = fv;
                 ImGui::TreePop();
@@ -119,7 +76,7 @@ void RobotComponent::DrawRobotConfigPanel() {
     }
     ImGui::PopID();
 
-    // 舵机编辑
+    // ---- 舵机编辑 ----
     ImGui::PushID("ServosSection");
     bool servo_node_open = ImGui::TreeNode("Servos");
     if (ImGui::BeginPopupContextItem("ServoTreeCtx")) {
@@ -147,7 +104,6 @@ void RobotComponent::DrawRobotConfigPanel() {
                 strncpy(nameBuf, s.name.c_str(), sizeof(nameBuf) - 1);
                 if (ImGui::InputText("Name", nameBuf, sizeof(nameBuf)))
                     s.name = nameBuf;
-
                 float fv = (float)s.angle.value;
                 ImGui::InputFloat("Angle", &fv); s.angle.value = fv;
                 ImGui::TreePop();
@@ -159,38 +115,34 @@ void RobotComponent::DrawRobotConfigPanel() {
     }
     ImGui::PopID();
 
-    // Motion 组件
+    // ---- Motion ----
     ImGui::PushID("MotionSection");
-    bool motion_enabled = mode.actuator_config.has_motion;
+    bool motion_enabled = item.actuator_config.has_motion;
     if (ImGui::Checkbox("Motion Control", &motion_enabled)) {
-        mode.actuator_config.has_motion = motion_enabled;
+        item.actuator_config.has_motion = motion_enabled;
     }
-    if (mode.actuator_config.has_motion) {
+    if (item.actuator_config.has_motion) {
         ImGui::Indent();
-        auto& m = mode.actuator_config.motion;
-        {
-            float fv;
-            fv = (float)m.x.value;  ImGui::InputFloat("X",  &fv); m.x.value = fv;
-            fv = (float)m.y.value;  ImGui::InputFloat("Y",  &fv); m.y.value = fv;
-            fv = (float)m.z.value;  ImGui::InputFloat("Z",  &fv); m.z.value = fv;
-            fv = (float)m.rx.value; ImGui::InputFloat("RX", &fv); m.rx.value = fv;
-            fv = (float)m.ry.value; ImGui::InputFloat("RY", &fv); m.ry.value = fv;
-            fv = (float)m.rz.value; ImGui::InputFloat("RZ", &fv); m.rz.value = fv;
-        }
+        auto& m = item.actuator_config.motion;
+        float fv;
+        fv = (float)m.x.value;  ImGui::InputFloat("X",  &fv); m.x.value = fv;
+        fv = (float)m.y.value;  ImGui::InputFloat("Y",  &fv); m.y.value = fv;
+        fv = (float)m.z.value;  ImGui::InputFloat("Z",  &fv); m.z.value = fv;
+        fv = (float)m.rx.value; ImGui::InputFloat("RX", &fv); m.rx.value = fv;
+        fv = (float)m.ry.value; ImGui::InputFloat("RY", &fv); m.ry.value = fv;
+        fv = (float)m.rz.value; ImGui::InputFloat("RZ", &fv); m.rz.value = fv;
         ImGui::Unindent();
     }
+    ImGui::PopID();
 
-    // Sensor 组件
+    // ---- Sensors ----
     ImGui::Spacing();
     ImGui::Text("Sensors");
     ImGui::Separator();
-    ImGui::Checkbox("Temperature", &mode.sensor_config.has_temperature);
-    ImGui::Checkbox("Humidity",    &mode.sensor_config.has_humidity);
-    ImGui::Checkbox("Depth",       &mode.sensor_config.has_depth);
-    ImGui::PopID();
+    ImGui::Checkbox("Temperature", &item.sensor_config.has_temperature);
+    ImGui::Checkbox("Humidity",    &item.sensor_config.has_humidity);
+    ImGui::Checkbox("Depth",       &item.sensor_config.has_depth);
 
-    // ==================== 底部分隔线 ====================
-    ImGui::Spacing();
-    ImGui::Spacing();
-    ImGui::Separator();
+    ImGui::Spacing(); ImGui::Separator();
 }
+

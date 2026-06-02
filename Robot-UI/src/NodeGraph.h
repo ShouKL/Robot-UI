@@ -206,9 +206,9 @@ public:
     void SetActiveRobotModeName(const std::string& n)   { m_ActiveRobotModeName = n; }
     void SetActiveGamepadModeName(const std::string& n) { m_ActiveGamepadModeName = n; }
 
-    // ---- Thread-safe mutex access (private — only NodeEditor may lock directly) ----
+    // ---- Thread-safe mutex access (private — only NodeGraphManager may lock directly) ----
 private:
-    friend class NodeEditor;
+    friend class NodeGraphManager;
     std::shared_mutex& GetEvalMutex() const { return m_EvalMutex; }
     std::mutex&        GetKvMutex()   const { return m_KvMutex; }
 

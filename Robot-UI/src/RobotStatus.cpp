@@ -9,41 +9,41 @@ RobotStatus::RobotStatus()
 
 // ---- 活跃模式管理（写锁） ----
 
-void RobotStatus::SetActiveMode(const RobotMode* mode)
+void RobotStatus::SetActiveMode(const RobotMode* item)
 {
-    std::unique_lock lock(m_StatusMutex);
-    m_ActiveMode = mode;
-    if (mode)
-        WL_INFO_TAG("ROBOT_STATUS", "Active mode set to: {}", mode->name);
+    std::unique_lock<std::shared_mutex> lock(m_StatusMutex);
+    m_ActiveMode = item;
+    if (item)
+        WL_INFO_TAG("ROBOT_STATUS", "Selected item set to: {}", item->name);
     else
-        WL_INFO_TAG("ROBOT_STATUS", "Active mode cleared");
+        WL_INFO_TAG("ROBOT_STATUS", "Selected item cleared");
 }
 
-void RobotStatus::LoadGraph(const std::string& gamepadModeName)
+void RobotStatus::LoadGraph(const std::string& gpMapperName)
 {
-    std::unique_lock lock(m_StatusMutex);
+    std::unique_lock<std::shared_mutex> lock(m_StatusMutex);
     if (!m_GraphEvaluator || !m_ActiveMode) {
         if (m_GraphEvaluator) m_GraphEvaluator->Clear();
         return;
     }
 
     // 优先从 node_graph_pairs 查找
-    auto it = m_ActiveMode->node_graph_pairs.find(gamepadModeName);
+    auto it = m_ActiveMode->node_graph_pairs.find(gpMapperName);
     if (it != m_ActiveMode->node_graph_pairs.end()) {
         if (m_GraphEvaluator->LoadGraphData(it->second))
-            WL_INFO_TAG("ROBOT_STATUS", "Loaded graph for mode '{}' + gamepad '{}'",
-                        m_ActiveMode->name, gamepadModeName);
+            WL_INFO_TAG("ROBOT_STATUS", "Loaded graph for item '{}' + gamepad '{}'",
+                        m_ActiveMode->name, gpMapperName);
         else
-            WL_WARN_TAG("ROBOT_STATUS", "Failed to parse graph for mode '{}' + gamepad '{}'",
-                        m_ActiveMode->name, gamepadModeName);
+            WL_WARN_TAG("ROBOT_STATUS", "Failed to parse graph for item '{}' + gamepad '{}'",
+                        m_ActiveMode->name, gpMapperName);
     } else if (!m_ActiveMode->node_graph.empty()) {
         // 兼容旧版：使用 node_graph 字段
         m_GraphEvaluator->LoadGraphData(m_ActiveMode->node_graph);
-        WL_INFO_TAG("ROBOT_STATUS", "Loaded legacy graph for mode '{}'", m_ActiveMode->name);
+        WL_INFO_TAG("ROBOT_STATUS", "Loaded legacy graph for item '{}'", m_ActiveMode->name);
     } else {
         m_GraphEvaluator->Clear();
-        WL_INFO_TAG("ROBOT_STATUS", "No graph for mode '{}' + gamepad '{}', cleared",
-                    m_ActiveMode->name, gamepadModeName);
+        WL_INFO_TAG("ROBOT_STATUS", "No graph for item '{}' + gamepad '{}', cleared",
+                    m_ActiveMode->name, gpMapperName);
     }
 }
 
@@ -119,21 +119,21 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager)
     ImGui::Separator();
 
     // 快照：在共享锁下获取所有需要的数据，然后用局部变量绘制
-    const RobotMode* mode = nullptr;
+    const RobotMode* item = nullptr;
     std::shared_ptr<const ActuatorConfig> cmd;
     {
         std::shared_lock lock(m_StatusMutex);
-        mode = m_ActiveMode;
+        item = m_ActiveMode;
         cmd  = m_CurrentCommand;
     }
     if (!cmd) cmd = std::make_shared<const ActuatorConfig>();
 
-    if (!mode) { ImGui::TextDisabled("No active mode"); ImGui::End(); return; }
+    if (!item) { ImGui::TextDisabled("No selected item"); ImGui::End(); return; }
 
     // === Actuator — 按分组折叠显示 ===
     if (ImGui::CollapsingHeader("Actuator", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        const auto& sendCfg = mode->protocol_send;
+        const auto& sendCfg = item->protocol_send;
         if (sendCfg.fields.empty())
         {
             ImGui::TextDisabled("  No send fields configured");
@@ -197,7 +197,7 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager)
     // === Sensor — 按分组折叠显示 ===
     if (ImGui::CollapsingHeader("Sensor", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        const auto& recvCfg = mode->protocol_receive;
+        const auto& recvCfg = item->protocol_receive;
         if (recvCfg.fields.empty())
         {
             ImGui::TextDisabled("  No receive fields configured");
@@ -254,3 +254,4 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager)
 
     ImGui::End();
 }
+

@@ -291,22 +291,12 @@ void LiveStream::DrawDecoderRenderingSettings() {
             DrawPropertyLabel("Swap Red/Blue");    ImGui::Checkbox("##SwapRB", &m_StreamConfig.useBGRA);
             ImGui::EndTable();
             ImGui::Spacing();
-            //
-            if (ImGui::Button("Apply & Restart Stream", ImVec2(-1, 0))) {
-                Close();
-                Open(m_StreamConfig);
-            }
         }
     }
 }
 
 void LiveStream::DrawStreamConfigPanel() {
-    ImGui::PushItemWidth(-1.0f); //
-    //
-    if (ImGui::CollapsingHeader("Live Statistics", ImGuiTreeNodeFlags_DefaultOpen)) {
-        ImGui::Text("Resolution: %dx%d", m_width, m_height);
-        ImGui::Text("Frame Rate: %d FPS", m_currentFPS);
-    }
+    ImGui::PushItemWidth(-1.0f);
     DrawConnectionSettings();
     DrawProtocolCodecSettings();
     DrawNetworkBufferSettings();

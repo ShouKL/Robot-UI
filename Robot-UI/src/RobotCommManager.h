@@ -1,10 +1,10 @@
 #pragma once
 
 #include "ManagerBase.h"
-#include "GamepadMapper.h"
+#include "GamepadMapperManager.h"
 #include "Robot_API/robot_api.h"
 #include "Robot_API/hardware_interface.h"
-#include "RobotComponent.h"
+#include "RobotComponentManager.h"
 #include "RobotComm.h"
 #include <functional>
 #include <memory>
@@ -20,7 +20,7 @@ struct RobotCommNode
     int  id;
     bool isConnected = false;
     bool isSelected  = false;
-    RobotCommConfig  config;
+    RobotCommConfig  component;
 };
 
 // ============================================================================
@@ -36,9 +36,11 @@ public:
 
     // ---- 节点管理 ----
     void AddConfig(const char* name);
-    void AddItem() override         { AddConfig("New_Comm"); }
+    void AddItem() override         { char buf[64]; snprintf(buf, sizeof(buf), "Item_%d", GetNextId()); AddConfig(buf); }
     void RemoveConfig(int id);
     void RemoveItem(int id) override { RemoveConfig(id); }
+    void DrawItemList(float width) override;
+    void DrawContent() override;
 
     // ---- 连接控制 ----
     bool Connect(int id);
@@ -50,8 +52,8 @@ public:
     SensorData GetSensorData();
 
     // ---- 外部依赖注入 ----
-    void SetRobotComponent(RobotComponent* c)                { m_RobotComponent = c; }
-    void SetGamepadMapper(GamepadMapper* g)                  { m_GamepadMapper = g; }
+    void SetRobotComponentManager(RobotComponentManager* c) { m_RobotMgr = c; }
+    void SetGamepadMapperManager(GamepadMapperManager* g) { m_GamepadMgr = g; }
     void SetOnActiveModeChanged(std::function<void(int, int)> cb) { m_OnActiveModeChanged = std::move(cb); }
     void SetOnGamepadModeChanged(std::function<void(int, int)> cb) { m_OnGamepadModeChanged = std::move(cb); }
 
@@ -67,7 +69,7 @@ public:
     void LoadConfigs(const std::vector<RobotCommConfig>& configs, int activeId);
 
     // ---- UI ----
-    void DrawUI(const char* windowName, bool* p_open) override;
+    void DrawContent(float availableHeight);
 
 private:
     std::vector<RobotCommNode>  m_Nodes;
@@ -75,8 +77,8 @@ private:
     bool                        m_IsConnected = false;
 
     std::shared_ptr<RobotAPI>   m_RobotAPI;
-    RobotComponent*             m_RobotComponent = nullptr;
-    GamepadMapper*              m_GamepadMapper = nullptr;
+    RobotComponentManager* m_RobotMgr = nullptr;
+    GamepadMapperManager*  m_GamepadMgr = nullptr;
     RobotComm                   m_RobotComm;
     std::function<void(int, int)> m_OnActiveModeChanged;  // (oldIdx, newIdx)
     std::function<void(int, int)> m_OnGamepadModeChanged;  // (oldIdx, newIdx)

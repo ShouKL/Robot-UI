@@ -5,10 +5,10 @@
 #include <string>
 #include <vector>
 
-class RobotComponent;
-class GamepadMapper;
+class RobotComponentManager;
+class GamepadMapperManager;
 class ImGuiStyleManager;
-class NodeEditor;
+class NodeGraphManager;
 struct StreamConfig;
 struct ThrustCurve;
 struct RobotCommConfig;
@@ -32,8 +32,8 @@ class ConfigSerializer
 {
 public:
     static bool Save(const std::string& filepath,
-                     const RobotComponent& robotConfig,
-                     const GamepadMapper& gamepadMapper,
+                     const RobotComponentManager& robotMgr,
+                     const GamepadMapperManager& gamepadMgr,
                      const ImGuiStyleManager& styleManager,
                      const std::vector<StreamConfig>& streams,
                      const UIState& uiState,
@@ -44,8 +44,8 @@ public:
                      std::string* outError = nullptr);
 
     static bool Load(const std::string& filepath,
-                     RobotComponent& robotConfig,
-                     GamepadMapper& gamepadMapper,
+                     RobotComponentManager& robotMgr,
+                     GamepadMapperManager& gamepadMgr,
                      ImGuiStyleManager& styleManager,
                      std::vector<StreamConfig>& streams,
                      UIState& uiState,
@@ -59,8 +59,8 @@ public:
     static const char* DefaultExtension() { return ".rbt"; }
 
 private:
-    static void EmitRobotConfig(YAML::Emitter& out, const RobotComponent& config);
-    static void EmitGamepadMapper(YAML::Emitter& out, const GamepadMapper& mapper);
+    static void EmitRobotConfig(YAML::Emitter& out, const RobotComponentManager& robotMgr);
+    static void EmitGamepadMapper(YAML::Emitter& out, const GamepadMapperManager& gamepadMgr);
     static void EmitStyle(YAML::Emitter& out, const ImGuiStyleManager& style);
     static void EmitStreams(YAML::Emitter& out, const std::vector<StreamConfig>& configs);
     static void EmitUIState(YAML::Emitter& out, const UIState& uiState);
@@ -68,8 +68,8 @@ private:
     static void EmitRobotComm(YAML::Emitter& out, const std::vector<RobotCommConfig>& configs, int activeId);
 
     // ======================== YAML 读取（基于 yaml-cpp） ========================
-    static bool ApplyRobotConfig(const YAML::Node& node, RobotComponent& config, std::string* outError);
-    static bool ApplyGamepadMapper(const YAML::Node& node, GamepadMapper& mapper, std::string* outError);
+    static bool ApplyRobotConfig(const YAML::Node& node, RobotComponentManager& robotMgr, std::string* outError);
+    static bool ApplyGamepadMapper(const YAML::Node& node, GamepadMapperManager& gamepadMgr, std::string* outError);
     static bool ApplyStyle(const YAML::Node& node, ImGuiStyleManager& style, std::string* outError);
     static bool ApplyStreams(const YAML::Node& node, std::vector<StreamConfig>& streams, std::string* outError);
     static bool ApplyUIState(const YAML::Node& node, UIState& uiState, std::string* outError);

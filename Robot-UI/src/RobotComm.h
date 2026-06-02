@@ -1,13 +1,14 @@
 #pragma once
 
 #include "EditDraftBase.h"
-#include "GamepadMapper.h"
 #include "Robot_API/robot_api.h"
-#include "RobotComponent.h"
 #include "Walnut/Core/Log.h"
 #include <imgui.h>
 #include <cctype>
 #include <cstdint>
+
+class RobotComponentManager;
+class GamepadMapperManager;
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -47,8 +48,8 @@ public:
     void DrawSendFieldConfig(ProtocolSendConfig& cfg, ActuatorConfig& actuator);
     void DrawReceiveFieldConfig(ProtocolReceiveConfig& cfg, const SensorConfig& sensor);
     void DrawControlPanel(RobotCommConfig& cfg, bool isConnected, int nodeId,
-                          RobotComponent* robotCfg,
-                          GamepadMapper* gamepadMapper,
+                          RobotComponentManager* robotMgr,
+                          GamepadMapperManager* gamepadMgr,
                           std::function<void(int)> onConnect,
                           std::function<void()>   onDisconnect,
                           std::function<void(int oldIdx, int newIdx)> onActiveModeChanged = {},

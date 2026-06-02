@@ -8,8 +8,7 @@
 // ==================== 构造/析构 ====================
 RobotCommManager::RobotCommManager() {
     m_RobotAPI = std::make_shared<HardwareInterface>();
-    // Add a default config
-    AddConfig("Default");
+    AddItem();
     m_Nodes[0].isSelected = true;
 }
 
@@ -21,16 +20,17 @@ RobotCommManager::~RobotCommManager() {
 void RobotCommManager::AddConfig(const char* name) {
     RobotCommNode node;
     node.id = NextId();
-    strncpy(node.config.name, name, sizeof(node.config.name) - 1);
+    strncpy(node.component.name, name, sizeof(node.component.name) - 1);
     m_Nodes.push_back(node);
-    WL_INFO_TAG("COMM", "Config added: {} (id={})", name, node.id);
+    WL_INFO_TAG("COMM", "component added: {} (id={})", name, node.id);
 }
 
 void RobotCommManager::RemoveConfig(int id) {
+    if (m_Nodes.size() <= 1) return;  // 至少保留一个
     int idx = FindNodeIndex(m_Nodes, id);
     if (idx < 0) return;
     auto& node = m_Nodes[idx];
-    WL_INFO_TAG("COMM", "Config removed: {} (id={})", node.config.name, id);
+    WL_INFO_TAG("COMM", "component removed: {} (id={})", node.component.name, id);
     if (node.isConnected) Disconnect();
     m_Nodes.erase(m_Nodes.begin() + idx);
     if (m_ActiveId == id) m_ActiveId = m_Nodes.empty() ? -1 : m_Nodes[0].id;
@@ -45,7 +45,7 @@ bool RobotCommManager::Connect(int id) {
     if (m_IsConnected) Disconnect();
 
     auto& node = m_Nodes[idx];
-    auto& cfg = node.config;
+    auto& cfg = node.component;
     WL_INFO_TAG("COMM", "Connecting to {}:{} (local: {})...", cfg.host_ip, cfg.remote_port, cfg.local_port);
 
     bool ok = m_RobotAPI->Initialize(cfg.host_ip, cfg.remote_port, cfg.local_port);
@@ -55,10 +55,10 @@ bool RobotCommManager::Connect(int id) {
         node.isConnected = true;
 
         // 同步 active_mode_index 到 Comm 面板所选模式
-        if (m_RobotComponent) {
-            int oldIdx = m_RobotComponent->GetActiveModeIndex();
-            int newIdx = m_RobotComponent->GetEditModeIndex();
-            m_RobotComponent->SetActiveModeIndex(newIdx);
+        if (m_RobotMgr) {
+            int oldIdx = m_RobotMgr->GetSelectedIndex();
+            int newIdx = m_RobotMgr->GetSelectedIndex();
+            m_RobotMgr->SetSelectedIndex(newIdx);
             if (m_OnActiveModeChanged)
                 m_OnActiveModeChanged(oldIdx, newIdx);
         }
@@ -95,7 +95,7 @@ SensorData RobotCommManager::GetSensorData() {
 // ==================== 配置访问 ====================
 std::vector<RobotCommConfig> RobotCommManager::GetAllConfigs() const {
     std::vector<RobotCommConfig> out;
-    for (const auto& n : m_Nodes) out.push_back(n.config);
+    for (const auto& n : m_Nodes) out.push_back(n.component);
     return out;
 }
 
@@ -111,7 +111,7 @@ void RobotCommManager::LoadConfigs(const std::vector<RobotCommConfig>& configs, 
     for (const auto& cfg : configs) {
         RobotCommNode node;
         node.id = NextId();
-        node.config = cfg;
+        node.component = cfg;
         m_Nodes.push_back(node);
     }
 
@@ -138,7 +138,7 @@ void RobotCommManager::LoadConfigs(const std::vector<RobotCommConfig>& configs, 
 
 RobotCommConfig* RobotCommManager::GetActiveConfig() {
     for (auto& n : m_Nodes)
-        if (n.id == m_ActiveId) return &n.config;
+        if (n.id == m_ActiveId) return &n.component;
     return nullptr;
 }
 
@@ -148,37 +148,45 @@ RobotCommNode* RobotCommManager::GetActiveNode() {
     return nullptr;
 }
 
-void RobotCommManager::DrawUI(const char* windowName, bool* p_open) {
-    if (!p_open || !*p_open) return;
-
-    const auto getName = [](const RobotCommNode& n) -> const char* { return n.config.name; };
-    const auto getActive = [](const RobotCommNode& n) -> bool { return n.isConnected; };
-
-    // 设备列表窗口
-    ImGui::Begin(windowName, p_open, ImGuiWindowFlags_MenuBar);
-    if (ImGui::BeginMenuBar()) {
-        if (ImGui::BeginMenu("COMM LIST")) {
-            if (ImGui::MenuItem("Add New Comm"))
-                AddConfig("New_Comm");
-            ImGui::EndMenu();
+void RobotCommManager::DrawItemList(float width) {
+    auto& nodes = m_Nodes;
+    for (int i = 0; i < (int)nodes.size(); ++i) {
+        auto& node = nodes[i];
+        ImGui::PushID(node.id);
+        if (ImGui::Selectable(node.component.name, node.isSelected, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, 30))) {
+            for (auto& n : nodes) n.isSelected = false;
+            node.isSelected = true;
         }
-        ImGui::EndMenuBar();
+        if (nodes.size() > 1) {
+            if (ImGui::BeginPopupContextItem()) {
+                if (ImGui::MenuItem("Delete Comm"))
+                    RemoveConfig(node.id);
+                ImGui::EndPopup();
+            }
+        }
+        ImGui::SameLine(ImGui::GetContentRegionAvail().x - 30);
+        if (node.isConnected)
+            ImGui::TextColored(ImVec4(0, 1, 0, 1), "ON");
+        else
+            ImGui::TextColored(ImVec4(1, 0, 0, 1), "OFF");
+        ImGui::PopID();
     }
-    DrawItemTree("Delete Comm", m_Nodes, getName, getActive);
-    ImGui::End();
+    if (ImGui::BeginPopupContextWindow("CommListPopup", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
+        if (ImGui::MenuItem("Add Item"))
+            AddItem();
+        ImGui::EndPopup();
+    }
+}
 
-    // 配置面板窗口（含 Network/Transport 控制面板 + 协议字段 Tab）
-    ImGui::Begin("Comm Configuration", p_open);
+void RobotCommManager::DrawContent() {
     RobotCommNode* selNode = nullptr;
     for (auto& n : m_Nodes) if (n.isSelected) { selNode = &n; break; }
     if (!selNode) {
-        ImGui::TextDisabled("Select a config from the list to configure.");
+        ImGui::TextDisabled("Select a component from the list to configure.");
     } else {
         if (ImGui::BeginTabBar("CommConfigTabs")) {
             if (ImGui::BeginTabItem("Network")) {
-                m_RobotComm.DrawControlPanel(selNode->config, selNode->isConnected, selNode->id,
-                                             m_RobotComponent,
-                                             m_GamepadMapper,
+                m_RobotComm.DrawControlPanel(selNode->component, selNode->isConnected, selNode->id, m_RobotMgr, m_GamepadMgr,
                                              [this](int id) { Connect(id); },
                                              [this]() { Disconnect(); },
                                              m_OnActiveModeChanged,
@@ -186,11 +194,11 @@ void RobotCommManager::DrawUI(const char* windowName, bool* p_open) {
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem("Protocol")) {
-                if (m_RobotComponent) {
-                    auto& modes = m_RobotComponent->GetModes();
-                    int idx = m_RobotComponent->GetEditModeIndex();
-                    if (idx >= 0 && idx < (int)modes.size()) {
-                        auto& mode = modes[idx];
+                if (m_RobotMgr) {
+                    auto& comps = m_RobotMgr->GetComponents();
+                    int idx = m_RobotMgr->GetSelectedIndex();
+                    if (idx >= 0 && idx < (int)comps.size()) {
+                        auto& mode = comps[idx].component;
                         if (ImGui::BeginTabBar("ProtoSubTabs")) {
                             if (ImGui::BeginTabItem("Send Fields")) {
                                 m_RobotComm.DrawSendFieldConfig(mode.protocol_send, mode.actuator_config);
@@ -204,7 +212,7 @@ void RobotCommManager::DrawUI(const char* windowName, bool* p_open) {
                             ImGui::EndTabBar();
                         }
                     } else {
-                        ImGui::TextDisabled("No active Robot mode selected.");
+                        ImGui::TextDisabled("No selected Robot item selected.");
                     }
                 } else {
                     ImGui::TextDisabled("RobotComponent not connected.");
@@ -214,5 +222,101 @@ void RobotCommManager::DrawUI(const char* windowName, bool* p_open) {
             ImGui::EndTabBar();
         }
     }
-    ImGui::End();
 }
+
+void RobotCommManager::DrawContent(float availableHeight) {
+    ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(4, 4));
+    if (ImGui::BeginTable("CommLayout", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV))
+    {
+        ImGui::TableSetupColumn("CommList", ImGuiTableColumnFlags_WidthFixed, 200.0f);
+        ImGui::TableSetupColumn("component", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableNextRow();
+
+        ImGui::TableSetColumnIndex(0);
+        if (ImGui::BeginChild("CommDeviceList", ImVec2(0, availableHeight), true)) {
+            auto& nodes = m_Nodes;
+            for (int i = 0; i < (int)nodes.size(); ++i) {
+                auto& node = nodes[i];
+                ImGui::PushID(node.id);
+                if (ImGui::Selectable(node.component.name, node.isSelected, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, 30))) {
+                    for (auto& n : nodes) n.isSelected = false;
+                    node.isSelected = true;
+                }
+                if (nodes.size() > 1) {
+                    if (ImGui::BeginPopupContextItem()) {
+                        if (ImGui::MenuItem("Delete Comm"))
+                            RemoveConfig(node.id);
+                        ImGui::EndPopup();
+                    }
+                }
+                ImGui::SameLine(ImGui::GetContentRegionAvail().x - 30);
+                if (node.isConnected)
+                    ImGui::TextColored(ImVec4(0, 1, 0, 1), "ON");
+                else
+                    ImGui::TextColored(ImVec4(1, 0, 0, 1), "OFF");
+                ImGui::PopID();
+            }
+            if (ImGui::BeginPopupContextWindow("CommListPopup", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
+                if (ImGui::MenuItem("Add Item"))
+                    AddItem();
+                ImGui::EndPopup();
+            }
+        }
+        ImGui::EndChild();
+
+        ImGui::TableSetColumnIndex(1);
+        if (ImGui::BeginChild("CommConfigPanel", ImVec2(0, availableHeight), false))
+        {
+            ImGui::Indent(10.0f);
+            RobotCommNode* selNode = nullptr;
+            for (auto& n : m_Nodes) if (n.isSelected) { selNode = &n; break; }
+            if (!selNode) {
+                ImGui::TextDisabled("Select a component from the list to configure.");
+            } else {
+                if (ImGui::BeginTabBar("CommConfigTabs")) {
+                    if (ImGui::BeginTabItem("Network")) {
+                        m_RobotComm.DrawControlPanel(selNode->component, selNode->isConnected, selNode->id, m_RobotMgr, m_GamepadMgr,
+                                                     [this](int id) { Connect(id); },
+                                                     [this]() { Disconnect(); },
+                                                     m_OnActiveModeChanged,
+                                                     m_OnGamepadModeChanged);
+                        ImGui::EndTabItem();
+                    }
+                    if (ImGui::BeginTabItem("Protocol")) {
+                        if (m_RobotMgr) {
+                            auto& comps = m_RobotMgr->GetComponents();
+                            int idx = m_RobotMgr->GetSelectedIndex();
+                            if (idx >= 0 && idx < (int)comps.size()) {
+                                auto& mode = comps[idx].component;
+                                if (ImGui::BeginTabBar("ProtoSubTabs")) {
+                                    if (ImGui::BeginTabItem("Send Fields")) {
+                                        m_RobotComm.DrawSendFieldConfig(mode.protocol_send, mode.actuator_config);
+                                        ImGui::EndTabItem();
+                                    }
+                                    if (ImGui::BeginTabItem("Receive Fields")) {
+                                        m_RobotComm.DrawReceiveFieldConfig(mode.protocol_receive,
+                                            mode.sensor_config);
+                                        ImGui::EndTabItem();
+                                    }
+                                    ImGui::EndTabBar();
+                                }
+                            } else {
+                                ImGui::TextDisabled("No selected Robot item selected.");
+                            }
+                        } else {
+                            ImGui::TextDisabled("RobotComponent not connected.");
+                        }
+                        ImGui::EndTabItem();
+                    }
+                    ImGui::EndTabBar();
+                }
+            }
+            ImGui::Unindent(10.0f);
+        }
+        ImGui::EndChild();
+
+        ImGui::EndTable();
+    }
+    ImGui::PopStyleVar();
+}
+

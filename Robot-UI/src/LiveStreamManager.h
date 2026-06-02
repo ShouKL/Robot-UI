@@ -1,28 +1,31 @@
 #pragma once
+#include "ManagerBase.h"
 #include "LiveStream.h"
 
 struct DeviceNode {
     int id;
     bool isStreaming = false;
     bool isSelected = false;
-    // 移除冗余的 StreamConfig config，直接复用内部 LiveStream 实例的配置
     std::unique_ptr<LiveStream> stream;
 };
 
-class StreamManager {
+class LiveStreamManager : public ManagerBase {
 public:
-    StreamManager();
-    ~StreamManager();
+    LiveStreamManager();
+    ~LiveStreamManager();
 
-    void AddDevice(const char* name, const char* url);
-    void RemoveDevice(int id);
+    void AddItem() override;
+    void RemoveItem(int id) override;
 
     // 每一帧在渲染循环中调用
     void UpdateAll();
 
-    // 内联绘制（供 RobotSettingPanel 嵌入标签页使用），不创建窗口
-    // availableHeight: 当前可用高度（用于子区域滚动）
+    // 内联绘制（供 RobotSettingPanel 嵌入使用），不创建窗口
     void DrawContent(float availableHeight);
+
+    // 供 RobotSettingPanel 三列布局使用
+    void DrawItemList(float width) override;
+    void DrawContent() override;
 
     // 序列化用：获取所有设备的流配置
     std::vector<StreamConfig> GetAllStreamConfigs() const;
@@ -32,10 +35,5 @@ public:
 
 private:
     std::vector<DeviceNode> m_devices;
-    int m_nextId = 1000;
-
-    // 内部 UI 组件
-    void DrawDeviceTree();
-    void DrawControlPanel();
-    void DrawMonitorWall();
+    void DeleteByIndex(int index);
 };

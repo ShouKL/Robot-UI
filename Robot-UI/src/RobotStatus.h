@@ -23,7 +23,7 @@ public:
     RobotStatus();
 
     // ---- 活跃模式管理 ----
-    void               SetActiveMode(const RobotMode* mode);
+    void               SetActiveMode(const RobotMode* item);
     // 加载当前活跃模式的节点图（根据 gamepadModeName 查找 node_graph_pairs）
     void               LoadGraph(const std::string& gamepadModeName);
     // 节点图求值：key values → ActuatorConfig（线程安全，可在 GamepadRoutine 中调用）

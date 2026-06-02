@@ -1,4 +1,6 @@
 #include "RobotComm.h"
+#include "RobotComponentManager.h"
+#include "GamepadMapperManager.h"
 
 // ==================== 通用 Hex 编辑器 ====================
 static void HexEdit(const char* label, std::vector<uint8_t>& bytes) {
@@ -430,8 +432,8 @@ void RobotComm::DrawReceiveFieldConfig(ProtocolReceiveConfig& cfg, const SensorC
 
 // ==================== 控制面板 ====================
 void RobotComm::DrawControlPanel(RobotCommConfig& cfg, bool isConnected, int nodeId,
-                                  RobotComponent* robotCfg,
-                                  GamepadMapper* gamepadMapper,
+                                  RobotComponentManager* robotMgr,
+                                  GamepadMapperManager* gamepadMgr,
                                   std::function<void(int)> onConnect,
                                   std::function<void()>   onDisconnect,
                                   std::function<void(int, int)> onActiveModeChanged,
@@ -441,19 +443,18 @@ void RobotComm::DrawControlPanel(RobotCommConfig& cfg, bool isConnected, int nod
     ImGui::Spacing();
 
     // 当前使用的机器人模式
-    if (ImGui::CollapsingHeader("Robot Mode", ImGuiTreeNodeFlags_DefaultOpen)) {
-        if (robotCfg) {
-            auto& modes = robotCfg->GetModes();
-            int activeIdx = robotCfg->GetActiveModeIndex();
-            if (!modes.empty() && activeIdx >= 0 && activeIdx < (int)modes.size()) {
-                std::string preview = modes[activeIdx].name;
+    if (ImGui::CollapsingHeader("Robot item", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (robotMgr) {
+            auto& comps = robotMgr->GetComponents();
+            int activeIdx = robotMgr->GetSelectedIndex();
+            if (!comps.empty() && activeIdx >= 0 && activeIdx < (int)comps.size()) {
+                std::string preview = comps[activeIdx].component.name;
                 if (ImGui::BeginCombo("##RobotModeSelect", preview.c_str())) {
-                    for (int i = 0; i < (int)modes.size(); ++i) {
+                    for (int i = 0; i < (int)comps.size(); ++i) {
                         bool isSelected = (i == activeIdx);
-                        if (ImGui::Selectable(modes[i].name, isSelected)) {
+                        if (ImGui::Selectable(comps[i].component.name, isSelected)) {
                             int oldIdx = activeIdx;
-                            robotCfg->SetActiveModeIndex(i);
-                            robotCfg->GetEditModeIndex() = i;
+                            robotMgr->SetSelectedIndex(i);
                             if (onActiveModeChanged)
                                 onActiveModeChanged(oldIdx, i);
                         }
@@ -463,23 +464,23 @@ void RobotComm::DrawControlPanel(RobotCommConfig& cfg, bool isConnected, int nod
                 }
             }
         } else {
-            ImGui::TextDisabled("Robot config not available");
+            ImGui::TextDisabled("Robot component not available");
         }
     }
 
     // 当前使用的游戏手柄模式
-    if (ImGui::CollapsingHeader("Gamepad Mode", ImGuiTreeNodeFlags_DefaultOpen)) {
-        if (gamepadMapper) {
-            auto& gpModes = gamepadMapper->GetModes();
-            int gpIdx = gamepadMapper->GetActiveModeIndex();
-            if (!gpModes.empty() && gpIdx >= 0 && gpIdx < (int)gpModes.size()) {
-                std::string gpPreview = gpModes[gpIdx].name;
+    if (ImGui::CollapsingHeader("Gamepad item", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (gamepadMgr) {
+            auto& gpMappers = gamepadMgr->GetMappers();
+            int gpIdx = gamepadMgr->GetSelectedIndex();
+            if (!gpMappers.empty() && gpIdx >= 0 && gpIdx < (int)gpMappers.size()) {
+                std::string gpPreview = gpMappers[gpIdx].name;
                 if (ImGui::BeginCombo("##GamepadModeSelect", gpPreview.c_str())) {
-                    for (int i = 0; i < (int)gpModes.size(); ++i) {
+                    for (int i = 0; i < (int)gpMappers.size(); ++i) {
                         bool isSelected = (i == gpIdx);
-                        if (ImGui::Selectable(gpModes[i].name, isSelected)) {
+                        if (ImGui::Selectable(gpMappers[i].name, isSelected)) {
                             int oldGpIdx = gpIdx;
-                            gamepadMapper->SetActiveModeByIndex(i);
+                            gamepadMgr->SetSelectedIndex(i);
                             if (onGamepadModeChanged)
                                 onGamepadModeChanged(oldGpIdx, i);
                         }
@@ -489,7 +490,7 @@ void RobotComm::DrawControlPanel(RobotCommConfig& cfg, bool isConnected, int nod
                 }
             }
         } else {
-            ImGui::TextDisabled("Gamepad config not available");
+            ImGui::TextDisabled("Gamepad component not available");
         }
     }
 
@@ -503,20 +504,5 @@ void RobotComm::DrawControlPanel(RobotCommConfig& cfg, bool isConnected, int nod
         const char* protocols[] = { "UDP", "TCP", "Serial" };
         ImGui::Combo("Protocol", &cfg.transport_type, protocols, IM_ARRAYSIZE(protocols));
     }
-
-    ImGui::Spacing();
-    ImVec2 btnSize(-1.0f, ImGui::GetFrameHeightWithSpacing() * 1.5f);
-    if (isConnected) {
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.9f, 0.3f, 0.3f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.0f, 0.4f, 0.4f, 1.0f));
-        if (ImGui::Button("DISCONNECT", btnSize)) onDisconnect();
-        ImGui::PopStyleColor(3);
-    } else {
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.6f, 0.3f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.7f, 0.4f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.4f, 0.8f, 0.5f, 1.0f));
-        if (ImGui::Button("APPLY & CONNECT", btnSize)) onConnect(nodeId);
-        ImGui::PopStyleColor(3);
-    }
 }
+

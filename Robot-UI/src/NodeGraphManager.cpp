@@ -1,5 +1,5 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
-#include "NodeEditor.h"
+#include "NodeGraphManager.h"
 #include "Walnut/Core/Log.h"
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -24,16 +24,16 @@ static void ManualSplitter(const char* id, float* size, float minSize, float thi
     ImGui::InvisibleButton("##splitter", ImVec2(thickness, avail.y));
 
     bool hovered = ImGui::IsItemHovered();
-    bool active  = ImGui::IsItemActive();
+    bool selected  = ImGui::IsItemActive();
 
-    ImU32 col = active  ? IM_COL32(100, 100, 255, 255)
+    ImU32 col = selected  ? IM_COL32(100, 100, 255, 255)
               : hovered ? IM_COL32(80, 80, 180, 255)
               :            IM_COL32(60, 60, 80, 150);
 
     dl->AddRectFilled(ImVec2(cursor.x, cursor.y),
                       ImVec2(cursor.x + thickness, cursor.y + avail.y), col);
 
-    if (active)
+    if (selected)
     {
         float delta = ImGui::GetIO().MouseDelta.x;
         if (reverse) delta = -delta;
@@ -54,17 +54,111 @@ static void ShowBool(float v)
 }
 
 // ============================================================================
-// Constructor / Destructor
+// ManagerBase: AddItem / RemoveItem / Select
 // ============================================================================
-NodeEditor::NodeEditor()
+void NodeGraphManager::AddItem()
 {
-    ed::Config config;
-    config.SettingsFile = nullptr;
-    m_EditorCtx = ed::CreateEditor(&config);
-    ed::SetCurrentEditor(m_EditorCtx);
+    GraphItem item;
+    item.id = NextId();
+    snprintf(item.name, sizeof(item.name), "Item_%d", item.id);
+    item.graphYaml = GetGraphYaml();
+    m_Items.push_back(item);
+    if (m_Items.size() == 1) {
+        m_SelectedIndex = 0;
+        m_Items[0].isSelected = true;
+    }
 }
 
-NodeEditor::~NodeEditor()
+void NodeGraphManager::RemoveItem(int id)
+{
+    int index = FindNodeIndex(m_Items, id);
+    if (index < 0) return;
+    DeleteByIndex(index);
+}
+
+void NodeGraphManager::DeleteByIndex(int index)
+{
+    if (index < 0 || index >= (int)m_Items.size()) return;
+    if (m_Items.size() <= 1) return;
+    m_Items.erase(m_Items.begin() + index);
+    if (m_SelectedIndex >= (int)m_Items.size())
+        m_SelectedIndex = (int)m_Items.size() - 1;
+    if (!m_Items.empty()) m_Items[m_SelectedIndex].isSelected = true;
+}
+
+void NodeGraphManager::SetSelectedIndex(int idx)
+{
+    if (idx >= 0 && idx < (int)m_Items.size()) {
+        SaveCurrentToItem();
+        for (auto& it : m_Items) it.isSelected = false;
+        m_SelectedIndex = idx;
+        m_Items[idx].isSelected = true;
+        LoadItemToCurrent();
+        m_NavigateFrame = 1;
+    }
+}
+
+GraphItem* NodeGraphManager::GetSelectedItem()
+{
+    if (m_SelectedIndex >= 0 && m_SelectedIndex < (int)m_Items.size())
+        return &m_Items[m_SelectedIndex];
+    return nullptr;
+}
+
+// ============================================================================
+// DrawItemList — render m_Items as selectable list (for RobotSettingPanel sidebar)
+// ============================================================================
+void NodeGraphManager::DrawItemList(float width)
+{
+    auto& items = m_Items;
+    for (int i = 0; i < (int)items.size(); ++i) {
+        auto& item = items[i];
+        ImGui::PushID(item.id);
+        bool isSel = (i == m_SelectedIndex);
+        if (ImGui::Selectable(item.name, isSel, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, 30)))
+            SetSelectedIndex(i);
+        if (items.size() > 1) {
+            if (ImGui::BeginPopupContextItem()) {
+                if (ImGui::MenuItem("Delete Item"))
+                    RemoveItem(item.id);
+                ImGui::EndPopup();
+            }
+        }
+        ImGui::PopID();
+    }
+    if (ImGui::BeginPopupContextWindow("NGListPopup", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
+        if (ImGui::MenuItem("Add Item"))
+            AddItem();
+        ImGui::EndPopup();
+    }
+}
+
+void NodeGraphManager::SaveCurrentToItem()
+{
+    if (m_SelectedIndex >= 0 && m_SelectedIndex < (int)m_Items.size())
+        m_Items[m_SelectedIndex].graphYaml = GetGraphYaml();
+}
+
+void NodeGraphManager::LoadItemToCurrent()
+{
+    if (m_SelectedIndex >= 0 && m_SelectedIndex < (int)m_Items.size())
+        LoadGraphYaml(m_Items[m_SelectedIndex].graphYaml);
+}
+
+// ============================================================================
+// Constructor / Destructor
+// ============================================================================
+NodeGraphManager::NodeGraphManager()
+{
+    ed::Config cfg;
+    cfg.SettingsFile = nullptr;
+    m_EditorCtx = ed::CreateEditor(&cfg);
+    ed::SetCurrentEditor(m_EditorCtx);
+    AddItem();
+    m_Items[0].isSelected = true;
+}
+
+NodeGraphManager::~NodeGraphManager()
 {
     if (m_EditorCtx)
     {
@@ -77,12 +171,12 @@ NodeEditor::~NodeEditor()
 // ============================================================================
 // AddNode — create a node of the given type via m_Graph, position at origin
 // ============================================================================
-void NodeEditor::AddNode(NodeType type)
+void NodeGraphManager::AddNode(NodeType type)
 {
     AddNodeAt(type, ImVec2(0, 0), false);
 }
 
-void NodeEditor::AddNodeAt(NodeType type, const ImVec2& pos, bool fromScreen)
+void NodeGraphManager::AddNodeAt(NodeType type, const ImVec2& pos, bool fromScreen)
 {
     // Must hold exclusive lock because spawn methods modify m_Nodes
     // and call GetNextId(), which races with the evaluation thread.
@@ -122,7 +216,7 @@ void NodeEditor::AddNodeAt(NodeType type, const ImVec2& pos, bool fromScreen)
 // ============================================================================
 // NavigateToOrigin
 // ============================================================================
-void NodeEditor::NavigateToOrigin()
+void NodeGraphManager::NavigateToOrigin()
 {
     if (!m_Graph.m_Nodes.empty())
     {
@@ -150,9 +244,9 @@ void NodeEditor::NavigateToOrigin()
 }
 
 // ============================================================================
-// Mode switching (delegates data to m_Graph)
+// item switching (delegates data to m_Graph)
 // ============================================================================
-void NodeEditor::SwitchRobotMode(const std::string& newRobotMode, const std::string& curGamepadMode)
+void NodeGraphManager::SwitchRobotMode(const std::string& newRobotMode, const std::string& curGamepadMode)
 {
     for (int i = 0; i < (int)m_RobotModeNames.size(); ++i) {
         if (m_RobotModeNames[i] == newRobotMode) {
@@ -165,16 +259,16 @@ void NodeEditor::SwitchRobotMode(const std::string& newRobotMode, const std::str
     m_NavigateFrame = 1;
 }
 
-void NodeEditor::SwitchGamepadMode(const std::string& curRobotMode, const std::string& newGamepadMode)
+void NodeGraphManager::SwitchGamepadMode(const std::string& curRobotMode, const std::string& newGamepadMode)
 {
     m_Graph.SwitchGraph(curRobotMode, newGamepadMode);
     m_NavigateFrame = 1;
 }
 
 // ============================================================================
-// Mode names & Apply/Cancel
+// item names & Apply/Cancel
 // ============================================================================
-void NodeEditor::SetRobotModeNames(const std::vector<std::string>& names, int activeIdx)
+void NodeGraphManager::SetRobotModeNames(const std::vector<std::string>& names, int activeIdx)
 {
     bool sizeChanged = (names.size() != m_RobotModeNames.size());
     m_RobotModeNames = names;
@@ -185,7 +279,7 @@ void NodeEditor::SetRobotModeNames(const std::vector<std::string>& names, int ac
     }
 }
 
-void NodeEditor::SetGamepadModeNames(const std::vector<std::string>& names)
+void NodeGraphManager::SetGamepadModeNames(const std::vector<std::string>& names)
 {
     m_GamepadModeNames = names;
     for (int i = 0; i < (int)names.size(); ++i) {
@@ -197,10 +291,10 @@ void NodeEditor::SetGamepadModeNames(const std::vector<std::string>& names)
     m_SelectedGamepadModeIdx = 0;
 }
 
-void NodeEditor::SetCurrentModePair(const std::string& robotMode, const std::string& gamepadMode)
+void NodeGraphManager::SetCurrentModePair(const std::string& robotMode, const std::string& GamepadMapper)
 {
     m_Graph.SetActiveRobotModeName(robotMode);
-    m_Graph.SetActiveGamepadModeName(gamepadMode);
+    m_Graph.SetActiveGamepadModeName(GamepadMapper);
     for (int i = 0; i < (int)m_RobotModeNames.size(); ++i) {
         if (m_RobotModeNames[i] == robotMode) {
             m_SelectedRobotModeIdx = i;
@@ -208,24 +302,24 @@ void NodeEditor::SetCurrentModePair(const std::string& robotMode, const std::str
             break;
         }
     }
-    m_Graph.SwitchGraph(robotMode, gamepadMode);
+    m_Graph.SwitchGraph(robotMode, GamepadMapper);
     m_NavigateFrame = 1;
 }
 
-void NodeEditor::OnOpen()
+void NodeGraphManager::OnOpen()
 {
     m_AppliedGraphYaml = GetGraphYaml();
     m_AppliedRobotModeIdx = m_SelectedRobotModeIdx;
 }
 
-void NodeEditor::ApplyChanges()
+void NodeGraphManager::ApplyChanges()
 {
     m_Graph.SaveGraphToMap();
     m_AppliedRobotModeIdx = m_SelectedRobotModeIdx;
     m_Graph.SetModified(false);
 }
 
-void NodeEditor::CancelChanges()
+void NodeGraphManager::CancelChanges()
 {
     LoadGraphYaml(m_AppliedGraphYaml);
     m_SelectedRobotModeIdx = m_AppliedRobotModeIdx;
@@ -244,7 +338,7 @@ static ImColor GetIconColorLocal(PinType type)
     }
 }
 
-void NodeEditor::DrawPinIcon(const EditorPin& pin, bool connected, int alpha)
+void NodeGraphManager::DrawPinIcon(const EditorPin& pin, bool connected, int alpha)
 {
     ImColor color = GetIconColorLocal(pin.Type);
     color.Value.w = alpha / 255.0f;
@@ -275,7 +369,7 @@ void NodeEditor::DrawPinIcon(const EditorPin& pin, bool connected, int alpha)
 // ============================================================================
 // DrawNodeContents — widgets and pins inside each node
 // ============================================================================
-void NodeEditor::DrawNodeContents(EditorNode& node)
+void NodeGraphManager::DrawNodeContents(EditorNode& node)
 {
     switch (node.Type)
     {
@@ -473,9 +567,9 @@ void NodeEditor::DrawNodeContents(EditorNode& node)
             ed::EndPin();
         }
         {
-            const char* modes[] = { "A>B", "A>=B", "A<=B", "A<B", "A==B", "A!=B" };
+            const char* items[] = { "A>B", "A>=B", "A<=B", "A<B", "A==B", "A!=B" };
             ImGui::SetNextItemWidth(110);
-            if (ImGui::Combo("##Op", &node.OpMode, modes, IM_ARRAYSIZE(modes)))
+            if (ImGui::Combo("##Op", &node.OpMode, items, IM_ARRAYSIZE(items)))
                 m_Graph.SetModified(true);
         }
         for (auto& pin : node.Outputs)
@@ -679,7 +773,7 @@ void NodeEditor::DrawNodeContents(EditorNode& node)
 // ============================================================================
 // Sidebars
 // ============================================================================
-void NodeEditor::DrawKeyValuesSidebar(float sideWidth)
+void NodeGraphManager::DrawKeyValuesSidebar(float sideWidth)
 {
     std::map<std::string, float> snapshot = m_Graph.GetKeyValuesSnapshot();
 
@@ -715,7 +809,7 @@ void NodeEditor::DrawKeyValuesSidebar(float sideWidth)
     ImGui::EndChild();
 }
 
-void NodeEditor::DrawOutputValuesSidebar(float sideWidth)
+void NodeGraphManager::DrawOutputValuesSidebar(float sideWidth)
 {
     // Use cached outputs from Evaluate
     std::map<std::string, float> outputs;
@@ -733,7 +827,7 @@ void NodeEditor::DrawOutputValuesSidebar(float sideWidth)
 // ============================================================================
 // Menu Bar
 // ============================================================================
-void NodeEditor::DrawMenuBar()
+void NodeGraphManager::DrawMenuBar()
 {
     if (ImGui::BeginMenuBar())
     {
@@ -774,7 +868,7 @@ void NodeEditor::DrawMenuBar()
 // ============================================================================
 // GetGraphYaml / LoadGraphYaml — includes ed:: position data
 // ============================================================================
-std::string NodeEditor::GetGraphYaml() const
+std::string NodeGraphManager::GetGraphYaml() const
 {
     ed::SetCurrentEditor(m_EditorCtx);
     std::shared_lock<std::shared_mutex> lock(m_Graph.GetEvalMutex());
@@ -828,7 +922,7 @@ std::string NodeEditor::GetGraphYaml() const
     return out.c_str();
 }
 
-bool NodeEditor::LoadGraphYaml(const std::string& yamlStr)
+bool NodeGraphManager::LoadGraphYaml(const std::string& yamlStr)
 {
     if (yamlStr.empty()) return false;
     try
@@ -936,9 +1030,9 @@ bool NodeEditor::LoadGraphYaml(const std::string& yamlStr)
 }
 
 // ============================================================================
-// Draw — main entry point
+// DrawContent — internal render, no outer window frame
 // ============================================================================
-bool NodeEditor::Draw()
+void NodeGraphManager::DrawContent()
 {
     // Update sidebar output values for display
     {
@@ -946,19 +1040,11 @@ bool NodeEditor::Draw()
         m_Graph.EvaluateForDisplay(kvSnapshot);
     }
 
-    bool open = true;
     ed::SetCurrentEditor(m_EditorCtx);
-
-    ImGui::SetNextWindowSize(ImVec2(900, 600), ImGuiCond_FirstUseEver);
-    if (!ImGui::Begin("Node Editor##NodeEditorWindow", &open, ImGuiWindowFlags_MenuBar))
-    {
-        ImGui::End();
-        return open;
-    }
 
     DrawMenuBar();
 
-    // -------- Mode selector & Apply/Cancel bar --------
+    // -------- item selector & Apply/Cancel bar --------
     {
         if (!m_RobotModeNames.empty())
         {
@@ -996,18 +1082,6 @@ bool NodeEditor::Draw()
             ImGui::SameLine();
         }
 
-        bool hasChanges = (m_SelectedRobotModeIdx != m_AppliedRobotModeIdx) || m_Graph.IsModified();
-        if (hasChanges)
-        {
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.7f, 0.2f, 0.8f));
-            if (ImGui::Button("Apply", ImVec2(70, 0)))
-                ApplyChanges();
-            ImGui::PopStyleColor();
-            ImGui::SameLine();
-        }
-        if (ImGui::Button("Cancel", ImVec2(70, 0)))
-            CancelChanges();
-
         ImGui::Separator();
     }
 
@@ -1039,7 +1113,6 @@ bool NodeEditor::Draw()
     ManualSplitter("##S1", &m_LeftSideWidth, 80.0f, splitterW);
     ImGui::SameLine(0, 0);
 
-    // Editor canvas
     ed::Begin("##Canvas", ImVec2(canvasW, 0));
 
     if (m_NavigateFrame > 0)
@@ -1102,9 +1175,6 @@ bool NodeEditor::Draw()
         ed::Link(link.ID, link.StartPinID, link.EndPinID, link.Color, 2.0f);
     } // end shared_lock
 
-    // ==================================================================
-    // Create — link / node creation handling
-    // ==================================================================
     if (ed::BeginCreate(ImColor(255, 255, 255), 2.0f))
     {
         auto showLabel = [](const char* label, ImColor color)
@@ -1398,7 +1468,16 @@ bool NodeEditor::Draw()
         ed::Resume();
     }
 
-    ed::End(); // Canvas
+    ed::End();
+    {
+        ImDrawList* dl = ImGui::GetWindowDrawList();
+
+        for (auto& cmd : dl->CmdBuffer)
+        {
+            if (cmd.UserCallback != nullptr && cmd.ElemCount == 0)
+                cmd.UserCallback = nullptr;
+        }
+    }
 
     // Right sidebar — draw output values
     ImGui::SameLine(0, 0);
@@ -1467,7 +1546,5 @@ bool NodeEditor::Draw()
         }
         ImGui::EndChild();
     }
-
-    ImGui::End(); // Window
-    return open;
 }
+
