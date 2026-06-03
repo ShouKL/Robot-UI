@@ -164,7 +164,7 @@ void GamepadMapper::DrawCustomCanvas(){
     float btnHeight=22,btnSpacing=4;for(auto&key:keys){auto&boundList=m_KeyBoundActions[key.name];if(boundList.empty())continue;ImVec2 basePos={canvasTL.x+key.textPos.x,canvasTL.y+key.textPos.y+16};for(size_t i=0;i<boundList.size();++i){ImGui::SetCursorScreenPos({basePos.x,basePos.y+i*(btnHeight+btnSpacing)});ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(0.1f,0.1f,0.1f,0.9f));ImGui::PushStyleColor(ImGuiCol_Border,ImVec4(0,1,0.5f,0.8f));ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding,3);ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize,1);std::string label=boundList[i]+"##"+key.name;float w=ImGui::CalcTextSize(boundList[i].c_str()).x+20;if(ImGui::Button(label.c_str(),ImVec2(w,btnHeight)))UnbindKey(boundList[i]);ImGui::PopStyleVar(2);ImGui::PopStyleColor(2);}}}
 
 void GamepadMapper::DrawGamepadMapper(){
-    ImGui::InputText("item Name",name,sizeof(name));int typeIdx=(int)gamepad_type;if(ImGui::Combo("Gamepad Type",&typeIdx,"Xbox\0Custom\0\0"))gamepad_type=(GamepadType)typeIdx;
+    int typeIdx=(int)gamepad_type;if(ImGui::Combo("Gamepad Type",&typeIdx,"Xbox\0Custom\0\0"))gamepad_type=(GamepadType)typeIdx;
     RefreshBoundKeys();ImVec2 avail=ImGui::GetContentRegionAvail();
     ImGui::TextDisabled("DIGITAL ACTIONS");ImGui::BeginChild("##Digital",ImVec2(0,avail.y*0.22f),true);int count=0;
     for(auto&m:mappings){if(m.is_analog)continue;ImGui::PushID(m.key_id);bool selected=(m_SelectedKey==m.key_name);if(selected)ImGui::PushStyleColor(ImGuiCol_Button,ImVec4(1,0.5f,0,1));else if(m.is_bound)ImGui::PushStyleColor(ImGuiCol_Text,ImVec4(0,1,0.5f,1));if(ImGui::Button(m.key_name.c_str(),ImVec2(180,45)))m_SelectedKey=m.key_name;if(selected||m.is_bound)ImGui::PopStyleColor();

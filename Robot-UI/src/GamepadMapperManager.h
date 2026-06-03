@@ -15,19 +15,23 @@ public:
 
     void AddItem() override;
     void RemoveItem(int id) override;
+    void RenameItem(int id, const char* newName) override;
 
-    int  GetSelectedIndex() const { return m_SelectedIndex; }
     void SetSelectedIndex(int idx);
     GamepadMapper* GetSelectedMapper();
 
     void LoadMappers(const std::vector<GamepadMapper>& items, int selectedIdx);
-    void RestoreMappers(const std::vector<GamepadMapper>& items);
+    void LoadItems(const std::vector<GamepadMapper>& items);
     std::vector<GamepadMapper>& GetMappers() { return m_Mappers; }
-    std::vector<GamepadMapper> GetAllMappers() const;
+    std::vector<GamepadMapper> GetAllItems() const;
 
-    void DrawItemList(float width) override;
+    int    GetItemCount() const override { return (int)m_Mappers.size(); }
+    int    GetItemId(int index) const override { return m_Mappers[index].id; }
+    char*  GetItemNameBuf(int index) override { return m_Mappers[index].name; }
+    int    GetSelectedIndex() const override { return m_SelectedIndex; }
+    void   SelectItem(int index) override { SetSelectedIndex(index); }
+
     void DrawContent() override;
-    void DrawContent(float availableHeight);
 
 private:
     void DeleteByIndex(int index);

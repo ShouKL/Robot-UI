@@ -1,0 +1,26 @@
+robot_ui_kernel:
+  version: 1
+  style:
+    theme: 7
+    invert: false
+    alpha: 1
+  ui_state:
+    about_open: false
+    option_open: true
+    simulation_open: false
+    live_streamer_open: false
+    robot_status_open: true
+    node_editor_open: true
+    thrust_curve_editor_open: false
+    robot_comm_open: true
+    notification_open: true
+    terminal_open: true
+    robot_active_mode: 0
+    gamepad_active_mode: 0
+    node_left_side_width: 180
+    node_right_side_width: 200
+    robot_path: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
+    robot_dirty: false
+    recent_files:
+      - C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
+      - C:\Users\29164\Desktop\Robot-UI\bin\Debug-windows-x86_64\Robot-UI\..\..\..\asset\file\default.rbt

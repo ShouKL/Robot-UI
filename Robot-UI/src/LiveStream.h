@@ -94,6 +94,7 @@ private:
     void DrawProtocolCodecSettings();
     void DrawNetworkBufferSettings();
     void DrawDecoderRenderingSettings();
+    void DrawNoticePanel();
 
     // ======== GStreamer 状态 ========
     StreamConfig m_StreamConfig;

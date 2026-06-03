@@ -39,7 +39,15 @@ public:
     void AddItem() override         { char buf[64]; snprintf(buf, sizeof(buf), "Item_%d", GetNextId()); AddConfig(buf); }
     void RemoveConfig(int id);
     void RemoveItem(int id) override { RemoveConfig(id); }
-    void DrawItemList(float width) override;
+    void RenameItem(int id, const char* newName) override;
+    int    GetItemCount() const override { return (int)m_Nodes.size(); }
+    int    GetItemId(int index) const override { return m_Nodes[index].id; }
+    char*  GetItemNameBuf(int index) override { return m_Nodes[index].component.name; }
+    bool   IsItemSelected(int index) const override { return m_Nodes[index].isSelected; }
+    void   SelectItem(int index) override;
+    const char* GetDeleteLabel() const override { return "Delete Comm"; }
+    void   DrawItemExtras(int index) override;
+
     void DrawContent() override;
 
     // ---- 连接控制 ----
@@ -59,21 +67,15 @@ public:
 
     // ---- 配置/状态访问 ----
     RobotComm&              GetRobotComm()    { return m_RobotComm; }
-    std::vector<RobotCommConfig> GetAllConfigs() const;
-    RobotCommConfig*        GetActiveConfig();
-    RobotCommNode*          GetActiveNode();
-    int                     GetActiveId() const { return m_ActiveId; }
+    std::vector<RobotCommConfig> GetAllItems() const;
+    RobotCommNode*          GetSelectedNode();
     RobotAPI*               GetAPI()            { return m_RobotAPI.get(); }
 
     // ---- 批量配置加载（替换所有现有节点） ----
-    void LoadConfigs(const std::vector<RobotCommConfig>& configs, int activeId);
-
-    // ---- UI ----
-    void DrawContent(float availableHeight);
+    void LoadItems(const std::vector<RobotCommConfig>& configs);
 
 private:
     std::vector<RobotCommNode>  m_Nodes;
-    int                         m_ActiveId    = -1;
     bool                        m_IsConnected = false;
 
     std::shared_ptr<RobotAPI>   m_RobotAPI;

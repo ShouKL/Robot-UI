@@ -1,6 +1,8 @@
 #include "RobotSettingPanel.h"
 #include "Walnut/Core/Log.h"
 #include "imgui.h"
+#include <imgui_node_editor.h>
+namespace ed = ax::NodeEditor;
 
 RobotSettingPanel::RobotSettingPanel()
 {
@@ -10,13 +12,6 @@ RobotSettingPanel::RobotSettingPanel()
     m_LiveStreamManager  = std::make_unique<LiveStreamManager>();
     m_RobotCommManager   = std::make_unique<RobotCommManager>();
     WL_INFO_TAG("APP", "RobotSettingPanel created");
-}
-
-void RobotSettingPanel::Open()
-{
-    m_Open = true;
-    if (!IsEditing())
-        BeginEdit();
 }
 
 void RobotSettingPanel::BeginEdit()
@@ -45,23 +40,23 @@ void RobotSettingPanel::CancelEdit()
 {
     WL_INFO_TAG("CONFIG", "Reverting RobotSetting...");
     if (m_RobotComponentManager && !m_ComponentSnapshot.empty()) {
-        m_RobotComponentManager->RestoreComponents(m_ComponentSnapshot);
+        m_RobotComponentManager->LoadItems(m_ComponentSnapshot);
         m_ComponentSnapshot.clear();
     }
     if (m_GamepadMapperManager && !m_GamepadSnapshot.empty()) {
-        m_GamepadMapperManager->RestoreMappers(m_GamepadSnapshot);
+        m_GamepadMapperManager->LoadItems(m_GamepadSnapshot);
         m_GamepadSnapshot.clear();
     }
     if (m_LiveStreamManager && !m_StreamSnapshot.empty()) {
-        m_LiveStreamManager->LoadAllConfigs(m_StreamSnapshot);
+        m_LiveStreamManager->LoadItems(m_StreamSnapshot);
         m_StreamSnapshot.clear();
     }
     if (m_RobotCommManager && !m_CommSnapshot.empty()) {
-        m_RobotCommManager->LoadConfigs(m_CommSnapshot, m_CommActiveIdSnapshot);
+        m_RobotCommManager->LoadItems(m_CommSnapshot);
         m_CommSnapshot.clear();
     }
     if (m_NodeGraphManager && !m_NodeGraphSnapshot.empty()) {
-        m_NodeGraphManager->CancelChanges();
+        m_NodeGraphManager->LoadItems(m_NodeGraphSnapshot);
         m_NodeGraphSnapshot.clear();
     }
     EditDraftBase::CancelEdit();
@@ -70,35 +65,24 @@ void RobotSettingPanel::CancelEdit()
 void RobotSettingPanel::TakeSnapshots()
 {
     if (m_RobotComponentManager)
-        m_ComponentSnapshot = m_RobotComponentManager->GetAllComponents();
+        m_ComponentSnapshot = m_RobotComponentManager->GetAllItems();
     if (m_GamepadMapperManager)
-        m_GamepadSnapshot = m_GamepadMapperManager->GetAllMappers();
+        m_GamepadSnapshot = m_GamepadMapperManager->GetAllItems();
     if (m_LiveStreamManager)
-        m_StreamSnapshot = m_LiveStreamManager->GetAllStreamConfigs();
-    if (m_RobotCommManager) {
-        m_CommSnapshot = m_RobotCommManager->GetAllConfigs();
-        m_CommActiveIdSnapshot = m_RobotCommManager->GetActiveId();
-    }
-    if (m_NodeGraphManager) {
-        m_NodeGraphManager->OnOpen();
-        m_NodeGraphSnapshot = m_NodeGraphManager->GetGraphYaml();
-    }
+        m_StreamSnapshot = m_LiveStreamManager->GetAllItems();
+    if (m_RobotCommManager)
+        m_CommSnapshot = m_RobotCommManager->GetAllItems();
+    if (m_NodeGraphManager)
+        m_NodeGraphSnapshot = m_NodeGraphManager->GetAllItems();
 }
 
-void RobotSettingPanel::Draw()
+void RobotSettingPanel::Draw(bool* p_open)
 {
-    if (!m_Open) return;
-
     ImVec2 displaySize = ImGui::GetIO().DisplaySize;
     ImGui::SetNextWindowSize(ImVec2(displaySize.x * 0.85f, displaySize.y * 0.8f), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSizeConstraints(ImVec2(500, 400), ImVec2(displaySize.x, displaySize.y));
 
-    // NOTE: Do NOT use ImGuiWindowFlags_AlwaysVerticalScrollbar here.
-    // It forces the window to split draw channels for the scrollbar, and
-    // imgui-node-editor's internal ImDrawList_SwapSplitter corrupts that
-    // state, leaking sentinel callbacks into the final command buffer
-    // and triggering the "This draw callback should never be called" assertion.
-    if (!ImGui::Begin("Robot Setting", &m_Open, 0))
+    if (!ImGui::Begin("Robot Setting", p_open, 0))
     {
         ImGui::End();
         return;
@@ -107,12 +91,6 @@ void RobotSettingPanel::Draw()
     float footerHeight = ImGui::GetFrameHeightWithSpacing() + 5.0f;
     float availableHeight = ImGui::GetContentRegionAvail().y - footerHeight;
 
-    // Use manual 3-panel layout (BeginChild + SameLine) for ALL tabs.
-    // BeginTable would cause a one-frame flash when switching to/from NodeGraph
-    // because imgui-node-editor's draw-channel splitters conflict with table
-    // channel management.
-
-    // ---- 第1列：大类选择 ----
     if (ImGui::BeginChild("RSSSideBar", ImVec2(150, availableHeight), true))
     {
         if (!IsEditing())
@@ -129,7 +107,6 @@ void RobotSettingPanel::Draw()
     ImGui::EndChild();
     ImGui::SameLine();
 
-    // ---- 第2列：子侧边栏 / AddItem 列表 ----
     if (ImGui::BeginChild("RSSSubBar", ImVec2(150, availableHeight), true))
     {
         ManagerBase* sideMgrs[] = { m_RobotComponentManager.get(), m_GamepadMapperManager.get(), m_NodeGraphManager.get(), m_LiveStreamManager.get(), m_RobotCommManager.get() };
@@ -139,31 +116,20 @@ void RobotSettingPanel::Draw()
     ImGui::EndChild();
     ImGui::SameLine();
 
-    // ---- 第3列：内容区 ----
-    // imgui-node-editor manipulates draw channels on the current window's
-    // draw list; nesting it inside BeginChild causes sentinel callbacks to
-    // leak to the parent window when EndChild merges channels, resulting in
-    // a full-screen flash. Render NodeGraph directly without a child window.
-    if (m_selected_id == 2)
     {
-        ImGui::Indent(10.0f);
-        ImGui::Spacing();
-        m_NodeGraphManager->DrawContent();
-        ImGui::Unindent(10.0f);
-    }
-    else if (ImGui::BeginChild("RSSDetail", ImVec2(0, availableHeight), false))
-    {
-        ImGui::Indent(10.0f);
-        ImGui::Spacing();
+        static int s_LastSelectedId = -1;
+        if (s_LastSelectedId != 2 && m_selected_id == 2)
+            m_NodeGraphManager->RequestNavigate();
+        s_LastSelectedId = m_selected_id;
 
-        ManagerBase* contentMgrs[] = { m_RobotComponentManager.get(), m_GamepadMapperManager.get(), m_NodeGraphManager.get(), m_LiveStreamManager.get(), m_RobotCommManager.get() };
-        if (m_selected_id >= 0 && m_selected_id < 5)
-            contentMgrs[m_selected_id]->DrawContent();
-
-        ImGui::Unindent(10.0f);
-    }
-    if (m_selected_id != 2)
+        if (ImGui::BeginChild("RSSDetail", ImVec2(0, availableHeight), false, ImGuiWindowFlags_NoScrollbar))
+        {
+            ManagerBase* contentMgrs[] = { m_RobotComponentManager.get(), m_GamepadMapperManager.get(), m_NodeGraphManager.get(), m_LiveStreamManager.get(), m_RobotCommManager.get() };
+            if (m_selected_id >= 0 && m_selected_id < 5)
+                contentMgrs[m_selected_id]->DrawContent();
+        }
         ImGui::EndChild();
+    }
 
     float buttonWidth = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
 
@@ -175,7 +141,6 @@ void RobotSettingPanel::Draw()
     if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0)))
     {
         CancelEdit();
-        m_Open = false;
     }
 
     ImGui::End();

@@ -22,7 +22,6 @@ bool ConfigSerializer::Save(const std::string& filepath,
                             const UIState& uiState,
                             const ThrustCurve* editorCurve,
                             const std::vector<RobotCommConfig>& commConfigs,
-                            int commActiveId,
                             const std::map<std::string, std::string>* graphMap,
                             std::string* outError)
 {
@@ -60,11 +59,9 @@ bool ConfigSerializer::Save(const std::string& filepath,
 
         EmitRobotConfig(out, robotMgr);
         EmitGamepadMapper(out, gamepadMgr);
-        EmitStyle(out, styleManager);
         EmitStreams(out, streams);
-        EmitUIState(out, uiState);
         if (editorCurve) EmitEditorCurve(out, *editorCurve);
-        EmitRobotComm(out, commConfigs, commActiveId);
+        EmitRobotComm(out, commConfigs);
 
         out << YAML::EndMap;  // robot_ui_config
         out << YAML::EndMap;  // root
@@ -101,6 +98,108 @@ bool ConfigSerializer::Save(const std::string& filepath,
     }
 }
 
+// ============================================================================
+//  Kernel 文件（.kernel） — 样式 + UI 状态（自动保存）
+// ============================================================================
+
+bool ConfigSerializer::SaveKernel(const std::string& filepath,
+                                  const ImGuiStyleManager& styleManager,
+                                  const UIState& uiState,
+                                  std::string* outError)
+{
+    try
+    {
+        YAML::Emitter out;
+        out << YAML::BeginMap;
+        out << YAML::Key << "robot_ui_kernel" << YAML::Value << YAML::BeginMap;
+        out << YAML::Key << "version" << YAML::Value << 1;
+
+        EmitStyle(out, styleManager);
+        EmitUIState(out, uiState);
+
+        out << YAML::EndMap;  // robot_ui_kernel
+        out << YAML::EndMap;  // root
+
+        if (!out.good())
+        {
+            if (outError) *outError = "YAML emit error: " + out.GetLastError();
+            return false;
+        }
+
+        std::ofstream ofs(filepath, std::ios::out | std::ios::binary);
+        if (!ofs.is_open())
+        {
+            if (outError) *outError = "Cannot open file for writing: " + filepath;
+            return false;
+        }
+        ofs << out.c_str();
+        ofs.close();
+        return true;
+    }
+    catch (const YAML::Exception& e)
+    {
+        if (outError) *outError = std::string("SaveKernel YAML exception: ") + e.what();
+        return false;
+    }
+    catch (const std::exception& e)
+    {
+        if (outError) *outError = std::string("SaveKernel exception: ") + e.what();
+        return false;
+    }
+}
+
+bool ConfigSerializer::LoadKernel(const std::string& filepath,
+                                  ImGuiStyleManager& styleManager,
+                                  UIState& uiState,
+                                  std::string* outError)
+{
+    try
+    {
+        YAML::Node doc = YAML::LoadFile(filepath);
+        if (!doc.IsMap())
+        {
+            if (outError) *outError = "Root YAML node is not a map";
+            return false;
+        }
+
+        const YAML::Node& cfg = doc["robot_ui_kernel"];
+        if (!cfg.IsDefined() || cfg.IsNull())
+        {
+            if (outError) *outError = "Missing top-level key: robot_ui_kernel";
+            return false;
+        }
+
+        if (const YAML::Node& styleNode = cfg["style"]; styleNode.IsDefined())
+        {
+            if (!ApplyStyle(styleNode, styleManager, outError))
+                return false;
+        }
+
+        if (const YAML::Node& uiNode = cfg["ui_state"]; uiNode.IsDefined())
+        {
+            if (!ApplyUIState(uiNode, uiState, outError))
+                return false;
+        }
+
+        return true;
+    }
+    catch (const YAML::BadFile& e)
+    {
+        if (outError) *outError = std::string("Cannot open kernel file: ") + e.what();
+        return false;
+    }
+    catch (const YAML::Exception& e)
+    {
+        if (outError) *outError = std::string("LoadKernel YAML exception: ") + e.what();
+        return false;
+    }
+    catch (const std::exception& e)
+    {
+        if (outError) *outError = std::string("LoadKernel exception: ") + e.what();
+        return false;
+    }
+}
+
 bool ConfigSerializer::Load(const std::string& filepath,
                             RobotComponentManager& robotMgr,
                             GamepadMapperManager& gamepadMgr,
@@ -109,7 +208,6 @@ bool ConfigSerializer::Load(const std::string& filepath,
                             UIState& uiState,
                             ThrustCurve* editorCurve,
                             std::vector<RobotCommConfig>* commConfigs,
-                            int* commActiveId,
                             std::map<std::string, std::string>* graphMap,
                             std::string* outError)
 {
@@ -142,21 +240,9 @@ bool ConfigSerializer::Load(const std::string& filepath,
                 return false;
         }
 
-        if (const YAML::Node& styleNode = cfg["style"]; styleNode.IsDefined())
-        {
-            if (!ApplyStyle(styleNode, styleManager, outError))
-                return false;
-        }
-
         if (const YAML::Node& streamsNode = cfg["streams"]; streamsNode.IsDefined())
         {
             if (!ApplyStreams(streamsNode, streams, outError))
-                return false;
-        }
-
-        if (const YAML::Node& uiNode = cfg["ui_state"]; uiNode.IsDefined())
-        {
-            if (!ApplyUIState(uiNode, uiState, outError))
                 return false;
         }
 
@@ -171,13 +257,11 @@ bool ConfigSerializer::Load(const std::string& filepath,
 
         if (commConfigs)
         {
-            int tmpActive = commActiveId ? *commActiveId : -1;
             if (const YAML::Node& commNode = cfg["robot_comm"]; commNode.IsDefined())
             {
-                if (!ApplyRobotComm(commNode, *commConfigs, tmpActive, outError))
+                if (!ApplyRobotComm(commNode, *commConfigs, outError))
                     return false;
             }
-            if (commActiveId) *commActiveId = tmpActive;
         }
 
         // 从 RobotMode 的 node_graph_pairs 构建 graphMap
@@ -402,7 +486,7 @@ void ConfigSerializer::EmitGamepadMapper(YAML::Emitter& out, const GamepadMapper
 {
     out << YAML::Key << "gamepad" << YAML::Value << YAML::BeginMap;
 
-    auto mappers = gamepadMgr.GetAllMappers();
+    auto mappers = gamepadMgr.GetAllItems();
 
     out << YAML::Key << "items" << YAML::Value << YAML::BeginSeq;
     for (const auto& item : mappers)
@@ -955,10 +1039,22 @@ void ConfigSerializer::EmitUIState(YAML::Emitter& out, const UIState& uiState)
     out << YAML::Key << "node_editor_open"         << YAML::Value << uiState.node_editor_open;
     out << YAML::Key << "thrust_curve_editor_open" << YAML::Value << uiState.thrust_curve_editor_open;
     out << YAML::Key << "robot_comm_open"          << YAML::Value << uiState.robot_comm_open;
+    out << YAML::Key << "notification_open"       << YAML::Value << uiState.notification_open;
+    out << YAML::Key << "terminal_open"           << YAML::Value << uiState.terminal_open;
     out << YAML::Key << "robot_active_mode"        << YAML::Value << uiState.robot_active_mode;
     out << YAML::Key << "gamepad_active_mode"      << YAML::Value << uiState.gamepad_active_mode;
     out << YAML::Key << "node_left_side_width"     << YAML::Value << uiState.node_left_side_width;
     out << YAML::Key << "node_right_side_width"    << YAML::Value << uiState.node_right_side_width;
+
+    // FileManager 状态
+    out << YAML::Key << "robot_path"  << YAML::Value << uiState.robot_path;
+    out << YAML::Key << "robot_dirty"  << YAML::Value << uiState.robot_dirty;
+
+    out << YAML::Key << "recent_files" << YAML::Value << YAML::BeginSeq;
+    for (const auto& f : uiState.recent_files)
+        out << f;
+    out << YAML::EndSeq;
+
     out << YAML::EndMap;  // ui_state
 }
 
@@ -973,10 +1069,23 @@ bool ConfigSerializer::ApplyUIState(const YAML::Node& node, UIState& uiState, st
     if (const YAML::Node& n = node["node_editor_open"];         n.IsDefined()) uiState.node_editor_open         = n.as<bool>();
     if (const YAML::Node& n = node["thrust_curve_editor_open"]; n.IsDefined()) uiState.thrust_curve_editor_open = n.as<bool>();
     if (const YAML::Node& n = node["robot_comm_open"];          n.IsDefined()) uiState.robot_comm_open          = n.as<bool>();
+    if (const YAML::Node& n = node["notification_open"];        n.IsDefined()) uiState.notification_open        = n.as<bool>();
+    if (const YAML::Node& n = node["terminal_open"];            n.IsDefined()) uiState.terminal_open            = n.as<bool>();
     if (const YAML::Node& n = node["robot_active_mode"];        n.IsDefined()) uiState.robot_active_mode        = n.as<int>();
     if (const YAML::Node& n = node["gamepad_active_mode"];      n.IsDefined()) uiState.gamepad_active_mode      = n.as<int>();
     if (const YAML::Node& n = node["node_left_side_width"];     n.IsDefined()) uiState.node_left_side_width     = n.as<float>();
     if (const YAML::Node& n = node["node_right_side_width"];    n.IsDefined()) uiState.node_right_side_width    = n.as<float>();
+
+    // FileManager 状态
+    if (const YAML::Node& n = node["robot_path"];  n.IsDefined()) uiState.robot_path  = n.as<std::string>();
+    if (const YAML::Node& n = node["robot_dirty"]; n.IsDefined()) uiState.robot_dirty = n.as<bool>();
+    if (const YAML::Node& n = node["recent_files"]; n.IsDefined() && n.IsSequence())
+    {
+        uiState.recent_files.clear();
+        for (const auto& item : n)
+            uiState.recent_files.push_back(item.as<std::string>());
+    }
+
     return true;
 }
 // ============================================================================
@@ -1039,12 +1148,9 @@ bool ConfigSerializer::ApplyEditorCurve(const YAML::Node& node, ThrustCurve& cur
 // ============================================================================
 
 void ConfigSerializer::EmitRobotComm(YAML::Emitter& out,
-                                     const std::vector<RobotCommConfig>& configs,
-                                     int activeId)
+                                     const std::vector<RobotCommConfig>& configs)
 {
     out << YAML::Key << "robot_comm" << YAML::Value << YAML::BeginMap;
-
-    out << YAML::Key << "active_id" << YAML::Value << activeId;
 
     out << YAML::Key << "nodes" << YAML::Value << YAML::BeginSeq;
     for (const auto& cfg : configs)
@@ -1064,13 +1170,9 @@ void ConfigSerializer::EmitRobotComm(YAML::Emitter& out,
 
 bool ConfigSerializer::ApplyRobotComm(const YAML::Node& node,
                                       std::vector<RobotCommConfig>& configs,
-                                      int& activeId,
                                       std::string* outError)
 {
     (void)outError;
-
-    if (const YAML::Node& n = node["active_id"]; n.IsDefined())
-        activeId = n.as<int>();
 
     const YAML::Node& nodesNode = node["nodes"];
     if (nodesNode.IsDefined() && nodesNode.IsSequence())

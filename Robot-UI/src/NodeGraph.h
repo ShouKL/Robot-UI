@@ -134,6 +134,7 @@ public:
     std::vector<EditorLink>  m_Links;
 
     // ---- Spawn factories ----
+    EditorNode* SpawnNode(NodeType type);
     EditorNode* SpawnKeySource();
     EditorNode* SpawnConstValue();
     EditorNode* SpawnAdd();
@@ -156,18 +157,35 @@ public:
     // ---- Lookup ----
     EditorNode* FindNode(ax::NodeEditor::NodeId id);
     EditorPin*  FindPin(ax::NodeEditor::PinId id);
-    EditorLink* FindLink(ax::NodeEditor::LinkId id);
     bool        IsPinLinked(ax::NodeEditor::PinId id) const;
 
     // ---- ID generation ----
     int  GetNextId()  { return m_NextId++; }
     void ResetIDs()   { m_NextId = 1; }
-    int  PeekNextId() const { return m_NextId; }
-    void SetNextId(int id) { m_NextId = id; }
 
     // ---- Clear ----
     void Clear();
     void Clear_NoLock();
+
+    // ---- View navigation ----
+    void NavigateToOrigin();
+    void RequestNavigate() { m_NavigateFrame = 1; }
+
+    // ---- External data feeding ----
+    void SetAvailableKeyNames(const KeyNameList& keys) { m_AvailableKeys = keys; }
+    void SetAnalogKeys(const std::set<std::string>& ns) { m_AnalogKeys = ns; }
+    void SetAvailableOutputTargets(const std::vector<OutputTargetInfo>& t) { m_OutputTargets = t; }
+    void SetFieldValues(const std::map<std::string, double>& v) { m_FieldValues = v; }
+
+    void SetRobotModeNames(const std::vector<std::string>& names, int activeIdx);
+    void SetGamepadModeNames(const std::vector<std::string>& names);
+    void SetCurrentModePair(const std::string& robotMode, const std::string& gamepadMode);
+
+    // ---- UI layout ----
+    float GetLeftSideWidth()  const { return m_LeftSideWidth; }
+    float GetRightSideWidth() const { return m_RightSideWidth; }
+    void  SetLeftSideWidth(float w)  { m_LeftSideWidth = w; }
+    void  SetRightSideWidth(float w) { m_RightSideWidth = w; }
 
     // ---- Graph Map: RobotMode × GamepadMode → node graph ----
     const std::map<std::string, std::string>& GetGraphMap() const { return m_GraphMap; }
@@ -175,12 +193,20 @@ public:
     void SaveGraphToMap();
     // Switch active graph by mode pair (loads from map or clears)
     void SwitchGraph(const std::string& robotMode, const std::string& gamepadMode);
+    void SwitchRobotMode(const std::string& newRobotMode, const std::string& curGamepadMode);
+    void SwitchGamepadMode(const std::string& curRobotMode, const std::string& newGamepadMode);
 
     // ---- Serialization ----
     // Get graph as YAML (data only, no ed:: position API)
     std::string GetGraphDataYaml() const;
     // Load graph from YAML (data only, no ed:: API — for headless evaluator)
     bool        LoadGraphData(const std::string& yamlStr);
+    // Get/set graph YAML with ed:: node positions (requires active editor context)
+    std::string GetGraphYaml() const;
+    bool        LoadGraphYaml(const std::string& yamlStr);
+
+    // Deep-clone via data YAML round-trip (no ed:: positions)
+    std::unique_ptr<NodeGraph> Clone() const;
 
     // ---- Evaluation ----
     // Pure compute — thread-safe, no member mutation
@@ -196,8 +222,25 @@ public:
     void SetKeyValues(const std::map<std::string, float>& kv);
     std::map<std::string, float> GetKeyValuesSnapshot() const;
 
+    // ---- Editor rendering ----
+    void Draw(ax::NodeEditor::EditorContext* editorCtx);
+
+    // ---- Per-node widget drawing ----
+    void DrawNodeContents(EditorNode& node,
+                          const std::set<std::string>& analogKeys,
+                          const std::vector<OutputTargetInfo>& outputTargets,
+                          ax::NodeEditor::NodeId& keySourcePopupNodeId,
+                          bool& keySourcePopupRequested,
+                          ax::NodeEditor::NodeId& outputComboNodeId,
+                          bool& outputComboRequested);
+    void DrawMenuBar();
+    void DrawKeyValuesSidebar(float sideWidth, const std::set<std::string>& analogKeys);
+
+    // ---- Node creation (editor-side) ----
+    void AddNode(NodeType type);
+    bool AddNodeAt(NodeType type, const ImVec2& pos, bool fromScreen);
+
     // ---- Modified flag ----
-    bool IsModified() const { return m_Modified; }
     void SetModified(bool v) { m_Modified = v; }
 
     // ---- Active mode names (for graph map key) ----
@@ -210,10 +253,10 @@ public:
 private:
     friend class NodeGraphManager;
     std::shared_mutex& GetEvalMutex() const { return m_EvalMutex; }
-    std::mutex&        GetKvMutex()   const { return m_KvMutex; }
 
     int                      m_NextId  = 1;
     bool                     m_Modified = false;
+    int                      m_NavigateFrame = 0;
 
     mutable std::shared_mutex m_EvalMutex;
     mutable std::mutex        m_KvMutex;
@@ -224,6 +267,25 @@ private:
     std::map<std::string, std::string> m_GraphMap;
     std::string                        m_ActiveRobotModeName;
     std::string                        m_ActiveGamepadModeName;
+
+    // ---- Editor UI data ----
+    bool m_OutputComboRequested = false;
+    ax::NodeEditor::NodeId m_OutputComboNodeId = 0;
+    bool m_KeySourcePopupRequested = false;
+    ax::NodeEditor::NodeId m_KeySourcePopupNodeId = 0;
+
+    KeyNameList                        m_AvailableKeys;
+    std::vector<OutputTargetInfo>      m_OutputTargets;
+    std::map<std::string, double>      m_FieldValues;
+    std::set<std::string>              m_AnalogKeys;
+
+    std::vector<std::string>  m_RobotModeNames;
+    int                       m_SelectedRobotModeIdx = 0;
+    std::vector<std::string>  m_GamepadModeNames;
+    int                       m_SelectedGamepadModeIdx = 0;
+
+    float m_LeftSideWidth  = 180.0f;
+    float m_RightSideWidth = 200.0f;
 };
 
 // ============================================================================
@@ -232,5 +294,6 @@ private:
 const char* GetNodeTitle(NodeType type);
 ImColor     GetNodeHeaderColor(NodeType type);
 ImColor     GetIconColor(PinType type);
+void        DrawPinIcon(const EditorPin& pin, bool connected, int alpha);
 void        WriteOutputToActuator(const std::string& outputTarget, float value, ActuatorConfig& data);
 std::vector<OutputTargetInfo> BuildOutputTargetsFromProtocol(const ProtocolSendConfig& cfg, const ActuatorConfig& actuator);

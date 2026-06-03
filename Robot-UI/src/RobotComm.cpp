@@ -255,8 +255,8 @@ void RobotComm::DrawSendFieldConfig(ProtocolSendConfig& cfg, ActuatorConfig& act
 
             ImGui::EndTable();
         }
-        ImGui::EndChild();
     }
+    ImGui::EndChild();
 
     ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f),
         "Drag handle to reorder. Right-click to delete.");
@@ -422,8 +422,8 @@ void RobotComm::DrawReceiveFieldConfig(ProtocolReceiveConfig& cfg, const SensorC
 
             ImGui::EndTable();
         }
-        ImGui::EndChild();
     }
+    ImGui::EndChild();
 
     ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f),
         "Drag handle to reorder. Right-click to delete.");
@@ -503,6 +503,31 @@ void RobotComm::DrawControlPanel(RobotCommConfig& cfg, bool isConnected, int nod
     if (ImGui::CollapsingHeader("Transport", ImGuiTreeNodeFlags_DefaultOpen)) {
         const char* protocols[] = { "UDP", "TCP", "Serial" };
         ImGui::Combo("Protocol", &cfg.transport_type, protocols, IM_ARRAYSIZE(protocols));
+    }
+
+    if (ImGui::CollapsingHeader("Protocol Fields", ImGuiTreeNodeFlags_DefaultOpen)) {
+        if (robotMgr) {
+            auto& comps = robotMgr->GetComponents();
+            int idx = robotMgr->GetSelectedIndex();
+            if (idx >= 0 && idx < (int)comps.size()) {
+                auto& mode = comps[idx].component;
+                if (ImGui::BeginTabBar("ProtoSubTabs")) {
+                    if (ImGui::BeginTabItem("Send Fields")) {
+                        DrawSendFieldConfig(mode.protocol_send, mode.actuator_config);
+                        ImGui::EndTabItem();
+                    }
+                    if (ImGui::BeginTabItem("Receive Fields")) {
+                        DrawReceiveFieldConfig(mode.protocol_receive, mode.sensor_config);
+                        ImGui::EndTabItem();
+                    }
+                    ImGui::EndTabBar();
+                }
+            } else {
+                ImGui::TextDisabled("No Robot item selected.");
+            }
+        } else {
+            ImGui::TextDisabled("RobotComponent not available.");
+        }
     }
 }
 

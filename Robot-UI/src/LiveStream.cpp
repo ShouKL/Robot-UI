@@ -154,11 +154,20 @@ GstFlowReturn LiveStream::OnNewSample(GstAppSink* sink, gpointer user_data) {
 
 void LiveStream::Close() {
     if (m_pipeline) {
+        // 先发信号让 pipeline 停止接收新 buffer
+        GstElement* sink = gst_bin_get_by_name(GST_BIN(m_pipeline), "mysink");
+        if (sink) {
+            g_signal_handlers_disconnect_by_data(sink, this);
+            gst_object_unref(sink);
+        }
+        // 设置 NULL 状态并等待管线完全停止
         gst_element_set_state(m_pipeline, GST_STATE_NULL);
+        GstState state, pending;
+        gst_element_get_state(m_pipeline, &state, &pending, GST_CLOCK_TIME_NONE);
         gst_object_unref(m_pipeline);
         m_pipeline = nullptr;
     }
-    m_image.reset(); //
+    m_image.reset();
 }
 
 void LiveStream::Update() {
@@ -200,7 +209,6 @@ void LiveStream::Update() {
 void LiveStream::DrawConnectionSettings() {
     if (ImGui::CollapsingHeader("Connection Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (ImGui::BeginTable("ConnTable", 2, ImGuiTableFlags_SizingStretchProp)) {
-            DrawPropertyLabel("Camera Name"); ImGui::InputText("##Name", m_StreamConfig.name, IM_ARRAYSIZE(m_StreamConfig.name));
             DrawPropertyLabel("IP Address");  ImGui::InputText("##IP", m_StreamConfig.ip, IM_ARRAYSIZE(m_StreamConfig.ip));
             DrawPropertyLabel("Username");    ImGui::InputText("##User", m_StreamConfig.user, IM_ARRAYSIZE(m_StreamConfig.user));
             DrawPropertyLabel("Password");    ImGui::InputText("##Pass", m_StreamConfig.pass, IM_ARRAYSIZE(m_StreamConfig.pass), ImGuiInputTextFlags_Password);
@@ -295,11 +303,55 @@ void LiveStream::DrawDecoderRenderingSettings() {
     }
 }
 
+void LiveStream::DrawNoticePanel() {
+    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
+    if (ImGui::CollapsingHeader("Notice", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed)) {
+        ImGui::PopStyleColor(3);
+        ImGui::TextWrapped("Performance Benchmark:");
+        ImGui::BulletText("CLI (Direct GPU Overlay): ~100ms latency.");
+        ImGui::BulletText("Software (AppSink + Texture Upload): ~200ms latency.");
+        ImGui::Spacing();
+        ImGui::PushTextWrapPos(ImGui::GetContentRegionAvail().x - ImGui::GetStyle().WindowPadding.x);
+        ImGui::TextDisabled("Note: The 100ms difference is the physical overhead of copying frames "
+            "from Video Memory back to System RAM for UI synchronization.");
+        ImGui::PopTextWrapPos();
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+        ImGui::Text("Reference CLI Command (Minimum Latency):");
+        const char* cliCmd = "gst-launch-1.0 -v rtspsrc location=\"rtsp://{user}:{password}@{ip}:554/h264/ch1/main/av_stream\" "
+            "latency=0 buffer-mode=0 drop-on-latency=true protocols=udp ! rtph264depay ! h264parse ! "
+            "d3d11h264dec ! d3d11videosink sync=false";
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
+        ImVec2 textSize = ImGui::CalcTextSize(cliCmd, nullptr, false, ImGui::GetContentRegionAvail().x - 20.0f);
+        float childHeight = textSize.y + ImGui::GetStyle().FramePadding.y * 4.0f + 15.0f;
+        if (ImGui::BeginChild("##CLI_Box", ImVec2(-1.0f, childHeight), true, ImGuiWindowFlags_NoScrollbar)) {
+            ImGui::PushTextWrapPos(0.0f);
+            ImGui::TextUnformatted(cliCmd);
+            ImGui::PopTextWrapPos();
+            if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(0))
+                ImGui::SetClipboardText(cliCmd);
+        }
+        ImGui::EndChild();
+        ImGui::PopStyleColor();
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Click to copy text");
+    } else {
+        ImGui::PopStyleColor(3);
+    }
+}
+
 void LiveStream::DrawStreamConfigPanel() {
     ImGui::PushItemWidth(-1.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 4));
+    DrawNoticePanel();
+    ImGui::Spacing();
     DrawConnectionSettings();
     DrawProtocolCodecSettings();
     DrawNetworkBufferSettings();
     DrawDecoderRenderingSettings();
+    ImGui::PopStyleVar();
     ImGui::PopItemWidth();
 }

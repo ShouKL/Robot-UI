@@ -8,8 +8,6 @@
 void RobotComponent::DrawConfigPanel() {
     auto& item = component;
 
-    ImGui::InputText("Name", item.name, sizeof(item.name));
-
     auto& actuator_config = item.actuator_config;
 
     // ---- 马达编辑 ----

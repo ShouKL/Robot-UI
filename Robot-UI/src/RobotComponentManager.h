@@ -13,20 +13,24 @@ public:
 
     void AddItem() override;
     void RemoveItem(int id) override;
+    void RenameItem(int id, const char* newName) override;
 
-    int  GetSelectedIndex() const { return m_SelectedIndex; }
     void SetSelectedIndex(int idx);
     RobotComponent* GetSelectedComponent();
 
     void LoadComponents(const std::vector<RobotMode>& items, int selectedIdx);
-    void RestoreComponents(const std::vector<RobotMode>& items);
+    void LoadItems(const std::vector<RobotMode>& items);
     std::vector<RobotComponent>& GetComponents() { return m_Components; }
     const std::vector<RobotComponent>& GetComponents() const { return m_Components; }
-    std::vector<RobotMode> GetAllComponents() const;
+    std::vector<RobotMode> GetAllItems() const;
 
-    void DrawItemList(float width) override;
+    int    GetItemCount() const override { return (int)m_Components.size(); }
+    int    GetItemId(int index) const override { return m_Components[index].id; }
+    char*  GetItemNameBuf(int index) override { return m_Components[index].component.name; }
+    int    GetSelectedIndex() const override { return m_SelectedIndex; }
+    void   SelectItem(int index) override { SetSelectedIndex(index); }
+
     void DrawContent() override;
-    void DrawContent(float availableHeight);
 
 private:
     void DeleteByIndex(int index);

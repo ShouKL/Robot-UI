@@ -17,7 +17,7 @@ public:
 
     ImGuiStyleManager& GetImGuiStyleManager() { return *m_ImGuiStyleManager; }
 
-    void DrawOptionPanel();
+    void DrawOptionPanel(bool* p_open);
 
     // 用户点击 "Open Robot Setting" 按钮时设置，供 Robot_UI 轮询
     bool IsRobotSettingRequested() const;

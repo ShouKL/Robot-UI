@@ -12,20 +12,18 @@
 #include "Walnut/Layer.h"
 #include "OptionPanel.h"
 #include "ConfigSerializer.h"
+#include "FileManager.h"
 #include "ThrustCurveEditor.h"
 #include "RobotSettingPanel.h"
 #include "RobotStatus.h"
+#include "NotificationPanel.h"
+#include "TerminalPanel.h"
 #include "Robot_API/robot_api.h"
 #include "imgui.h"
 #include <atomic>
 #include <memory>
 #include <string>
 #include <thread>
-
-// ============================================================================
-// Robot_UI_Layer — 主入口层（Walnut Layer）
-// 协调所有子系统，管理菜单栏和窗口生命周期
-// ============================================================================
 
 class Robot_UI_Layer : public Walnut::Layer
 {
@@ -38,39 +36,53 @@ public:
 
     // ---- 窗口显示控制 ----
     void ShowOption()            { m_OptionOpen = true; }
-    void ShowRobotSetting()      { m_RobotSettingPanel->Open(); }
+    void ShowRobotSetting()      { m_RobotSettingOpen = true; }
     void ShowAbout()             { m_AboutOpen = true; }
     void ShowRobotStatus()       { m_RobotStatusOpen = true; }
     void ShowThrustCurveEditor();
+    void ShowNotification()      { m_NotificationOpen = true; }
+    void ShowTerminal()          { m_TerminalOpen     = true; }
 
     // ---- 窗口状态访问 ----
     bool& GetShowRobotStatus()   { return m_RobotStatusOpen; }
+    bool& GetShowNotification()  { return m_NotificationOpen; }
+    bool& GetShowTerminal()      { return m_TerminalOpen; }
+    NotificationPanel* GetNotificationPanel() { return m_NotificationPanel.get(); }
+    TerminalPanel*     GetTerminalPanel()     { return m_TerminalPanel.get(); }
 
-    // ---- 文件操作 ----
+    // ---- 文件管理器访问 ----
+    FileManager* GetFileManager() { return m_FileManager.get(); }
+
+    // ---- 文件操作（供菜单调用） ----
     void FileOpen();
     void FileSave();
     void FileSaveAs();
+    void LoadRobotFile(const std::string& path);   // 菜单中直接加载最近文件
 
 private:
-    void LoadConfigFile(const std::string& path);
+    void SaveRobotFile(const std::string& path);
+    void LoadKernelFile(const std::string& path);
+    void SaveKernelFile(const std::string& path);
     void ApplyUIState(const UIState& st);
     void GamepadRoutine();
 
     // 窗口开关状态
     bool m_AboutOpen;
     bool m_OptionOpen;
+    bool m_RobotSettingOpen;
     bool m_RobotStatusOpen;
-    bool m_RobotSettingOpen    = false;
     bool m_ThrustCurveEditorOpen    = false;
+    bool m_NotificationOpen         = false;
+    bool m_TerminalOpen             = false;
 
     // 子系统
     std::unique_ptr<OptionPanel>       m_OptionPanel;
     std::unique_ptr<RobotSettingPanel> m_RobotSettingPanel;
     std::unique_ptr<ThrustCurveEditor> m_ThrustCurveEditor;
     std::unique_ptr<RobotStatus>       m_RobotStatus;
-
-    // 文件状态
-    std::string m_CurrentSavePath;
+    std::unique_ptr<FileManager>       m_FileManager;
+    std::unique_ptr<NotificationPanel> m_NotificationPanel;
+    std::unique_ptr<TerminalPanel>     m_TerminalPanel;
 
     // 手柄线程
     std::thread m_GamepadThread;

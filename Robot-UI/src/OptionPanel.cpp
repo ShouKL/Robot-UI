@@ -10,8 +10,19 @@ OptionPanel::OptionPanel()
 
 OptionPanel::~OptionPanel() {}
 
-void OptionPanel::DrawOptionPanel()
+void OptionPanel::DrawOptionPanel(bool* p_open)
 {
+    ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+    ImGui::SetNextWindowSize(ImVec2(displaySize.x * 0.85f, displaySize.y * 0.8f), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSizeConstraints(
+        ImVec2(400, 300),
+        ImVec2(displaySize.x, displaySize.y));
+    if (!ImGui::Begin("Option", p_open, ImGuiWindowFlags_AlwaysVerticalScrollbar))
+    {
+        ImGui::End();
+        return;
+    }
+
     float footerHeight = ImGui::GetFrameHeightWithSpacing() + 5.0f;
     float availableHeight = ImGui::GetContentRegionAvail().y - footerHeight;
 
@@ -36,8 +47,8 @@ void OptionPanel::DrawOptionPanel()
                 }
                 ImGui::PopID();
             }
+            ImGui::EndChild();
         }
-        ImGui::EndChild();
 
         // ---- 右侧内容区 ----
         ImGui::TableSetColumnIndex(1);
@@ -53,11 +64,26 @@ void OptionPanel::DrawOptionPanel()
             }
 
             ImGui::Unindent(10.0f);
+            ImGui::EndChild();
         }
-        ImGui::EndChild();
 
         ImGui::EndTable();
     }
+
+    float buttonWidth = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+
+    if (ImGui::Button("Apply", ImVec2(buttonWidth, 0)))
+        ApplyEdit();
+
+    ImGui::SameLine();
+
+    if (ImGui::Button("Close##2", ImVec2(buttonWidth, 0)))
+    {
+        if (p_open) *p_open = false;
+        CancelEdit();
+    }
+
+    ImGui::End();
 }
 
 bool OptionPanel::IsRobotSettingRequested() const { return m_OpenRobotSettingRequested; }
@@ -74,6 +100,11 @@ void OptionPanel::BeginEdit()
 void OptionPanel::ApplyEdit()
 {
     WL_INFO_TAG("component", "Applying configuration...");
+
+    if (m_ImGuiStyleManager) {
+        m_ImGuiStyleManager->ApplyActiveStyle();
+    }
+
     EditDraftBase::ApplyEdit();
 }
 

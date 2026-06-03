@@ -50,36 +50,20 @@ void GamepadMapperManager::SetSelectedIndex(int idx)
     }
 }
 
-void GamepadMapperManager::DrawItemList(float width)
+void GamepadMapperManager::RenameItem(int id, const char* newName)
 {
-    auto& mappers = m_Mappers;
-    for (int i = 0; i < (int)mappers.size(); ++i) {
-        auto& mapper = mappers[i];
-        ImGui::PushID(mapper.id);
-        bool isSel = (i == m_SelectedIndex);
-        if (ImGui::Selectable(mapper.name, isSel, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, 30)))
-            SetSelectedIndex(i);
-        if (mappers.size() > 1) {
-            if (ImGui::BeginPopupContextItem()) {
-                if (ImGui::MenuItem("Delete Item"))
-                    RemoveItem(mapper.id);
-                ImGui::EndPopup();
-            }
-        }
-        ImGui::PopID();
-    }
-    if (ImGui::BeginPopupContextWindow("GamepadListPopup", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
-        if (ImGui::MenuItem("Add Item"))
-            AddItem();
-        ImGui::EndPopup();
-    }
+    for (auto& m : m_Mappers)
+        if (m.id == id) { strncpy_s(m.name, newName, sizeof(m.name) - 1); break; }
 }
 
 void GamepadMapperManager::DrawContent()
 {
+    ImGui::Indent(10.0f);
+    ImGui::Spacing();
     auto* sel = GetSelectedMapper();
     if (sel) sel->DrawGamepadMapper();
     else ImGui::TextDisabled("No item selected.");
+    ImGui::Unindent(10.0f);
 }
 
 GamepadMapper* GamepadMapperManager::GetSelectedMapper()
@@ -89,7 +73,7 @@ GamepadMapper* GamepadMapperManager::GetSelectedMapper()
     return nullptr;
 }
 
-std::vector<GamepadMapper> GamepadMapperManager::GetAllMappers() const
+std::vector<GamepadMapper> GamepadMapperManager::GetAllItems() const
 {
     std::vector<GamepadMapper> out;
     for (const auto& m : m_Mappers)
@@ -113,7 +97,7 @@ void GamepadMapperManager::LoadMappers(const std::vector<GamepadMapper>& items, 
     SetSelectedIndex(selectedIdx >= 0 && selectedIdx < (int)m_Mappers.size() ? selectedIdx : 0);
 }
 
-void GamepadMapperManager::RestoreMappers(const std::vector<GamepadMapper>& items)
+void GamepadMapperManager::LoadItems(const std::vector<GamepadMapper>& items)
 {
     m_Mappers.clear();
     ResetNextId(1);
@@ -128,56 +112,4 @@ void GamepadMapperManager::RestoreMappers(const std::vector<GamepadMapper>& item
     }
     if (m_SelectedIndex >= (int)m_Mappers.size()) m_SelectedIndex = 0;
     if (!m_Mappers.empty()) m_Mappers[m_SelectedIndex].isSelected = true;
-}
-
-void GamepadMapperManager::DrawContent(float availableHeight)
-{
-    ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(4, 4));
-    if (ImGui::BeginTable("GpLayout", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV))
-    {
-        ImGui::TableSetupColumn("ItemList", ImGuiTableColumnFlags_WidthFixed, 200.0f);
-        ImGui::TableSetupColumn("component", ImGuiTableColumnFlags_WidthStretch);
-        ImGui::TableNextRow();
-
-        ImGui::TableSetColumnIndex(0);
-        if (ImGui::BeginChild("GpItemList", ImVec2(0, availableHeight), true))
-        {
-            int nodeToDelete = -1;
-            for (int i = 0; i < (int)m_Mappers.size(); ++i) {
-                auto& mapper = m_Mappers[i];
-                char label[128];
-                snprintf(label, sizeof(label), "%s##%d", mapper.name, mapper.id);
-                ImGui::PushID(mapper.id);
-                if (ImGui::Selectable(label, mapper.isSelected))
-                    SetSelectedIndex(i);
-                if (m_Mappers.size() > 1) {
-                    if (ImGui::BeginPopupContextItem()) {
-                        if (ImGui::MenuItem("Delete Item"))
-                            nodeToDelete = mapper.id;
-                        ImGui::EndPopup();
-                    }
-                }
-                ImGui::PopID();
-            }
-            if (nodeToDelete != -1) RemoveItem(nodeToDelete);
-        }
-        ImGui::EndChild();
-
-        ImGui::TableSetColumnIndex(1);
-        if (ImGui::BeginChild("GpConfigPanel", ImVec2(0, availableHeight), false))
-        {
-            ImGui::Indent(10.0f);
-            auto* sel = GetSelectedMapper();
-            if (sel) {
-                sel->DrawGamepadMapper();
-            } else {
-                ImGui::TextDisabled("Select an item from the list.");
-            }
-            ImGui::Unindent(10.0f);
-        }
-        ImGui::EndChild();
-
-        ImGui::EndTable();
-    }
-    ImGui::PopStyleVar();
 }

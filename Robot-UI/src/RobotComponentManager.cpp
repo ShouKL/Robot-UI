@@ -50,36 +50,20 @@ void RobotComponentManager::SetSelectedIndex(int idx)
     }
 }
 
-void RobotComponentManager::DrawItemList(float width)
+void RobotComponentManager::RenameItem(int id, const char* newName)
 {
-    auto& comps = m_Components;
-    for (int i = 0; i < (int)comps.size(); ++i) {
-        auto& comp = comps[i];
-        ImGui::PushID(comp.id);
-        bool isSel = (i == m_SelectedIndex);
-        if (ImGui::Selectable(comp.component.name, isSel, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, 30)))
-            SetSelectedIndex(i);
-        if (comps.size() > 1) {
-            if (ImGui::BeginPopupContextItem()) {
-                if (ImGui::MenuItem("Delete Item"))
-                    RemoveItem(comp.id);
-                ImGui::EndPopup();
-            }
-        }
-        ImGui::PopID();
-    }
-    if (ImGui::BeginPopupContextWindow("RobotListPopup", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
-        if (ImGui::MenuItem("Add Item"))
-            AddItem();
-        ImGui::EndPopup();
-    }
+    for (auto& c : m_Components)
+        if (c.id == id) { strncpy_s(c.component.name, newName, sizeof(c.component.name) - 1); break; }
 }
 
 void RobotComponentManager::DrawContent()
 {
+    ImGui::Indent(10.0f);
+    ImGui::Spacing();
     auto* sel = GetSelectedComponent();
     if (sel) sel->DrawConfigPanel();
     else ImGui::TextDisabled("No item selected.");
+    ImGui::Unindent(10.0f);
 }
 
 RobotComponent* RobotComponentManager::GetSelectedComponent()
@@ -89,7 +73,7 @@ RobotComponent* RobotComponentManager::GetSelectedComponent()
     return nullptr;
 }
 
-std::vector<RobotMode> RobotComponentManager::GetAllComponents() const
+std::vector<RobotMode> RobotComponentManager::GetAllItems() const
 {
     std::vector<RobotMode> out;
     for (const auto& c : m_Components)
@@ -110,7 +94,7 @@ void RobotComponentManager::LoadComponents(const std::vector<RobotMode>& modes, 
     SetSelectedIndex(selectedIdx >= 0 && selectedIdx < (int)m_Components.size() ? selectedIdx : 0);
 }
 
-void RobotComponentManager::RestoreComponents(const std::vector<RobotMode>& modes)
+void RobotComponentManager::LoadItems(const std::vector<RobotMode>& modes)
 {
     m_Components.clear();
     ResetNextId(1);
@@ -122,58 +106,4 @@ void RobotComponentManager::RestoreComponents(const std::vector<RobotMode>& mode
     }
     if (m_SelectedIndex >= (int)m_Components.size()) m_SelectedIndex = 0;
     if (!m_Components.empty()) m_Components[m_SelectedIndex].isSelected = true;
-}
-
-// ==================== UI ====================
-
-void RobotComponentManager::DrawContent(float availableHeight)
-{
-    ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(4, 4));
-    if (ImGui::BeginTable("CompLayout", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_BordersInnerV))
-    {
-        ImGui::TableSetupColumn("ItemList", ImGuiTableColumnFlags_WidthFixed, 200.0f);
-        ImGui::TableSetupColumn("component", ImGuiTableColumnFlags_WidthStretch);
-        ImGui::TableNextRow();
-
-        ImGui::TableSetColumnIndex(0);
-        if (ImGui::BeginChild("CompItemList", ImVec2(0, availableHeight), true))
-        {
-            int nodeToDelete = -1;
-            for (int i = 0; i < (int)m_Components.size(); ++i) {
-                auto& comp = m_Components[i];
-                char label[128];
-                snprintf(label, sizeof(label), "%s##%d", comp.component.name, comp.id);
-                ImGui::PushID(comp.id);
-                if (ImGui::Selectable(label, comp.isSelected))
-                    SetSelectedIndex(i);
-                if (m_Components.size() > 1) {
-                    if (ImGui::BeginPopupContextItem()) {
-                        if (ImGui::MenuItem("Delete Item"))
-                            nodeToDelete = comp.id;
-                        ImGui::EndPopup();
-                    }
-                }
-                ImGui::PopID();
-            }
-            if (nodeToDelete != -1) RemoveItem(nodeToDelete);
-        }
-        ImGui::EndChild();
-
-        ImGui::TableSetColumnIndex(1);
-        if (ImGui::BeginChild("CompConfigPanel", ImVec2(0, availableHeight), false))
-        {
-            ImGui::Indent(10.0f);
-            auto* sel = GetSelectedComponent();
-            if (sel) {
-                sel->DrawConfigPanel();
-            } else {
-                ImGui::TextDisabled("Select an item from the list.");
-            }
-            ImGui::Unindent(10.0f);
-        }
-        ImGui::EndChild();
-
-        ImGui::EndTable();
-    }
-    ImGui::PopStyleVar();
 }

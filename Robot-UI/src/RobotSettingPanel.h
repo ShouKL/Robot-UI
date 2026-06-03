@@ -36,13 +36,9 @@ public:
     RobotComponentManager& GetRobotComponentManager() { return *m_RobotComponentManager; }
     GamepadMapperManager&  GetGamepadMapperManager()  { return *m_GamepadMapperManager; }
     NodeGraphManager&      GetNodeGraphManager()      { return *m_NodeGraphManager; }
+    NodeGraph*             GetNodeGraph()              { return m_NodeGraphManager->GetSelectedGraph(); }
     LiveStreamManager*     GetLiveStreamManager()      { return m_LiveStreamManager.get(); }
     RobotCommManager*      GetRobotCommManager()       { return m_RobotCommManager.get(); }
-
-    // ---- 窗口可见性 ----
-    bool IsOpen() const { return m_Open; }
-    void Open();
-    void Close()        { m_Open = false; }
 
     // ---- 标签页切换 ----
     void SelectTab(int tabId) { m_selected_id = tabId; }
@@ -57,7 +53,7 @@ public:
     void CancelEdit() override;
 
     // ---- UI 渲染 ----
-    void Draw();
+    void Draw(bool* p_open = nullptr);
 
 private:
     void TakeSnapshots();
@@ -68,7 +64,6 @@ private:
     std::unique_ptr<LiveStreamManager>     m_LiveStreamManager;
     std::unique_ptr<RobotCommManager>      m_RobotCommManager;
 
-    bool m_Open = false;
     int  m_selected_id = 0;  // 0=Component, 1=GamepadMapper, 2=NodeGraph, 3=LiveStream, 4=RobotComm
 
     bool m_LiveStreamerOpen = true;
@@ -79,6 +74,5 @@ private:
     std::vector<GamepadMapper>    m_GamepadSnapshot;
     std::vector<StreamConfig>     m_StreamSnapshot;
     std::vector<RobotCommConfig>  m_CommSnapshot;
-    int                           m_CommActiveIdSnapshot = -1;
-    std::string                   m_NodeGraphSnapshot;
+    std::vector<GraphItem>        m_NodeGraphSnapshot;
 };
