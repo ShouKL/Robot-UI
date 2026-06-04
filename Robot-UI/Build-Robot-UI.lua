@@ -42,6 +42,7 @@ project "Robot-UI"
       "../Walnut/Walnut/Source",
 
       "../vendor/imgui-style",
+      "../vendor/ImTerm/include",
 
       "%{IncludeDir.VulkanSDK}",
       "%{IncludeDir.OpenCV}",

@@ -34,8 +34,6 @@ public:
     void DrawContent() override;
 
 private:
-    void DeleteByIndex(int index);
-
     std::vector<GamepadMapper> m_Mappers;
     int m_SelectedIndex = 0;
 };

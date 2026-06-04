@@ -15,7 +15,7 @@
 Robot_UI_Layer::Robot_UI_Layer()
     : m_AboutOpen(false), m_OptionOpen(false),
     m_RobotSettingOpen(false), m_RobotStatusOpen(true),
-    m_NotificationOpen(false), m_TerminalOpen(false)
+    m_TerminalOpen(false)
 {
     WL_INFO_TAG("APP", "Robot UI initializing...");
 
@@ -23,7 +23,6 @@ Robot_UI_Layer::Robot_UI_Layer()
     m_RobotSettingPanel  = std::make_unique<RobotSettingPanel>();
     m_RobotStatus        = std::make_unique<RobotStatus>();
     m_FileManager        = std::make_unique<FileManager>();
-    m_NotificationPanel  = std::make_unique<NotificationPanel>();
     m_TerminalPanel      = std::make_unique<TerminalPanel>();
 
     auto* rsp      = m_RobotSettingPanel.get();
@@ -34,7 +33,6 @@ Robot_UI_Layer::Robot_UI_Layer()
     {
         auto& compMgr = rsp->GetRobotComponentManager();
         commMgr->SetRobotComponentManager(&compMgr);
-        commMgr->SetGamepadMapperManager(&rsp->GetGamepadMapperManager());
 
         auto& items = compMgr.GetComponents();
         int idx = compMgr.GetSelectedIndex();
@@ -43,32 +41,23 @@ Robot_UI_Layer::Robot_UI_Layer()
             m_RobotStatus->LoadGraph(items[idx].component.gamepad_mapping_Mode);
         }
 
-        // Comm 面板切换 Robot item 时，同步 GamepadMapper + RobotStatus
-        commMgr->SetOnActiveModeChanged([this](int oldIdx, int newIdx) {
-            if (!m_RobotSettingPanel) return;
-            auto& compMgrInner = m_RobotSettingPanel->GetRobotComponentManager();
-            auto& itemsInner = compMgrInner.GetComponents();
-            if (newIdx < 0 || newIdx >= (int)itemsInner.size()) return;
-
-            auto& gpModeMgr = m_RobotSettingPanel->GetGamepadMapperManager();
-            const std::string& gpModeName = itemsInner[newIdx].component.gamepad_mapping_Mode;
-            (void)gpModeMgr; (void)gpModeName;
-
-            if (m_RobotStatus) {
-                m_RobotStatus->SetActiveMode(&itemsInner[newIdx].component);
-                m_RobotStatus->LoadGraph(itemsInner[newIdx].component.gamepad_mapping_Mode);
-            }
-        });
-
-        commMgr->SetOnGamepadModeChanged([this](int oldIdx, int newIdx) {
-            if (!m_RobotSettingPanel) return;
-            auto& gpModes = m_RobotSettingPanel->GetGamepadMapperManager().GetMappers();
-            if (newIdx < 0 || newIdx >= (int)gpModes.size()) return;
-            (void)oldIdx;
-        });
+        auto* gpMapper = rsp->GetGamepadMapperManager().GetSelectedMapper();
+        if (gpMapper)
+            m_RobotStatus->SetActiveGamepad(gpMapper);
     }
 
     // NodeGraphManager is owned by RobotSettingPanel, initialized in its constructor
+    // Inject dependencies so NodeGraph can read mode names/output targets directly
+    {
+        auto& compMgr = rsp->GetRobotComponentManager();
+        auto& gpMgr   = rsp->GetGamepadMapperManager();
+        rsp->GetNodeGraphManager().SetRobotComponentManager(&compMgr);
+        rsp->GetNodeGraphManager().SetGamepadMapperManager(&gpMgr);
+    }
+
+    // 注入 RobotStatus 到 RobotSettingPanel（用于切到 NodeGraph 时同步 gamepad）
+    rsp->SetRobotStatus(m_RobotStatus.get());
+
     m_ThrustCurveEditor = std::make_unique<ThrustCurveEditor>();
 
     ImPlot::CreateContext();
@@ -119,12 +108,12 @@ Robot_UI_Layer::~Robot_UI_Layer()
 void Robot_UI_Layer::LoadRobotFile(const std::string& path)
 {
     auto* liveStreamMgr = m_RobotSettingPanel->GetLiveStreamManager();
-    auto* commMgr       = m_RobotSettingPanel->GetRobotCommManager();
 
     std::vector<StreamConfig> streams;
     UIState uiState;
     std::vector<RobotCommConfig> commConfigs;
     std::map<std::string, std::string> graphMap;
+    std::vector<GraphItem> graphItems;
     std::string error;
 
     if (!ConfigSerializer::Load(
@@ -136,6 +125,7 @@ void Robot_UI_Layer::LoadRobotFile(const std::string& path)
             &m_ThrustCurveEditor->GetCurve(),
             &commConfigs,
             &graphMap,
+            &graphItems,
             &error))
     {
         WL_INFO_TAG("APP", "Robot config not found or invalid: {} ({})", path, error);
@@ -150,9 +140,10 @@ void Robot_UI_Layer::LoadRobotFile(const std::string& path)
     m_FileManager->MarkRobotClean();
     m_FileManager->AddRecentFile(path);
 
-    if (commMgr) commMgr->Disconnect();
+    if (m_RobotStatus) m_RobotStatus->Unlink();
     if (liveStreamMgr && !streams.empty())
         liveStreamMgr->LoadItems(streams);
+    auto* commMgr = m_RobotSettingPanel->GetRobotCommManager();
     if (commMgr && !commConfigs.empty())
         commMgr->LoadItems(commConfigs);
 
@@ -165,9 +156,17 @@ void Robot_UI_Layer::LoadRobotFile(const std::string& path)
             m_RobotStatus->SetActiveMode(&items[idx].component);
             m_RobotStatus->LoadGraph(items[idx].component.gamepad_mapping_Mode);
         }
+        auto* gpMapper = m_RobotSettingPanel->GetGamepadMapperManager().GetSelectedMapper();
+        if (gpMapper)
+            m_RobotStatus->SetActiveGamepad(gpMapper);
     }
 
-    if (m_RobotSettingPanel)
+    // 恢复 NodeGraph 的编辑项列表（必须在 SetCurrentModePair 之前加载）
+    if (m_RobotSettingPanel && !graphItems.empty())
+        m_RobotSettingPanel->GetNodeGraphManager().LoadItems(graphItems);
+
+    // SetGraphMap / SetCurrentModePair 仅在首次无 graphItems 时作为兜底
+    if (m_RobotSettingPanel && graphItems.empty())
     {
         auto& compMgr = m_RobotSettingPanel->GetRobotComponentManager();
         auto& items = compMgr.GetComponents();
@@ -177,6 +176,10 @@ void Robot_UI_Layer::LoadRobotFile(const std::string& path)
 
         m_RobotSettingPanel->GetNodeGraph()->SetGraphMap(graphMap);
         m_RobotSettingPanel->GetNodeGraph()->SetCurrentModePair(robotModeName, gamepadModeName);
+    }
+    else if (m_RobotSettingPanel)
+    {
+        m_RobotSettingPanel->GetNodeGraph()->SetGraphMap(graphMap);
     }
 }
 
@@ -198,6 +201,8 @@ void Robot_UI_Layer::SaveRobotFile(const std::string& path)
 
     UIState uiState; // .rbt 不保存 UI 状态
 
+    auto graphItems = m_RobotSettingPanel->GetNodeGraphManager().GetAllItems();
+
     std::string error;
     if (!ConfigSerializer::Save(path,
                 m_RobotSettingPanel->GetRobotComponentManager(),
@@ -207,6 +212,7 @@ void Robot_UI_Layer::SaveRobotFile(const std::string& path)
                 &m_ThrustCurveEditor->GetCurve(),
                 commConfigs,
                 &m_RobotSettingPanel->GetNodeGraph()->GetGraphMap(),
+                &graphItems,
                 &error))
     {
         WL_ERROR_TAG("APP", "Failed to save: {} - {}", path, error);
@@ -251,7 +257,7 @@ void Robot_UI_Layer::SaveKernelFile(const std::string& path)
     uiState.robot_status_open        = m_RobotStatusOpen;
     uiState.node_editor_open         = m_RobotSettingOpen;
     uiState.thrust_curve_editor_open = m_ThrustCurveEditorOpen;
-    uiState.notification_open         = m_NotificationOpen;
+    uiState.notification_open         = m_TerminalOpen;
     uiState.terminal_open             = m_TerminalOpen;
     uiState.robot_comm_open          = m_RobotSettingPanel->GetRobotCommOpen();
     if (m_RobotSettingPanel)
@@ -315,8 +321,7 @@ void Robot_UI_Layer::ApplyUIState(const UIState& st)
     m_RobotStatusOpen         = st.robot_status_open;
     m_RobotSettingOpen        = st.node_editor_open;
     m_ThrustCurveEditorOpen   = st.thrust_curve_editor_open;
-    m_NotificationOpen        = st.notification_open;
-    m_TerminalOpen            = st.terminal_open;
+    m_TerminalOpen            = st.notification_open || st.terminal_open;
     m_RobotSettingPanel->GetRobotCommOpen()     = st.robot_comm_open;
 
     if (m_RobotSettingPanel) {
@@ -333,15 +338,14 @@ void Robot_UI_Layer::GamepadRoutine()
     {
         ++iteration;
         // Heartbeat every ~2 seconds (40 iterations at 50ms)
-        auto* commMgr = m_RobotSettingPanel->GetRobotCommManager();
 
         if (iteration % 40 == 0)
-            WL_TRACE_TAG("GAMEPAD", "Routine heartbeat #{} (connected={})", iteration, commMgr ? commMgr->IsConnected() : false);
+            WL_TRACE_TAG("GAMEPAD", "Routine heartbeat #{} (linked={})", iteration, m_RobotStatus ? m_RobotStatus->IsLinked() : false);
 
         // Collect key values for sidebar display (UI thread reads via SetKeyValues)
         {
             std::map<std::string, float> keyValues;
-            auto* gpMapper = m_RobotSettingPanel->GetGamepadMapperManager().GetSelectedMapper();
+            auto* gpMapper = m_RobotStatus ? m_RobotStatus->GetActiveGamepadPtr() : nullptr;
             if (gpMapper) {
                 auto boundKeys = gpMapper->GetActiveModeBoundKeyNames();
                 for (const auto& keyName : boundKeys) {
@@ -351,7 +355,7 @@ void Robot_UI_Layer::GamepadRoutine()
             m_RobotSettingPanel->GetNodeGraph()->SetKeyValues(keyValues);
         }
 
-        if (commMgr && commMgr->IsConnected())
+        if (m_RobotStatus && m_RobotStatus->IsLinked())
         {
             ActuatorConfig data;
 
@@ -359,7 +363,7 @@ void Robot_UI_Layer::GamepadRoutine()
                 data = m_RobotStatus->GetAppliedActuator();
             }
 
-            auto* gpMapper = m_RobotSettingPanel->GetGamepadMapperManager().GetSelectedMapper();
+            auto* gpMapper = m_RobotStatus ? m_RobotStatus->GetActiveGamepadPtr() : nullptr;
             if (gpMapper) {
                 if (m_RobotStatus && m_RobotStatus->HasGraphEvaluator()) {
                     std::map<std::string, float> keyValues;
@@ -378,8 +382,8 @@ void Robot_UI_Layer::GamepadRoutine()
             if (m_RobotStatus)
                 m_RobotStatus->UpdateCommandData(cmdPtr);
 
-            if (commMgr->IsConnected()) {
-                commMgr->SendActuatorData(data);
+            if (m_RobotStatus->IsLinked()) {
+                m_RobotStatus->SendActuatorData(data);
             }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(50)); // 20Hz
@@ -390,72 +394,10 @@ void Robot_UI_Layer::GamepadRoutine()
 void Robot_UI_Layer::OnUIRender()
 {
     auto* liveStreamMgr = m_RobotSettingPanel->GetLiveStreamManager();
-    auto* commMgr   = m_RobotSettingPanel->GetRobotCommManager();
 
     if (m_RobotSettingPanel) {
-        auto* gpMapper = m_RobotSettingPanel->GetGamepadMapperManager().GetSelectedMapper();
+        auto* gpMapper = m_RobotStatus ? m_RobotStatus->GetActiveGamepadPtr() : nullptr;
         if (gpMapper) gpMapper->UpdateGamepadState();
-    }
-
-    // ---- Feed data to NodeGraph BEFORE Draw so first frame has correct data ----
-    {
-        auto& compMgr = m_RobotSettingPanel->GetRobotComponentManager();
-        auto& gpMgr   = m_RobotSettingPanel->GetGamepadMapperManager();
-        auto* graph   = m_RobotSettingPanel->GetNodeGraph();
-
-        // Sync item name lists (dropdown options)
-        {
-            std::vector<std::string> robotModeNames;
-            for (const auto& c : compMgr.GetComponents())
-                robotModeNames.push_back(c.component.name);
-            graph->SetRobotModeNames(robotModeNames, compMgr.GetSelectedIndex());
-        }
-        {
-            std::vector<std::string> gpModeNames;
-            for (const auto& gm : gpMgr.GetMappers())
-                gpModeNames.push_back(gm.name);
-            graph->SetGamepadModeNames(gpModeNames);
-        }
-
-        // Key names (input pins) from current GamepadMapper
-        {
-            std::string editorGpMode = graph->GetActiveGamepadModeName();
-            std::vector<std::string> keyNames;
-            std::set<std::string>    analogKeys;
-            for (const auto& gm : gpMgr.GetMappers()) {
-                if (std::string(gm.name) == editorGpMode) {
-                    for (const auto& mapping : gm.mappings) {
-                        keyNames.push_back(mapping.key_name);
-                        if (mapping.is_analog)
-                            analogKeys.insert(mapping.key_name);
-                    }
-                    break;
-                }
-            }
-            graph->SetAvailableKeyNames(keyNames);
-            graph->SetAnalogKeys(analogKeys);
-        }
-
-        // Output targets from current RobotMode
-        {
-            std::string editorRobotMode = graph->GetActiveRobotModeName();
-            for (const auto& c : compMgr.GetComponents()) {
-                const auto& mode = c.component;
-                if (std::string(mode.name) == editorRobotMode) {
-                    auto targets = BuildOutputTargetsFromProtocol(mode.protocol_send, mode.actuator_config);
-                    graph->SetAvailableOutputTargets(targets);
-
-                    std::map<std::string, double> fieldVals;
-                    for (const auto& t : targets) {
-                        double val = 0.0;
-                        if (GetActuatorField(mode.actuator_config, t.field_path, val))
-                            fieldVals[t.field_path] = val;
-                    }
-                    graph->SetFieldValues(fieldVals);
-                    break;
-                }
-            }
-        }
     }
 
     if (m_RobotSettingOpen)
@@ -481,7 +423,10 @@ void Robot_UI_Layer::OnUIRender()
 
     if (m_RobotStatusOpen && m_RobotStatus)
     {
-        m_RobotStatus->DrawWindow(&m_RobotStatusOpen, commMgr);
+        m_RobotStatus->DrawWindow(&m_RobotStatusOpen,
+            m_RobotSettingPanel->GetRobotCommManager(),
+            m_RobotSettingPanel->GetLiveStreamManager(),
+            &m_RobotSettingPanel->GetNodeGraphManager());
     }
 
     // 推力曲线编辑器窗口
@@ -491,11 +436,7 @@ void Robot_UI_Layer::OnUIRender()
         m_ThrustCurveEditorOpen = m_ThrustCurveEditor->IsOpen();
     }
 
-    // Notification Window
-    if (m_NotificationPanel)
-        m_NotificationPanel->Draw(&m_NotificationOpen);
-
-    // Terminal Window
+    // Terminal / Output (merged into one panel)
     if (m_TerminalPanel)
         m_TerminalPanel->Draw(&m_TerminalOpen);
 
@@ -511,7 +452,6 @@ void Robot_UI_Layer::ShowThrustCurveEditor()
 Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 {
     Walnut::Log::Init();
-    NotificationPanel::InstallLogSink();   // route all WL_* logs to Output panel
 
     Walnut::ApplicationSpecification spec;
     spec.Name = "Robot UI";
@@ -591,8 +531,7 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
             if (ImGui::BeginMenu("View"))
             {
                 ImGui::MenuItem("Robot Status", nullptr, &uiLayer->GetShowRobotStatus());
-                ImGui::MenuItem("Output",       nullptr, &uiLayer->GetShowNotification());
-                ImGui::MenuItem("Terminal",     nullptr, &uiLayer->GetShowTerminal());
+                ImGui::MenuItem("Terminal", nullptr, &uiLayer->GetShowTerminal());
                 
                 ImGui::EndMenu();
             }

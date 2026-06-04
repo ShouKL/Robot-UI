@@ -33,7 +33,6 @@ public:
     void DrawContent() override;
 
 private:
-    void DeleteByIndex(int index);
 
     std::vector<RobotComponent> m_Components;
     int  m_SelectedIndex = 0;

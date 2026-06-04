@@ -19,6 +19,8 @@
 #include <memory>
 #include <vector>
 
+class RobotStatus;
+
 // ============================================================================
 // RobotSettingPanel — 机器人设置面板
 // （Component + GamepadMapper + Live Streamer + Robot Comm）
@@ -43,6 +45,9 @@ public:
     // ---- 标签页切换 ----
     void SelectTab(int tabId) { m_selected_id = tabId; }
 
+    // ---- 调试：设置 RobotStatus 指针（由 Robot_UI 注入） ----
+    void SetRobotStatus(RobotStatus* rs) { m_RobotStatus = rs; }
+
     // ---- 子窗口开关引用（供序列化使用） ----
     bool& GetLiveStreamerOpen()  { return m_LiveStreamerOpen; }
     bool& GetRobotCommOpen()     { return m_RobotCommOpen; }
@@ -57,6 +62,8 @@ public:
 
 private:
     void TakeSnapshots();
+    void SaveRobotStatusActive();
+    void RestoreRobotStatusActive();
 
     std::unique_ptr<RobotComponentManager> m_RobotComponentManager;
     std::unique_ptr<GamepadMapperManager>  m_GamepadMapperManager;
@@ -65,6 +72,8 @@ private:
     std::unique_ptr<RobotCommManager>      m_RobotCommManager;
 
     int  m_selected_id = 0;  // 0=Component, 1=GamepadMapper, 2=NodeGraph, 3=LiveStream, 4=RobotComm
+
+    RobotStatus* m_RobotStatus = nullptr;
 
     bool m_LiveStreamerOpen = true;
     bool m_RobotCommOpen    = true;
@@ -75,4 +84,14 @@ private:
     std::vector<StreamConfig>     m_StreamSnapshot;
     std::vector<RobotCommConfig>  m_CommSnapshot;
     std::vector<GraphItem>        m_NodeGraphSnapshot;
+
+    // 调试：追踪 GamepadMapper 选中项变化
+    int m_LastGamepadIndex = -1;
+
+    // 保存的 RobotStatus active 状态（退出面板时恢复）
+    const RobotMode* m_SavedActiveMode     = nullptr;
+    GamepadMapper*   m_SavedActiveGamepad  = nullptr;
+    int m_SavedLiveStreamIdx = 0;
+    int m_SavedNodeGraphIdx  = 0;
+    int m_SavedCommIdx       = 0;
 };

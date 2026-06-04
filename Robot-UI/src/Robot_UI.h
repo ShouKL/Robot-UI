@@ -16,7 +16,6 @@
 #include "ThrustCurveEditor.h"
 #include "RobotSettingPanel.h"
 #include "RobotStatus.h"
-#include "NotificationPanel.h"
 #include "TerminalPanel.h"
 #include "Robot_API/robot_api.h"
 #include "imgui.h"
@@ -40,14 +39,11 @@ public:
     void ShowAbout()             { m_AboutOpen = true; }
     void ShowRobotStatus()       { m_RobotStatusOpen = true; }
     void ShowThrustCurveEditor();
-    void ShowNotification()      { m_NotificationOpen = true; }
     void ShowTerminal()          { m_TerminalOpen     = true; }
 
     // ---- 窗口状态访问 ----
     bool& GetShowRobotStatus()   { return m_RobotStatusOpen; }
-    bool& GetShowNotification()  { return m_NotificationOpen; }
     bool& GetShowTerminal()      { return m_TerminalOpen; }
-    NotificationPanel* GetNotificationPanel() { return m_NotificationPanel.get(); }
     TerminalPanel*     GetTerminalPanel()     { return m_TerminalPanel.get(); }
 
     // ---- 文件管理器访问 ----
@@ -72,8 +68,7 @@ private:
     bool m_RobotSettingOpen;
     bool m_RobotStatusOpen;
     bool m_ThrustCurveEditorOpen    = false;
-    bool m_NotificationOpen         = false;
-    bool m_TerminalOpen             = false;
+    bool m_TerminalOpen             = false;   // shared: Terminal + Output in one panel
 
     // 子系统
     std::unique_ptr<OptionPanel>       m_OptionPanel;
@@ -81,7 +76,6 @@ private:
     std::unique_ptr<ThrustCurveEditor> m_ThrustCurveEditor;
     std::unique_ptr<RobotStatus>       m_RobotStatus;
     std::unique_ptr<FileManager>       m_FileManager;
-    std::unique_ptr<NotificationPanel> m_NotificationPanel;
     std::unique_ptr<TerminalPanel>     m_TerminalPanel;
 
     // 手柄线程

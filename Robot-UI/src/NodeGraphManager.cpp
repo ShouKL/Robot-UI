@@ -1,5 +1,7 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "NodeGraphManager.h"
+#include "RobotComponentManager.h"
+#include "GamepadMapperManager.h"
 #include "Walnut/Core/Log.h"
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -18,7 +20,8 @@ void NodeGraphManager::AddItem()
     item.id = NextId();
     snprintf(item.name, sizeof(item.name), "Item_%d", item.id);
     item.graph = std::make_unique<NodeGraph>();
-    // new item starts empty — no need to snapshot
+    if (m_RobotMgr)  item.graph->SetRobotComponentManager(m_RobotMgr);
+    if (m_GamepadMgr) item.graph->SetGamepadMapperManager(m_GamepadMgr);
     m_Items.push_back(std::move(item));
     if (m_Items.size() == 1) {
         m_SelectedIndex = 0;
@@ -30,12 +33,6 @@ void NodeGraphManager::AddItem()
 void NodeGraphManager::RemoveItem(int id)
 {
     int index = FindNodeIndex(m_Items, id);
-    if (index < 0) return;
-    DeleteByIndex(index);
-}
-
-void NodeGraphManager::DeleteByIndex(int index)
-{
     if (index < 0 || index >= (int)m_Items.size()) return;
     if (m_Items.size() <= 1) return;
     m_Items.erase(m_Items.begin() + index);
@@ -78,6 +75,10 @@ void NodeGraphManager::LoadItemToCurrent()
 {
     if (m_SelectedIndex >= 0 && m_SelectedIndex < (int)m_Items.size()) {
         m_SelectedGraph = m_Items[m_SelectedIndex].graph.get();
+        // 重新注入依赖到新选中的 graph
+        if (m_RobotMgr)  m_SelectedGraph->SetRobotComponentManager(m_RobotMgr);
+        if (m_GamepadMgr) m_SelectedGraph->SetGamepadMapperManager(m_GamepadMgr);
+        // mode name 从 YAML 中恢复（GetGraphYaml 已序列化）
         LoadGraphYaml(m_Items[m_SelectedIndex].editorYaml);
     }
 }
@@ -113,6 +114,18 @@ void NodeGraphManager::ApplyChanges()
     m_SelectedGraph->SetModified(false);
 }
 
+void NodeGraphManager::SetRobotComponentManager(RobotComponentManager* c)
+{
+    m_RobotMgr = c;
+    if (m_SelectedGraph) m_SelectedGraph->SetRobotComponentManager(c);
+}
+
+void NodeGraphManager::SetGamepadMapperManager(GamepadMapperManager* g)
+{
+    m_GamepadMgr = g;
+    if (m_SelectedGraph) m_SelectedGraph->SetGamepadMapperManager(g);
+}
+
 std::vector<GraphItem> NodeGraphManager::GetAllItems() const
 {
     // Save current changes to the active item before snapshotting
@@ -137,6 +150,7 @@ std::vector<GraphItem> NodeGraphManager::GetAllItems() const
 
 void NodeGraphManager::LoadItems(const std::vector<GraphItem>& items)
 {
+    auto kvSnapshot = m_SelectedGraph ? m_SelectedGraph->GetKeyValuesSnapshot() : std::map<std::string, float>{};
     int oldSelectedIdx = m_SelectedIndex;
     m_Items.clear();
     for (const auto& src : items) {
@@ -144,7 +158,13 @@ void NodeGraphManager::LoadItems(const std::vector<GraphItem>& items)
         item.id = src.id;
         item.isSelected = src.isSelected;
         strncpy_s(item.name, src.name, sizeof(item.name) - 1);
-        item.graph = src.graph->Clone();
+        if (src.graph)
+            item.graph = src.graph->Clone();
+        else {
+            item.graph = std::make_unique<NodeGraph>();
+            if (m_RobotMgr)  item.graph->SetRobotComponentManager(m_RobotMgr);
+            if (m_GamepadMgr) item.graph->SetGamepadMapperManager(m_GamepadMgr);
+        }
         item.editorYaml = src.editorYaml;
         m_Items.push_back(std::move(item));
     }
@@ -158,6 +178,8 @@ void NodeGraphManager::LoadItems(const std::vector<GraphItem>& items)
         m_Items[m_SelectedIndex].isSelected = true;
     }
     LoadItemToCurrent();
+    // 预填充 key values，避免侧栏闪空
+    if (m_SelectedGraph) m_SelectedGraph->SetKeyValues(kvSnapshot);
 }
 
 // ============================================================================
@@ -167,6 +189,16 @@ std::string NodeGraphManager::GetGraphYaml() const
 {
     ed::SetCurrentEditor(m_EditorCtx);
     return m_SelectedGraph->GetGraphYaml();
+}
+
+std::string NodeGraphManager::GetGraphYamlForIndex(int idx)
+{
+    if (idx < 0 || idx >= (int)m_Items.size()) return {};
+    // 如果是当前选中项，先保存未提交的编辑到 item
+    if (idx == m_SelectedIndex) {
+        const_cast<NodeGraphManager*>(this)->SaveCurrentToItem();
+    }
+    return m_Items[idx].graph->GetGraphDataYaml();
 }
 
 bool NodeGraphManager::LoadGraphYaml(const std::string& yamlStr)

@@ -116,3 +116,14 @@ private:
     // ======== GPU 纹理 (Walnut) ========
     std::shared_ptr<Walnut::Image> m_image = nullptr;
 };
+
+// ============================================================================
+// StreamNode — 纯数据（不含 GStreamer 管线），用于序列化/传递
+// ============================================================================
+struct StreamNode
+{
+    int          id          = 0;
+    bool         isStreaming = false;
+    bool         isSelected  = false;
+    StreamConfig config;
+};

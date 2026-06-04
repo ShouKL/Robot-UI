@@ -39,11 +39,6 @@ void LiveStreamManager::AddItem() {
 
 void LiveStreamManager::RemoveItem(int id) {
     int index = FindNodeIndex(m_devices, id);
-    if (index < 0) return;
-    DeleteByIndex(index);
-}
-
-void LiveStreamManager::DeleteByIndex(int index) {
     if (index < 0 || index >= (int)m_devices.size()) return;
     if (m_devices.size() <= 1) return;
     if (m_devices[index].isStreaming) {
@@ -66,7 +61,7 @@ void LiveStreamManager::LoadItems(const std::vector<StreamConfig>& configs) {
             node.stream->Close();
     }
     m_devices.clear();
-    ResetNextId(1000);
+    ResetNextId(1);
 
     if (configs.empty()) {
         // 始终至少有一个默认项
@@ -81,6 +76,8 @@ void LiveStreamManager::LoadItems(const std::vector<StreamConfig>& configs) {
         node.stream->GetStreamConfig() = cfg;
         m_devices.push_back(std::move(node));
     }
+    if (!m_devices.empty())
+        m_devices[0].isSelected = true;
 }
 
 void LiveStreamManager::RenameItem(int id, const char* newName)

@@ -1,5 +1,8 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "NodeGraph.h"
+#include "RobotComponentManager.h"
+#include "GamepadMapperManager.h"
+#include "Walnut/Core/Log.h"
 #include <yaml-cpp/yaml.h>
 #include <imgui_internal.h>
 #include <algorithm>
@@ -423,48 +426,16 @@ void NodeGraph::SwitchGraph(const std::string& robotMode, const std::string& gam
     m_Modified = false;
 }
 
-void NodeGraph::SetRobotModeNames(const std::vector<std::string>& names, int activeIdx)
-{
-    bool sizeChanged = (names.size() != m_RobotModeNames.size());
-    m_RobotModeNames = names;
-    if (sizeChanged || m_RobotModeNames.empty())
-        m_SelectedRobotModeIdx = (activeIdx >= 0 && activeIdx < (int)names.size()) ? activeIdx : 0;
-}
-
-void NodeGraph::SetGamepadModeNames(const std::vector<std::string>& names)
-{
-    m_GamepadModeNames = names;
-    for (int i = 0; i < (int)names.size(); ++i) {
-        if (names[i] == m_ActiveGamepadModeName) {
-            m_SelectedGamepadModeIdx = i;
-            return;
-        }
-    }
-    m_SelectedGamepadModeIdx = 0;
-}
-
 void NodeGraph::SetCurrentModePair(const std::string& robotMode, const std::string& gamepadMode)
 {
     m_ActiveRobotModeName = robotMode;
     m_ActiveGamepadModeName = gamepadMode;
-    for (int i = 0; i < (int)m_RobotModeNames.size(); ++i) {
-        if (m_RobotModeNames[i] == robotMode) {
-            m_SelectedRobotModeIdx = i;
-            break;
-        }
-    }
     SwitchGraph(robotMode, gamepadMode);
     m_NavigateFrame = 1;
 }
 
 void NodeGraph::SwitchRobotMode(const std::string& newRobotMode, const std::string& curGamepadMode)
 {
-    for (int i = 0; i < (int)m_RobotModeNames.size(); ++i) {
-        if (m_RobotModeNames[i] == newRobotMode) {
-            m_SelectedRobotModeIdx = i;
-            break;
-        }
-    }
     SwitchGraph(newRobotMode, curGamepadMode);
     m_NavigateFrame = 1;
 }
@@ -971,6 +942,9 @@ std::string NodeGraph::GetGraphYaml() const
     }
     out << YAML::EndSeq;
 
+    out << YAML::Key << "active_robot_mode"   << YAML::Value << m_ActiveRobotModeName;
+    out << YAML::Key << "active_gamepad_mode" << YAML::Value << m_ActiveGamepadModeName;
+
     out << YAML::EndMap;
     return out.c_str();
 }
@@ -1059,6 +1033,12 @@ bool NodeGraph::LoadGraphYaml(const std::string& yamlStr)
                 if (lid >= m_NextId) m_NextId = lid + 1;
             }
         }
+
+        // 恢复 mode 名
+        if (root["active_robot_mode"])
+            m_ActiveRobotModeName = root["active_robot_mode"].as<std::string>();
+        if (root["active_gamepad_mode"])
+            m_ActiveGamepadModeName = root["active_gamepad_mode"].as<std::string>();
 
         m_Modified = false;
         return true;
@@ -1505,8 +1485,7 @@ void NodeGraph::AddNode(NodeType type)
 
 bool NodeGraph::AddNodeAt(NodeType type, const ImVec2& pos, bool fromScreen)
 {
-    std::unique_lock<std::shared_mutex> lock(m_EvalMutex);
-
+    // UI 线程独占 — 无需锁（Draw 内从菜单/popup 调用时全局共享锁可能已持，unique_lock 会死锁）
     EditorNode* node = SpawnNode(type);
     if (node)
     {
@@ -1605,47 +1584,101 @@ void NodeGraph::Draw(ax::NodeEditor::EditorContext* editorCtx)
 {
     ed::SetCurrentEditor(editorCtx);
 
-    // Update sidebar output values for display
-    {
-        std::map<std::string, float> kvSnapshot = GetKeyValuesSnapshot();
-        EvaluateForDisplay(kvSnapshot);
-    }
+    // Update sidebar output values for display (must be before ed::Begin to avoid lock conflict)
+    EvaluateForDisplay(GetKeyValuesSnapshot());
 
     DrawMenuBar();
 
+    // -------- Pull data from managers --------
+    std::vector<std::string> robotModeNames;
+    std::vector<std::string> gamepadModeNames;
+    {
+        if (m_RobotMgr) {
+            for (const auto& c : m_RobotMgr->GetComponents())
+                robotModeNames.push_back(c.component.name);
+        }
+        if (m_GamepadMgr) {
+            for (const auto& gm : m_GamepadMgr->GetMappers())
+                gamepadModeNames.push_back(gm.name);
+        }
+    }
+
+    // Compute analog keys & output targets & available keys from active modes
+    {
+        m_AnalogKeys.clear();
+        m_AvailableKeys.clear();
+        m_OutputTargets.clear();
+        if (m_GamepadMgr) {
+            for (auto& gm : m_GamepadMgr->GetMappers()) {
+                if (std::string(gm.name) == m_ActiveGamepadModeName) {
+                    for (const auto& mapping : gm.mappings) {
+                        m_AvailableKeys.push_back(mapping.key_name);
+                        if (mapping.is_analog)
+                            m_AnalogKeys.insert(mapping.key_name);
+                    }
+                    // 直接从当前选中 mapper 读取实时值，更新侧栏
+                    std::map<std::string, float> kv;
+                    for (const auto& m : gm.mappings) {
+                        if (m.is_bound)
+                            kv[m.key_name] = gm.GetKeyValue(m.key_name);
+                    }
+                    SetKeyValues(kv);
+                    break;
+                }
+            }
+        }
+        if (m_RobotMgr) {
+            for (const auto& c : m_RobotMgr->GetComponents()) {
+                const auto& mode = c.component;
+                if (std::string(mode.name) == m_ActiveRobotModeName) {
+                    m_OutputTargets = BuildOutputTargetsFromProtocol(mode.protocol_send, mode.actuator_config);
+                    break;
+                }
+            }
+        }
+    }
+
     // -------- item selector --------
     {
-        if (!m_RobotModeNames.empty())
+        if (!robotModeNames.empty())
         {
-            ImGui::TextUnformatted("Robot:");
+            ImGui::TextUnformatted("RobotComm:");
             ImGui::SameLine();
             ImGui::SetNextItemWidth(160);
-            if (ImGui::Combo("##RobotModeCombo", &m_SelectedRobotModeIdx,
+            int selectedRobotIdx = 0;
+            for (int i = 0; i < (int)robotModeNames.size(); ++i) {
+                if (robotModeNames[i] == m_ActiveRobotModeName) { selectedRobotIdx = i; break; }
+            }
+            if (ImGui::Combo("##RobotModeCombo", &selectedRobotIdx,
                 [](void* data, int idx, const char** out) {
                     auto& vec = *(const std::vector<std::string>*)data;
                     *out = vec[idx].c_str(); return true;
-                }, (void*)&m_RobotModeNames, (int)m_RobotModeNames.size()))
+                }, (void*)&robotModeNames, (int)robotModeNames.size()))
             {
-                if (m_SelectedRobotModeIdx >= 0 && m_SelectedRobotModeIdx < (int)m_RobotModeNames.size()) {
-                    SwitchRobotMode(m_RobotModeNames[m_SelectedRobotModeIdx], GetActiveGamepadModeName());
+                if (selectedRobotIdx >= 0 && selectedRobotIdx < (int)robotModeNames.size()) {
+                    SwitchRobotMode(robotModeNames[selectedRobotIdx], GetActiveGamepadModeName());
                 }
             }
             ImGui::SameLine();
         }
 
-        if (!m_GamepadModeNames.empty())
+        if (!gamepadModeNames.empty())
         {
-            ImGui::TextUnformatted("Gamepad:");
+            ImGui::TextUnformatted("Gamepad Mapper:");
             ImGui::SameLine();
             ImGui::SetNextItemWidth(160);
-            if (ImGui::Combo("##GamepadCombo", &m_SelectedGamepadModeIdx,
+            int selectedGamepadIdx = 0;
+            for (int i = 0; i < (int)gamepadModeNames.size(); ++i) {
+                if (gamepadModeNames[i] == m_ActiveGamepadModeName) { selectedGamepadIdx = i; break; }
+            }
+            if (ImGui::Combo("##GamepadCombo", &selectedGamepadIdx,
                 [](void* data, int idx, const char** out) {
                     auto& vec = *(const std::vector<std::string>*)data;
                     *out = vec[idx].c_str(); return true;
-                }, (void*)&m_GamepadModeNames, (int)m_GamepadModeNames.size()))
+                }, (void*)&gamepadModeNames, (int)gamepadModeNames.size()))
             {
-                if (m_SelectedGamepadModeIdx >= 0 && m_SelectedGamepadModeIdx < (int)m_GamepadModeNames.size()) {
-                    SwitchGamepadMode(GetActiveRobotModeName(), m_GamepadModeNames[m_SelectedGamepadModeIdx]);
+                if (selectedGamepadIdx >= 0 && selectedGamepadIdx < (int)gamepadModeNames.size()) {
+                    SwitchGamepadMode(GetActiveRobotModeName(), gamepadModeNames[selectedGamepadIdx]);
                 }
             }
             ImGui::SameLine();
@@ -1867,38 +1900,36 @@ void NodeGraph::Draw(ax::NodeEditor::EditorContext* editorCtx)
     }
     ed::EndDelete();
 
+    bool showNewNodePopup = false;
+    bool showNodePopup    = false;
+    bool showPinPopup     = false;
+    bool showLinkPopup    = false;
     {
         ed::Suspend();
 
         if (ed::ShowNodeContextMenu(&contextNodeId))
-            ImGui::OpenPopup("Node Context Menu");
+            showNodePopup = true;
         else if (ed::ShowPinContextMenu(&contextPinId))
-            ImGui::OpenPopup("Pin Context Menu");
+            showPinPopup = true;
         else if (ed::ShowLinkContextMenu(&contextLinkId))
-            ImGui::OpenPopup("Link Context Menu");
+            showLinkPopup = true;
         else if (ed::ShowBackgroundContextMenu())
-            ImGui::OpenPopup("Create New Node");
-
-        if (m_OutputComboRequested)
-        {
-            ImGui::OpenPopup("##OutputComboPopup");
-            ImGui::SetNextWindowSize(ImVec2(220, 0));
-            m_OutputComboRequested = false;
-        }
-
-        if (m_KeySourcePopupRequested)
-        {
-            ImGui::OpenPopup("##KeySourcePopup");
-            ImGui::SetNextWindowSize(ImVec2(180, 0));
-            m_KeySourcePopupRequested = false;
-        }
+            showNewNodePopup = true;
 
         ed::Resume();
     }
 
     ed::End();
 
-    // ---- Popup rendering (plain ImGui, outside node editor) ----
+    if (showNewNodePopup)
+        ImGui::OpenPopup("Create New Node");
+    if (showNodePopup)
+        ImGui::OpenPopup("Node Context Menu");
+    if (showPinPopup)
+        ImGui::OpenPopup("Pin Context Menu");
+    if (showLinkPopup)
+        ImGui::OpenPopup("Link Context Menu");
+
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
 
     if (ImGui::BeginPopup("Node Context Menu"))
@@ -1961,6 +1992,12 @@ void NodeGraph::Draw(ax::NodeEditor::EditorContext* editorCtx)
         ImGui::EndPopup();
     }
 
+    if (m_OutputComboRequested)
+    {
+        ImGui::SetNextWindowSize(ImVec2(220, 0));
+        ImGui::OpenPopup("##OutputComboPopup");
+        m_OutputComboRequested = false;
+    }
     if (ImGui::BeginPopup("##OutputComboPopup"))
     {
         auto* node = FindNode(m_OutputComboNodeId);
@@ -1988,6 +2025,12 @@ void NodeGraph::Draw(ax::NodeEditor::EditorContext* editorCtx)
         m_OutputComboNodeId = 0;
     }
 
+    if (m_KeySourcePopupRequested)
+    {
+        ImGui::SetNextWindowSize(ImVec2(180, 0));
+        ImGui::OpenPopup("##KeySourcePopup");
+        m_KeySourcePopupRequested = false;
+    }
     if (ImGui::BeginPopup("##KeySourcePopup"))
     {
         auto* node = FindNode(m_KeySourcePopupNodeId);

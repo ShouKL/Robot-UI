@@ -39,5 +39,4 @@ public:
 
 private:
     std::vector<DeviceNode> m_devices;
-    void DeleteByIndex(int index);
 };

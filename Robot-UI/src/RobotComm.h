@@ -7,8 +7,6 @@
 #include <cctype>
 #include <cstdint>
 
-class RobotComponentManager;
-class GamepadMapperManager;
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -34,6 +32,8 @@ struct RobotCommConfig
 // 协议字段编辑（发送/接收）、网络配置、帧预览
 // ============================================================================
 
+class RobotComponentManager;
+
 class RobotComm : public EditDraftBase
 {
 public:
@@ -47,15 +47,21 @@ public:
                     ActuatorConfig& actuator, const SensorConfig& sensor);
     void DrawSendFieldConfig(ProtocolSendConfig& cfg, ActuatorConfig& actuator);
     void DrawReceiveFieldConfig(ProtocolReceiveConfig& cfg, const SensorConfig& sensor);
-    void DrawControlPanel(RobotCommConfig& cfg, bool isConnected, int nodeId,
-                          RobotComponentManager* robotMgr,
-                          GamepadMapperManager* gamepadMgr,
-                          std::function<void(int)> onConnect,
-                          std::function<void()>   onDisconnect,
-                          std::function<void(int oldIdx, int newIdx)> onActiveModeChanged = {},
-                          std::function<void(int oldIdx, int newIdx)> onGamepadModeChanged = {});
+    void DrawControlPanel(RobotCommConfig& cfg,
+                          RobotComponentManager* robotMgr);
 
 private:
     bool m_Open     = false;
     int  m_TabIndex = 0;
+};
+
+// ============================================================================
+// CommNode — 纯数据（不含连接逻辑），用于序列化/传递
+// ============================================================================
+struct CommNode
+{
+    int              id          = 0;
+    bool             isLinked = false;
+    bool             isSelected  = false;
+    RobotCommConfig  component;
 };

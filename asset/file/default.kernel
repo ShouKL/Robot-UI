@@ -1,12 +1,12 @@
 robot_ui_kernel:
   version: 1
   style:
-    theme: 7
+    theme: 6
     invert: false
     alpha: 1
   ui_state:
     about_open: false
-    option_open: true
+    option_open: false
     simulation_open: false
     live_streamer_open: false
     robot_status_open: true

@@ -4,6 +4,7 @@
 #include "RobotComm.h"
 #include "GamepadMapperManager.h"
 #include "GamepadMapper.h"
+#include "NodeGraphManager.h"
 #include "imgui_style.h"
 #include "LiveStream.h"
 #include "Walnut/Core/Log.h"
@@ -23,6 +24,7 @@ bool ConfigSerializer::Save(const std::string& filepath,
                             const ThrustCurve* editorCurve,
                             const std::vector<RobotCommConfig>& commConfigs,
                             const std::map<std::string, std::string>* graphMap,
+                            const std::vector<GraphItem>* graphItems,
                             std::string* outError)
 {
     try
@@ -62,6 +64,7 @@ bool ConfigSerializer::Save(const std::string& filepath,
         EmitStreams(out, streams);
         if (editorCurve) EmitEditorCurve(out, *editorCurve);
         EmitRobotComm(out, commConfigs);
+        if (graphItems) EmitGraphItems(out, *graphItems);
 
         out << YAML::EndMap;  // robot_ui_config
         out << YAML::EndMap;  // root
@@ -209,6 +212,7 @@ bool ConfigSerializer::Load(const std::string& filepath,
                             ThrustCurve* editorCurve,
                             std::vector<RobotCommConfig>* commConfigs,
                             std::map<std::string, std::string>* graphMap,
+                            std::vector<GraphItem>* graphItems,
                             std::string* outError)
 {
     try
@@ -275,6 +279,15 @@ bool ConfigSerializer::Load(const std::string& filepath,
                         (*graphMap)[key] = graph;
                     }
                 }
+            }
+        }
+
+        if (graphItems)
+        {
+            if (const YAML::Node& giNode = cfg["graph_items"]; giNode.IsDefined())
+            {
+                if (!ApplyGraphItems(giNode, *graphItems, outError))
+                    return false;
             }
         }
 
@@ -1199,6 +1212,45 @@ bool ConfigSerializer::ApplyRobotComm(const YAML::Node& node,
         }
     }
 
+    return true;
+}
+
+// ============================================================================
+// EmitGraphItems — NodeGraph 编辑项列表
+// ============================================================================
+void ConfigSerializer::EmitGraphItems(YAML::Emitter& out, const std::vector<GraphItem>& items)
+{
+    out << YAML::Key << "graph_items" << YAML::Value << YAML::BeginSeq;
+    for (const auto& item : items)
+    {
+        out << YAML::BeginMap;
+        out << YAML::Key << "id"          << YAML::Value << item.id;
+        out << YAML::Key << "name"        << YAML::Value << item.name;
+        out << YAML::Key << "is_selected" << YAML::Value << item.isSelected;
+        out << YAML::Key << "editor_yaml" << YAML::Value << item.editorYaml;
+        out << YAML::EndMap;
+    }
+    out << YAML::EndSeq;
+}
+
+// ============================================================================
+// ApplyGraphItems — NodeGraph 编辑项列表加载
+// ============================================================================
+bool ConfigSerializer::ApplyGraphItems(const YAML::Node& node, std::vector<GraphItem>& items, std::string* outError)
+{
+    (void)outError;
+    items.clear();
+    if (!node.IsSequence()) return true;
+
+    for (const auto& yn : node)
+    {
+        GraphItem item;
+        if (const YAML::Node& n = yn["id"];          n.IsDefined()) item.id          = n.as<int>();
+        if (const YAML::Node& n = yn["name"];        n.IsDefined()) strncpy_s(item.name, n.as<std::string>().c_str(), sizeof(item.name) - 1);
+        if (const YAML::Node& n = yn["is_selected"]; n.IsDefined()) item.isSelected  = n.as<bool>();
+        if (const YAML::Node& n = yn["editor_yaml"]; n.IsDefined()) item.editorYaml  = n.as<std::string>();
+        items.push_back(std::move(item));
+    }
     return true;
 }
 

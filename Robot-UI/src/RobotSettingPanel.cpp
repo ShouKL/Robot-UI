@@ -1,4 +1,5 @@
 #include "RobotSettingPanel.h"
+#include "RobotStatus.h"
 #include "Walnut/Core/Log.h"
 #include "imgui.h"
 #include <imgui_node_editor.h>
@@ -19,6 +20,9 @@ void RobotSettingPanel::BeginEdit()
     if (IsEditing()) return;
     EditDraftBase::BeginEdit();
     TakeSnapshots();
+    SaveRobotStatusActive();
+    // 编辑期间：evaluator 实时跟随 Manager 选中图
+    if (m_RobotStatus) m_RobotStatus->EnableLiveSync(true);
     WL_INFO_TAG("CONFIG", "RobotSetting editing started");
 }
 
@@ -33,12 +37,23 @@ void RobotSettingPanel::ApplyEdit()
         m_NodeGraphManager->ApplyChanges();
         m_NodeGraphSnapshot.clear();
     }
+    // 关闭 live sync，回到 RobotStatus 自己的 active 图
+    if (m_RobotStatus) {
+        m_RobotStatus->EnableLiveSync(false);
+        m_RobotStatus->SyncActiveNodeGraph();
+        auto* gm = m_GamepadMapperManager->GetSelectedMapper();
+        if (gm) m_RobotStatus->SetActiveGamepad(gm);
+    }
+    m_SavedActiveMode    = nullptr;
+    m_SavedActiveGamepad = nullptr;
     EditDraftBase::ApplyEdit();
 }
 
 void RobotSettingPanel::CancelEdit()
 {
     WL_INFO_TAG("CONFIG", "Reverting RobotSetting...");
+    // 关闭 live sync，恢复已保存状态
+    if (m_RobotStatus) m_RobotStatus->EnableLiveSync(false);
     if (m_RobotComponentManager && !m_ComponentSnapshot.empty()) {
         m_RobotComponentManager->LoadItems(m_ComponentSnapshot);
         m_ComponentSnapshot.clear();
@@ -59,6 +74,7 @@ void RobotSettingPanel::CancelEdit()
         m_NodeGraphManager->LoadItems(m_NodeGraphSnapshot);
         m_NodeGraphSnapshot.clear();
     }
+    RestoreRobotStatusActive();
     EditDraftBase::CancelEdit();
 }
 
@@ -85,8 +101,16 @@ void RobotSettingPanel::Draw(bool* p_open)
     if (!ImGui::Begin("Robot Setting", p_open, 0))
     {
         ImGui::End();
+        // 点击 X 关闭时：关闭 live sync，回到 RobotStatus 自己的 active
+        if (IsEditing()) {
+            ApplyEdit();
+        }
         return;
     }
+
+    // 编辑期间每帧：若在 NodeGraph 标签页，实时同步 evaluator 到 Manager 选中图
+    if (m_RobotStatus)
+        m_RobotStatus->SyncFromManagerIfLive();
 
     float footerHeight = ImGui::GetFrameHeightWithSpacing() + 5.0f;
     float availableHeight = ImGui::GetContentRegionAvail().y - footerHeight;
@@ -118,9 +142,23 @@ void RobotSettingPanel::Draw(bool* p_open)
 
     {
         static int s_LastSelectedId = -1;
-        if (s_LastSelectedId != 2 && m_selected_id == 2)
+        if (s_LastSelectedId != 2 && m_selected_id == 2) {
             m_NodeGraphManager->RequestNavigate();
+            // 调试：切到 NodeGraph 时，同步全局 active gamepad
+            auto* gm = m_GamepadMapperManager->GetSelectedMapper();
+            if (m_RobotStatus && gm) m_RobotStatus->SetActiveGamepad(gm);
+        }
         s_LastSelectedId = m_selected_id;
+
+        // 调试：GamepadMapper 中切换 item 时立即同步 active gamepad
+        if (m_selected_id == 1) {
+            int curIdx = m_GamepadMapperManager->GetSelectedIndex();
+            if (curIdx != m_LastGamepadIndex) {
+                m_LastGamepadIndex = curIdx;
+                auto* gm = m_GamepadMapperManager->GetSelectedMapper();
+                if (m_RobotStatus && gm) m_RobotStatus->SetActiveGamepad(gm);
+            }
+        }
 
         if (ImGui::BeginChild("RSSDetail", ImVec2(0, availableHeight), false, ImGuiWindowFlags_NoScrollbar))
         {
@@ -141,7 +179,44 @@ void RobotSettingPanel::Draw(bool* p_open)
     if (ImGui::Button("Cancel", ImVec2(buttonWidth, 0)))
     {
         CancelEdit();
+        // Cancel 后恢复 RobotStatus active 状态已在 CancelEdit 中调用
     }
 
     ImGui::End();
+}
+
+// ============================================================================
+// 保存/恢复 RobotStatus 的 active 状态（调试用）
+// ============================================================================
+void RobotSettingPanel::SaveRobotStatusActive()
+{
+    if (!m_RobotStatus) return;
+    m_SavedActiveMode     = m_RobotStatus->GetActiveModePtr();
+    m_SavedActiveGamepad  = m_RobotStatus->GetActiveGamepadPtr();
+    m_SavedLiveStreamIdx  = m_RobotStatus->GetActiveLiveStreamIdx();
+    m_SavedNodeGraphIdx   = m_RobotStatus->GetActiveNodeGraphIdx();
+    m_SavedCommIdx        = m_RobotStatus->GetActiveCommIdx();
+    WL_INFO_TAG("CONFIG", "RobotStatus active state saved (mode={}, gamepad={}, ls={}, ng={}, comm={})",
+        m_SavedActiveMode ? m_SavedActiveMode->name : "null",
+        m_SavedActiveGamepad ? m_SavedActiveGamepad->name : "null",
+        m_SavedLiveStreamIdx, m_SavedNodeGraphIdx, m_SavedCommIdx);
+}
+
+void RobotSettingPanel::RestoreRobotStatusActive()
+{
+    if (!m_RobotStatus) return;
+    if (m_SavedActiveMode)
+        m_RobotStatus->SetActiveMode(m_SavedActiveMode);
+    if (m_SavedActiveGamepad)
+        m_RobotStatus->SetActiveGamepad(m_SavedActiveGamepad);
+    m_RobotStatus->SetActiveLiveStreamIdx(m_SavedLiveStreamIdx);
+    m_RobotStatus->SetActiveNodeGraphIdx(m_SavedNodeGraphIdx);
+    m_RobotStatus->SetActiveCommIdx(m_SavedCommIdx);
+    m_RobotStatus->RequestNodeGraphSync();  // 下一帧 DrawWindow 时触发同步
+    WL_INFO_TAG("CONFIG", "RobotStatus active state restored (mode={}, gamepad={}, ls={}, ng={}, comm={})",
+        m_SavedActiveMode ? m_SavedActiveMode->name : "null",
+        m_SavedActiveGamepad ? m_SavedActiveGamepad->name : "null",
+        m_SavedLiveStreamIdx, m_SavedNodeGraphIdx, m_SavedCommIdx);
+    m_SavedActiveMode    = nullptr;
+    m_SavedActiveGamepad = nullptr;
 }

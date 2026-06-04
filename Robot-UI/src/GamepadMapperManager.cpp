@@ -4,6 +4,7 @@
 
 GamepadMapperManager::GamepadMapperManager()
 {
+    m_Mappers.reserve(8);
     AddItem();
     m_Mappers[0].isSelected = true;
 }
@@ -15,23 +16,16 @@ void GamepadMapperManager::AddItem()
     char buf[64];
     snprintf(buf, sizeof(buf), "Item_%d", mapper.id);
     strncpy(mapper.name, buf, sizeof(mapper.name) - 1);
+    int newIdx = (int)m_Mappers.size();
     m_Mappers.push_back(std::move(mapper));
-    if (m_Mappers.size() == 1) {
-        m_SelectedIndex = 0;
-        m_Mappers[0].isSelected = true;
-    }
-    WL_INFO_TAG("GAMEPAD", "Item added: {} (id={})", m_Mappers.back().name, m_Mappers.back().id);
+    m_Mappers[newIdx].isSelected = (newIdx == 0);
+    if (newIdx == 0) m_SelectedIndex = 0;
+    WL_INFO_TAG("GAMEPAD", "Item added: {} (id={})", m_Mappers[newIdx].name, m_Mappers[newIdx].id);
 }
 
 void GamepadMapperManager::RemoveItem(int id)
 {
     int index = FindNodeIndex(m_Mappers, id);
-    if (index < 0) return;
-    DeleteByIndex(index);
-}
-
-void GamepadMapperManager::DeleteByIndex(int index)
-{
     if (index < 0 || index >= (int)m_Mappers.size()) return;
     if (m_Mappers.size() <= 1) return;
     WL_INFO_TAG("GAMEPAD", "Item deleted: {} (id={})", m_Mappers[index].name, m_Mappers[index].id);
@@ -92,6 +86,7 @@ void GamepadMapperManager::LoadMappers(const std::vector<GamepadMapper>& items, 
         mapper.keys = item.keys;
         mapper.mappings = item.mappings;
         mapper.gamepad_type = item.gamepad_type;
+        mapper.UpdateNextKeyID();  // 同步 key id 计数器
         m_Mappers.push_back(std::move(mapper));
     }
     SetSelectedIndex(selectedIdx >= 0 && selectedIdx < (int)m_Mappers.size() ? selectedIdx : 0);
@@ -108,6 +103,7 @@ void GamepadMapperManager::LoadItems(const std::vector<GamepadMapper>& items)
         mapper.keys = item.keys;
         mapper.mappings = item.mappings;
         mapper.gamepad_type = item.gamepad_type;
+        mapper.UpdateNextKeyID();  // 同步 key id 计数器
         m_Mappers.push_back(std::move(mapper));
     }
     if (m_SelectedIndex >= (int)m_Mappers.size()) m_SelectedIndex = 0;

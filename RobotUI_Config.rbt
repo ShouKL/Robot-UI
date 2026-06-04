@@ -2,7 +2,349 @@ robot_ui_config:
   version: 1
   robot:
     items:
-      - name: Item_1
+      - name: ROV
+        gamepad_mapping: ""
+        host_ip: ""
+        remote_port: 0
+        local_port: 0
+        protocol_type: 0
+        has_motion: true
+        has_temperature: true
+        has_humidity: true
+        has_depth: true
+        brushless_motors:
+          - id: 0
+            name: LeftFront
+            target_speed: 0
+            target_speed_enc: 0
+            np_mid: 0
+            np_mid_enc: 0
+            np_ini: 0
+            np_ini_enc: 0
+            pp_ini: 0
+            pp_ini_enc: 0
+            pp_mid: 0
+            pp_mid_enc: 0
+            nt_end: 0
+            nt_end_enc: 0
+            nt_mid: 0
+            nt_mid_enc: 0
+            pt_mid: 0
+            pt_mid_enc: 0
+            pt_end: 0
+            pt_end_enc: 0
+            pwm_min: 0
+            pwm_max: 0
+          - id: 1
+            name: LeftRear
+            target_speed: 0
+            target_speed_enc: 0
+            np_mid: 0
+            np_mid_enc: 0
+            np_ini: 0
+            np_ini_enc: 0
+            pp_ini: 0
+            pp_ini_enc: 0
+            pp_mid: 0
+            pp_mid_enc: 0
+            nt_end: 0
+            nt_end_enc: 0
+            nt_mid: 0
+            nt_mid_enc: 0
+            pt_mid: 0
+            pt_mid_enc: 0
+            pt_end: 0
+            pt_end_enc: 0
+            pwm_min: 0
+            pwm_max: 0
+          - id: 2
+            name: RightFront
+            target_speed: 0
+            target_speed_enc: 0
+            np_mid: 0
+            np_mid_enc: 0
+            np_ini: 0
+            np_ini_enc: 0
+            pp_ini: 0
+            pp_ini_enc: 0
+            pp_mid: 0
+            pp_mid_enc: 0
+            nt_end: 0
+            nt_end_enc: 0
+            nt_mid: 0
+            nt_mid_enc: 0
+            pt_mid: 0
+            pt_mid_enc: 0
+            pt_end: 0
+            pt_end_enc: 0
+            pwm_min: 0
+            pwm_max: 0
+          - id: 3
+            name: RightRear
+            target_speed: 0
+            target_speed_enc: 0
+            np_mid: 0
+            np_mid_enc: 0
+            np_ini: 0
+            np_ini_enc: 0
+            pp_ini: 0
+            pp_ini_enc: 0
+            pp_mid: 0
+            pp_mid_enc: 0
+            nt_end: 0
+            nt_end_enc: 0
+            nt_mid: 0
+            nt_mid_enc: 0
+            pt_mid: 0
+            pt_mid_enc: 0
+            pt_end: 0
+            pt_end_enc: 0
+            pwm_min: 0
+            pwm_max: 0
+          - id: 4
+            name: LeftVertical
+            target_speed: 0
+            target_speed_enc: 0
+            np_mid: 0
+            np_mid_enc: 0
+            np_ini: 0
+            np_ini_enc: 0
+            pp_ini: 0
+            pp_ini_enc: 0
+            pp_mid: 0
+            pp_mid_enc: 0
+            nt_end: 0
+            nt_end_enc: 0
+            nt_mid: 0
+            nt_mid_enc: 0
+            pt_mid: 0
+            pt_mid_enc: 0
+            pt_end: 0
+            pt_end_enc: 0
+            pwm_min: 0
+            pwm_max: 0
+          - id: 5
+            name: RightVertical
+            target_speed: 0
+            target_speed_enc: 0
+            np_mid: 0
+            np_mid_enc: 0
+            np_ini: 0
+            np_ini_enc: 0
+            pp_ini: 0
+            pp_ini_enc: 0
+            pp_mid: 0
+            pp_mid_enc: 0
+            nt_end: 0
+            nt_end_enc: 0
+            nt_mid: 0
+            nt_mid_enc: 0
+            pt_mid: 0
+            pt_mid_enc: 0
+            pt_end: 0
+            pt_end_enc: 0
+            pwm_min: 0
+            pwm_max: 0
+        servos:
+          - id: 0
+            name: Servo
+            angle: 0
+            angle_enc: 0
+        motion:
+          x: 0
+          x_enc: 0
+          y: 0
+          y_enc: 0
+          z: 0
+          z_enc: 0
+          rx: 0
+          rx_enc: 0
+          ry: 0
+          ry_enc: 0
+          rz: 0
+          rz_enc: 0
+        node_graph: |
+          nodes:
+            []
+          links:
+            []
+
+        node_graph_pairs:
+          XBOX: |
+            nodes:
+              - id: 1
+                type: 0
+                value: 1.52590219e-05
+                key_name: LSX
+                factor: 1
+                min_val: 0
+                max_val: 1
+                digital: false
+                op_mode: 0
+                output_target: ""
+              - id: 3
+                type: 0
+                value: -1.52590219e-05
+                key_name: LSY
+                factor: 1
+                min_val: 0
+                max_val: 1
+                digital: false
+                op_mode: 0
+                output_target: ""
+              - id: 5
+                type: 14
+                value: -1.52590219e-05
+                key_name: ""
+                factor: 1
+                min_val: 0
+                max_val: 1
+                digital: false
+                op_mode: 0
+                output_target: motion.x
+              - id: 7
+                type: 14
+                value: 1.52590219e-05
+                key_name: ""
+                factor: 1
+                min_val: 0
+                max_val: 1
+                digital: false
+                op_mode: 0
+                output_target: motion.y
+              - id: 11
+                type: 0
+                value: 1.52590219e-05
+                key_name: RSX
+                factor: 1
+                min_val: 0
+                max_val: 1
+                digital: false
+                op_mode: 0
+                output_target: ""
+              - id: 13
+                type: 14
+                value: 1.52590219e-05
+                key_name: ""
+                factor: 1
+                min_val: 0
+                max_val: 1
+                digital: false
+                op_mode: 0
+                output_target: motion.rz
+              - id: 17
+                type: 0
+                value: -1.52590219e-05
+                key_name: RSY
+                factor: 1
+                min_val: 0
+                max_val: 1
+                digital: false
+                op_mode: 0
+                output_target: ""
+              - id: 19
+                type: 14
+                value: -1.52590219e-05
+                key_name: ""
+                factor: 1
+                min_val: 0
+                max_val: 1
+                digital: false
+                op_mode: 0
+                output_target: motion.z
+            links:
+              - id: 9
+                from_node: 1
+                from_pin: 0
+                to_node: 7
+                to_pin: 0
+              - id: 15
+                from_node: 11
+                from_pin: 0
+                to_node: 13
+                to_pin: 0
+              - id: 16
+                from_node: 3
+                from_pin: 0
+                to_node: 5
+                to_pin: 0
+              - id: 21
+                from_node: 17
+                from_pin: 0
+                to_node: 19
+                to_pin: 0
+        protocol_send:
+          include_length: true
+          checksum: 1
+          header:
+            []
+          tail:
+            []
+          fields:
+            - name: X
+              path: motion.x
+              encoding: 0
+              group: Motion
+              visible: true
+              fix: false
+            - name: Y
+              path: motion.y
+              encoding: 0
+              group: Motion
+              visible: true
+              fix: false
+            - name: Z
+              path: motion.z
+              encoding: 0
+              group: Motion
+              visible: true
+              fix: false
+            - name: RZ
+              path: motion.rz
+              encoding: 0
+              group: Motion
+              visible: true
+              fix: false
+            - name: new_field
+              path: ""
+              encoding: 0
+              group: ""
+              visible: true
+              fix: false
+            - name: new_field
+              path: ""
+              encoding: 0
+              group: ""
+              visible: true
+              fix: false
+        protocol_receive:
+          include_length: true
+          checksum: 1
+          msg_type: 0
+          header:
+            []
+          tail:
+            []
+          fields:
+            - name: Temperature
+              path: temperature.value
+              encoding: 0
+              group: Sensor
+              visible: true
+              fix: false
+            - name: Humidity
+              path: humidity.value
+              encoding: 0
+              group: Sensor
+              visible: true
+              fix: false
+            - name: Depth
+              path: depth.value
+              encoding: 0
+              group: Sensor
+              visible: true
+              fix: false
+      - name: Item_2
         gamepad_mapping: ""
         host_ip: ""
         remote_port: 0
@@ -16,17 +358,6 @@ robot_ui_config:
           []
         servos:
           []
-        node_graph: |
-          nodes:
-            []
-          links:
-            []
-        node_graph_pairs:
-          "": |
-            nodes:
-              []
-            links:
-              []
         protocol_send:
           include_length: true
           checksum: 1
@@ -49,7 +380,151 @@ robot_ui_config:
     active_mode: 0
   gamepad:
     items:
-      - name: Item_1
+      - name: XBOX
+        gamepad_type: 0
+        keys:
+          - key_id: 1
+            key_name: A
+            analog: false
+          - key_id: 2
+            key_name: B
+            analog: false
+          - key_id: 3
+            key_name: X
+            analog: false
+          - key_id: 4
+            key_name: Y
+            analog: false
+          - key_id: 5
+            key_name: LS
+            analog: false
+          - key_id: 6
+            key_name: RS
+            analog: false
+          - key_id: 7
+            key_name: UP
+            analog: false
+          - key_id: 8
+            key_name: DOWN
+            analog: false
+          - key_id: 9
+            key_name: LEFT
+            analog: false
+          - key_id: 10
+            key_name: RIGHT
+            analog: false
+          - key_id: 11
+            key_name: LB
+            analog: false
+          - key_id: 12
+            key_name: RB
+            analog: false
+          - key_id: 13
+            key_name: VIEW
+            analog: false
+          - key_id: 14
+            key_name: LT
+            analog: true
+          - key_id: 15
+            key_name: RT
+            analog: true
+          - key_id: 16
+            key_name: LSX
+            analog: true
+          - key_id: 17
+            key_name: LSY
+            analog: true
+          - key_id: 18
+            key_name: RSX
+            analog: true
+          - key_id: 19
+            key_name: MENU
+            analog: false
+          - key_id: 20
+            key_name: RSY
+            analog: true
+        mappings:
+          - key_id: 1
+            key_name: A
+            key: Button_A
+            analog: false
+          - key_id: 2
+            key_name: B
+            key: Button_B
+            analog: false
+          - key_id: 3
+            key_name: X
+            key: Button_X
+            analog: false
+          - key_id: 4
+            key_name: Y
+            key: Button_Y
+            analog: false
+          - key_id: 5
+            key_name: LS
+            key: L_Stick_Click
+            analog: false
+          - key_id: 6
+            key_name: RS
+            key: R_Stick_Click
+            analog: false
+          - key_id: 7
+            key_name: UP
+            key: DPad_Up
+            analog: false
+          - key_id: 8
+            key_name: DOWN
+            key: DPad_Down
+            analog: false
+          - key_id: 9
+            key_name: LEFT
+            key: DPad_Left
+            analog: false
+          - key_id: 10
+            key_name: RIGHT
+            key: DPad_Right
+            analog: false
+          - key_id: 11
+            key_name: LB
+            key: LB
+            analog: false
+          - key_id: 12
+            key_name: RB
+            key: RB
+            analog: false
+          - key_id: 13
+            key_name: VIEW
+            key: Button_View
+            analog: false
+          - key_id: 14
+            key_name: LT
+            key: LT
+            analog: true
+          - key_id: 15
+            key_name: RT
+            key: RT
+            analog: true
+          - key_id: 16
+            key_name: LSX
+            key: L_Stick_X
+            analog: true
+          - key_id: 17
+            key_name: LSY
+            key: L_Stick_Y
+            analog: true
+          - key_id: 18
+            key_name: RSX
+            key: R_Stick_X
+            analog: true
+          - key_id: 19
+            key_name: MENU
+            key: Button_Menu
+            analog: false
+          - key_id: 20
+            key_name: RSY
+            key: R_Stick_Y
+            analog: true
+      - name: Item_2
         gamepad_type: 0
         keys:
           []
@@ -57,7 +532,31 @@ robot_ui_config:
           []
     active_mode: 0
   streams:
-    - name: Item_1
+    - name: Camera
+      ip: 0.0.0.0
+      user: ""
+      pass: ""
+      port: 0
+      brand: 2
+      channel: 1
+      codec: 0
+      stream_type: 0
+      protocol: 0
+      custom_path: ""
+      latency: 0
+      udp_buffer_size: 0
+      timeout: 5000000
+      drop_on_latency: true
+      ntp_sync: false
+      buffer_mode: 0
+      decoder: 0
+      cpu_threads: 0
+      sync_to_clock: false
+      max_buffers: 0
+      low_latency_mode: true
+      use_bgra: false
+      auto_hardware_fallback: true
+    - name: Item_2
       ip: 0.0.0.0
       user: ""
       pass: ""
@@ -100,3 +599,17 @@ robot_ui_config:
         remote_port: 8888
         local_port: 8888
         transport_type: 0
+      - name: Item_2
+        host_ip: 192.168.0.10
+        remote_port: 8888
+        local_port: 8888
+        transport_type: 0
+  graph_items:
+    - id: 1
+      name: ROV-XBOX
+      is_selected: true
+      editor_yaml: "nodes:\n  - id: 1\n    type: 0\n    value: 1.52590219e-05\n    key_name: LSX\n    factor: 1\n    min_val: 0\n    max_val: 1\n    digital: false\n    op_mode: 0\n    output_target: \"\"\n    pos_x: -44\n    pos_y: 172\n  - id: 3\n    type: 0\n    value: -1.52590219e-05\n    key_name: LSY\n    factor: 1\n    min_val: 0\n    max_val: 1\n    digital: false\n    op_mode: 0\n    output_target: \"\"\n    pos_x: -44\n    pos_y: -20\n  - id: 5\n    type: 14\n    value: -1.52590219e-05\n    key_name: \"\"\n    factor: 1\n    min_val: 0\n    max_val: 1\n    digital: false\n    op_mode: 0\n    output_target: motion.x\n    pos_x: 728\n    pos_y: -190\n  - id: 7\n    type: 14\n    value: 1.52590219e-05\n    key_name: \"\"\n    factor: 1\n    min_val: 0\n    max_val: 1\n    digital: false\n    op_mode: 0\n    output_target: motion.y\n    pos_x: 712\n    pos_y: 18\n  - id: 11\n    type: 0\n    value: 1.52590219e-05\n    key_name: RSX\n    factor: 1\n    min_val: 0\n    max_val: 1\n    digital: false\n    op_mode: 0\n    output_target: \"\"\n    pos_x: -44\n    pos_y: 348\n  - id: 13\n    type: 14\n    value: 1.52590219e-05\n    key_name: \"\"\n    factor: 1\n    min_val: 0\n    max_val: 1\n    digital: false\n    op_mode: 0\n    output_target: motion.rz\n    pos_x: 712\n    pos_y: 242\n  - id: 17\n    type: 0\n    value: -1.52590219e-05\n    key_name: RSY\n    factor: 1\n    min_val: 0\n    max_val: 1\n    digital: false\n    op_mode: 0\n    output_target: \"\"\n    pos_x: -44\n    pos_y: 540\n  - id: 19\n    type: 14\n    value: -1.52590219e-05\n    key_name: \"\"\n    factor: 1\n    min_val: 0\n    max_val: 1\n    digital: false\n    op_mode: 0\n    output_target: motion.z\n    pos_x: 712\n    pos_y: 434\nlinks:\n  - id: 9\n    from_node: 1\n    from_pin: 0\n    to_node: 7\n    to_pin: 0\n  - id: 15\n    from_node: 11\n    from_pin: 0\n    to_node: 13\n    to_pin: 0\n  - id: 16\n    from_node: 3\n    from_pin: 0\n    to_node: 5\n    to_pin: 0\n  - id: 21\n    from_node: 17\n    from_pin: 0\n    to_node: 19\n    to_pin: 0\nactive_robot_mode: ROV\nactive_gamepad_mode: XBOX"
+    - id: 2
+      name: Item_2
+      is_selected: false
+      editor_yaml: "nodes:\n  []\nlinks:\n  []\nactive_robot_mode: ROV\nactive_gamepad_mode: XBOX"

@@ -12,6 +12,7 @@ class NodeGraphManager;
 struct StreamConfig;
 struct ThrustCurve;
 struct RobotCommConfig;
+struct GraphItem;
 struct UIState
 {
     bool about_open            = false;
@@ -48,6 +49,7 @@ public:
                      const ThrustCurve* editorCurve,
                      const std::vector<RobotCommConfig>& commConfigs = {},
                      const std::map<std::string, std::string>* graphMap = nullptr,
+                     const std::vector<GraphItem>* graphItems = nullptr,
                      std::string* outError = nullptr);
 
     static bool Load(const std::string& filepath,
@@ -59,6 +61,7 @@ public:
                      ThrustCurve* editorCurve,
                      std::vector<RobotCommConfig>* commConfigs = nullptr,
                      std::map<std::string, std::string>* graphMap = nullptr,
+                     std::vector<GraphItem>* graphItems = nullptr,
                      std::string* outError = nullptr);
 
     // ---- Kernel 文件（.kernel） — 仅样式 + UI 状态 ----
@@ -84,6 +87,7 @@ private:
     static void EmitUIState(YAML::Emitter& out, const UIState& uiState);
     static void EmitEditorCurve(YAML::Emitter& out, const ThrustCurve& curve);
     static void EmitRobotComm(YAML::Emitter& out, const std::vector<RobotCommConfig>& configs);
+    static void EmitGraphItems(YAML::Emitter& out, const std::vector<GraphItem>& items);
 
     // ======================== YAML 读取（基于 yaml-cpp） ========================
     static bool ApplyRobotConfig(const YAML::Node& node, RobotComponentManager& robotMgr, std::string* outError);
@@ -93,4 +97,5 @@ private:
     static bool ApplyUIState(const YAML::Node& node, UIState& uiState, std::string* outError);
     static bool ApplyEditorCurve(const YAML::Node& node, ThrustCurve& curve, std::string* outError);
     static bool ApplyRobotComm(const YAML::Node& node, std::vector<RobotCommConfig>& configs, std::string* outError);
+    static bool ApplyGraphItems(const YAML::Node& node, std::vector<GraphItem>& items, std::string* outError);
 };

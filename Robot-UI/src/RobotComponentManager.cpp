@@ -26,12 +26,6 @@ void RobotComponentManager::AddItem()
 void RobotComponentManager::RemoveItem(int id)
 {
     int index = FindNodeIndex(m_Components, id);
-    if (index < 0) return;
-    DeleteByIndex(index);
-}
-
-void RobotComponentManager::DeleteByIndex(int index)
-{
     if (index < 0 || index >= (int)m_Components.size()) return;
     if (m_Components.size() <= 1) return;
     WL_INFO_TAG("COMP", "Item deleted: {} (id={})", m_Components[index].component.name, m_Components[index].id);

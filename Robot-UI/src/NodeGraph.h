@@ -17,6 +17,9 @@
 #include <shared_mutex>
 #include <mutex>
 
+class RobotComponentManager;
+class GamepadMapperManager;
+
 // ============================================================================
 // PinType
 // ============================================================================
@@ -171,14 +174,11 @@ public:
     void NavigateToOrigin();
     void RequestNavigate() { m_NavigateFrame = 1; }
 
-    // ---- External data feeding ----
-    void SetAvailableKeyNames(const KeyNameList& keys) { m_AvailableKeys = keys; }
-    void SetAnalogKeys(const std::set<std::string>& ns) { m_AnalogKeys = ns; }
-    void SetAvailableOutputTargets(const std::vector<OutputTargetInfo>& t) { m_OutputTargets = t; }
-    void SetFieldValues(const std::map<std::string, double>& v) { m_FieldValues = v; }
+    // ---- Dependency injection (pulls data from managers directly) ----
+    void SetRobotComponentManager(RobotComponentManager* c) { m_RobotMgr = c; }
+    void SetGamepadMapperManager(GamepadMapperManager* g)    { m_GamepadMgr = g; }
 
-    void SetRobotModeNames(const std::vector<std::string>& names, int activeIdx);
-    void SetGamepadModeNames(const std::vector<std::string>& names);
+    // ---- External data feeding (runtime values from gamepad thread) ----
     void SetCurrentModePair(const std::string& robotMode, const std::string& gamepadMode);
 
     // ---- UI layout ----
@@ -274,15 +274,14 @@ private:
     bool m_KeySourcePopupRequested = false;
     ax::NodeEditor::NodeId m_KeySourcePopupNodeId = 0;
 
+    RobotComponentManager* m_RobotMgr = nullptr;
+    GamepadMapperManager*  m_GamepadMgr = nullptr;
+
+    // ---- Cached per-frame data from managers (populated in Draw) ----
     KeyNameList                        m_AvailableKeys;
     std::vector<OutputTargetInfo>      m_OutputTargets;
     std::map<std::string, double>      m_FieldValues;
     std::set<std::string>              m_AnalogKeys;
-
-    std::vector<std::string>  m_RobotModeNames;
-    int                       m_SelectedRobotModeIdx = 0;
-    std::vector<std::string>  m_GamepadModeNames;
-    int                       m_SelectedGamepadModeIdx = 0;
 
     float m_LeftSideWidth  = 180.0f;
     float m_RightSideWidth = 200.0f;
@@ -297,3 +296,13 @@ ImColor     GetIconColor(PinType type);
 void        DrawPinIcon(const EditorPin& pin, bool connected, int alpha);
 void        WriteOutputToActuator(const std::string& outputTarget, float value, ActuatorConfig& data);
 std::vector<OutputTargetInfo> BuildOutputTargetsFromProtocol(const ProtocolSendConfig& cfg, const ActuatorConfig& actuator);
+
+// ============================================================================
+// GraphNode — 纯数据（不含 NodeGraph 实例/EditorContext），用于序列化/传递
+// ============================================================================
+struct GraphNode
+{
+    int  id         = 0;
+    bool isSelected = false;
+    char name[64]   = "Default";
+};

@@ -14,6 +14,9 @@
 #include <map>
 #include <set>
 
+class RobotComponentManager;
+class GamepadMapperManager;
+
 struct GraphItem
 {
     int  id = 0;
@@ -46,6 +49,10 @@ public:
 
     void DrawContent() override;
 
+    // ---- Dependency injection ----
+    void SetRobotComponentManager(RobotComponentManager* c);
+    void SetGamepadMapperManager(GamepadMapperManager* g);
+
     // ---- Internal (called by RobotSettingPanel) ----
     void ApplyChanges();
     void RequestNavigate() { m_SelectedGraph->RequestNavigate(); }
@@ -58,8 +65,10 @@ public:
     std::string GetGraphYaml() const;
     bool        LoadGraphYaml(const std::string& yamlStr);
 
+    // ---- 供 RobotStatus 同步活跃 NodeGraph 到求值器 ----
+    std::string GetGraphYamlForIndex(int idx);
+
 private:
-    void DeleteByIndex(int index);
     void SaveCurrentToItem();
     void LoadItemToCurrent();
 
@@ -68,4 +77,7 @@ private:
 
     ax::NodeEditor::EditorContext* m_EditorCtx = nullptr;
     NodeGraph* m_SelectedGraph = nullptr;
+
+    RobotComponentManager* m_RobotMgr = nullptr;
+    GamepadMapperManager*  m_GamepadMgr = nullptr;
 };

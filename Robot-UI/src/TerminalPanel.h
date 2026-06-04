@@ -1,38 +1,54 @@
 #pragma once
 
-#include <deque>
+#include <algorithm>   // workaround: ImTerm misc.hpp uses std::transform without including <algorithm>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
-#include <imgui.h>
+#include "imterm/terminal.hpp"
+#include "imterm/terminal_helpers.hpp"
 
-struct TerminalLine
+// State shared between commands
+struct RobotTerminalState
 {
-    std::string text;
-    bool isInput = false;
+    bool should_close = false;
 };
 
+class TerminalCommands : public ImTerm::basic_spdlog_terminal_helper<
+    TerminalCommands,
+    RobotTerminalState,
+    std::mutex>
+{
+public:
+    TerminalCommands();
+
+    static std::vector<std::string> no_completion(argument_type&) { return {}; }
+
+    static void clear(argument_type& arg) { arg.term.clear(); }
+    static void help(argument_type& arg);
+    static void quit(argument_type& arg);
+
+protected:
+    void sink_it_(const spdlog::details::log_msg& msg) override;
+};
+
+// Single panel: merges Terminal input + Output log (spdlog sink)
 class TerminalPanel
 {
 public:
-    static constexpr size_t MaxLines   = 2000;
-    static constexpr size_t MaxHistory = 50;
-
     TerminalPanel();
+    ~TerminalPanel() = default;
 
     void Draw(bool* pOpen);
     void Clear();
 
-private:
-    void ExecuteCommand(const std::string& cmd);
-    void Append(const std::string& text, bool isInput = false);
-    void ReclaimFocus();
+    /// Call once to route all spdlog output into this panel.
+    void InstallAsLogSink();
 
-    std::deque<TerminalLine>    m_Lines;
-    std::mutex                  m_Mutex;
-    std::vector<std::string>    m_History;
-    int                         m_HistoryPos   = -1;
-    char                        m_InputBuf[512] = {};
-    bool                        m_FocusInput    = false;
-    std::string                 m_WorkingDir;
+private:
+    void ExecuteShellCommand(const std::string& cmd);
+
+    RobotTerminalState m_State;
+    std::unique_ptr<ImTerm::terminal<TerminalCommands>> m_Terminal;
+    size_t m_LastHistorySize = 0;
 };

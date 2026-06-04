@@ -1,10 +1,77 @@
 #include "RobotStatus.h"
+#include "GamepadMapper.h"
+#include "LiveStreamManager.h"
+#include "NodeGraphManager.h"
+#include "RobotCommManager.h"
 
 RobotStatus::RobotStatus()
 {
+    m_RobotAPI = std::make_shared<HardwareInterface>();
     m_CurrentCommand = std::make_shared<const ActuatorConfig>();
     m_GraphEvaluator = std::make_unique<NodeGraph>();
     WL_INFO_TAG("ROBOT_STATUS", "RobotStatus created (with headless graph evaluator)");
+}
+
+// ---- 同步 ActiveNodeGraph 到求值器 ----
+void RobotStatus::SyncActiveNodeGraph()
+{
+    if (!m_NodeGraphManager) return;
+    if (m_ActiveNodeGraphIdx < 0 || m_ActiveNodeGraphIdx >= m_NodeGraphManager->GetItemCount()) return;
+
+    // 从 NodeGraphManager 的活跃项中获取图数据 YAML，加载到求值器
+    std::string yaml = m_NodeGraphManager->GetGraphYamlForIndex(m_ActiveNodeGraphIdx);
+    if (yaml.empty()) {
+        WL_WARN_TAG("ROBOT_STATUS", "SyncActiveNodeGraph: no graph data for index {}", m_ActiveNodeGraphIdx);
+        return;
+    }
+
+    std::unique_lock<std::shared_mutex> lock(m_StatusMutex);
+    if (m_GraphEvaluator->LoadGraphData(yaml))
+        WL_INFO_TAG("ROBOT_STATUS", "Synced graph from active NodeGraph #{} ({})",
+                    m_ActiveNodeGraphIdx, m_NodeGraphManager->GetItemNameBuf(m_ActiveNodeGraphIdx));
+    else
+        WL_WARN_TAG("ROBOT_STATUS", "Failed to parse graph from active NodeGraph #{}",
+                    m_ActiveNodeGraphIdx);
+}
+
+void RobotStatus::EnableLiveSync(bool enable)
+{
+    m_LiveSyncToManager = enable;
+    WL_INFO_TAG("ROBOT_STATUS", "Live sync to Manager: {}", enable ? "ON" : "OFF");
+}
+
+void RobotStatus::SyncFromManagerIfLive()
+{
+    if (!m_LiveSyncToManager || !m_NodeGraphManager) return;
+    SyncFromManagerSelected();
+}
+
+void RobotStatus::SyncFromManagerSelected()
+{
+    if (!m_NodeGraphManager) return;
+    int selIdx = m_NodeGraphManager->GetSelectedIndex();
+    if (selIdx < 0 || selIdx >= m_NodeGraphManager->GetItemCount()) return;
+
+    std::string yaml = m_NodeGraphManager->GetGraphYamlForIndex(selIdx);
+    if (yaml.empty()) {
+        WL_WARN_TAG("ROBOT_STATUS", "SyncFromManagerSelected: no graph data at index {}", selIdx);
+        return;
+    }
+
+    // 同时更新 RobotStatus 自己的索引
+    m_ActiveNodeGraphIdx = selIdx;
+
+    std::unique_lock<std::shared_mutex> lock(m_StatusMutex);
+    if (m_GraphEvaluator->LoadGraphData(yaml))
+        WL_INFO_TAG("ROBOT_STATUS", "Synced graph from Manager selected #{} ({})",
+                    selIdx, m_NodeGraphManager->GetItemNameBuf(selIdx));
+    else
+        WL_WARN_TAG("ROBOT_STATUS", "Failed to parse graph from Manager selected #{}", selIdx);
+}
+
+RobotStatus::~RobotStatus()
+{
+    Unlink();
 }
 
 // ---- 活跃模式管理（写锁） ----
@@ -17,6 +84,16 @@ void RobotStatus::SetActiveMode(const RobotMode* item)
         WL_INFO_TAG("ROBOT_STATUS", "Selected item set to: {}", item->name);
     else
         WL_INFO_TAG("ROBOT_STATUS", "Selected item cleared");
+}
+
+void RobotStatus::SetActiveGamepad(GamepadMapper* gp)
+{
+    std::unique_lock<std::shared_mutex> lock(m_StatusMutex);
+    m_ActiveGamepad = gp;
+    if (gp)
+        WL_INFO_TAG("ROBOT_STATUS", "Active gamepad set to: {}", gp->name);
+    else
+        WL_INFO_TAG("ROBOT_STATUS", "Active gamepad cleared");
 }
 
 void RobotStatus::LoadGraph(const std::string& gpMapperName)
@@ -61,6 +138,7 @@ void RobotStatus::EvaluateIntoActuator(const std::map<std::string, float>& keyVa
 bool RobotStatus::HasGraphEvaluator()    const { std::shared_lock lock(m_StatusMutex); return m_GraphEvaluator != nullptr; }
 bool RobotStatus::HasActiveMode()        const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode != nullptr; }
 const RobotMode* RobotStatus::GetActiveModePtr() const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode; }
+GamepadMapper* RobotStatus::GetActiveGamepadPtr() const { std::shared_lock lock(m_StatusMutex); return m_ActiveGamepad; }
 const std::string RobotStatus::GetActiveModeName() const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode ? std::string(m_ActiveMode->name) : ""; }
 
 const ActuatorConfig&        RobotStatus::GetAppliedActuator()   const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode->actuator_config; }
@@ -108,12 +186,155 @@ bool RobotStatus::IsSensorValid() const
     return m_SensorValid;
 }
 
-void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager)
+// ---- 连接控制 ---- 
+bool RobotStatus::Link(const RobotCommConfig& cfg)
 {
+    Unlink();  // 断开旧连接
+    WL_INFO_TAG("ROBOT_STATUS", "Linking to {}:{} (local: {})...", cfg.host_ip, cfg.remote_port, cfg.local_port);
+
+    bool ok = m_RobotAPI->Initialize(cfg.host_ip, cfg.remote_port, cfg.local_port);
+    if (ok) {
+        m_IsLinked = true;
+        WL_INFO_TAG("ROBOT_STATUS", "Linked successfully: {} ({})", cfg.name, cfg.host_ip);
+    } else {
+        WL_ERROR_TAG("ROBOT_STATUS", "Link failed: {} ({})", cfg.name, cfg.host_ip);
+    }
+    return ok;
+}
+
+void RobotStatus::Unlink()
+{
+    if (m_IsLinked)
+        WL_INFO_TAG("ROBOT_STATUS", "Unlinked");
+    m_IsLinked = false;
+}
+
+void RobotStatus::SendActuatorData(const ActuatorConfig& data)
+{
+    if (m_IsLinked)
+        m_RobotAPI->SendActuatorData(data);
+}
+
+SensorData RobotStatus::GetSensorData()
+{
+    if (m_IsLinked)
+        return m_RobotAPI->GetSensorData();
+    SensorData d; d.is_valid = false; return d;
+}
+
+void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
+                              LiveStreamManager* liveStreamMgr,
+                              NodeGraphManager* nodeGraphMgr)
+{
+    // 缓存 Manager 指针（每帧刷新，供 SyncActiveNodeGraph 等使用）
+    m_NodeGraphManager = nodeGraphMgr;
+    m_RobotCommManager = commManager;
+
+    // 响应外部请求（如 RestoreRobotStatusActive 后）同步 NodeGraph
+    if (m_NeedsNodeGraphSync) {
+        m_NeedsNodeGraphSync = false;
+        SyncActiveNodeGraph();
+    }
+
     if (!ImGui::Begin("Robot Status", p_open))
     {
         ImGui::End();
         return;
+    }
+
+    // ---- 顶部 Active 选择器（RobotStatus 自己的选择，不碰 Manager 的 Select） ----
+    if (liveStreamMgr && liveStreamMgr->GetItemCount() > 0)
+    {
+        if (m_ActiveLiveStreamIdx >= liveStreamMgr->GetItemCount())
+            m_ActiveLiveStreamIdx = 0;
+        ImGui::TextUnformatted("Live Stream:");
+        ImGui::SetNextItemWidth(-1);
+        const char* preview = liveStreamMgr->GetItemNameBuf(m_ActiveLiveStreamIdx);
+        if (ImGui::BeginCombo("##LSActive", preview))
+        {
+            for (int i = 0; i < liveStreamMgr->GetItemCount(); ++i)
+            {
+                bool sel = (i == m_ActiveLiveStreamIdx);
+                if (ImGui::Selectable(liveStreamMgr->GetItemNameBuf(i), sel))
+                    m_ActiveLiveStreamIdx = i;
+                if (sel) ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+    }
+
+    if (nodeGraphMgr && nodeGraphMgr->GetItemCount() > 0)
+    {
+        if (m_ActiveNodeGraphIdx >= nodeGraphMgr->GetItemCount())
+            m_ActiveNodeGraphIdx = 0;
+        ImGui::TextUnformatted("Node Graph:");
+        ImGui::SetNextItemWidth(-1);
+        const char* preview = nodeGraphMgr->GetItemNameBuf(m_ActiveNodeGraphIdx);
+        if (ImGui::BeginCombo("##NGActive", preview))
+        {
+            for (int i = 0; i < nodeGraphMgr->GetItemCount(); ++i)
+            {
+                bool sel = (i == m_ActiveNodeGraphIdx);
+                if (ImGui::Selectable(nodeGraphMgr->GetItemNameBuf(i), sel)) {
+                    if (i != m_ActiveNodeGraphIdx) {
+                        m_ActiveNodeGraphIdx = i;
+                        SyncActiveNodeGraph();  // 切换 NodeGraph 时立即同步到求值器
+                    }
+                }
+                if (sel) ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+    }
+
+    // ---- Apply & Connect 按钮 ----
+    if (commManager && commManager->GetItemCount() > 0)
+    {
+        if (m_ActiveCommIdx >= commManager->GetItemCount())
+            m_ActiveCommIdx = 0;
+
+        ImGui::Spacing();
+        bool linked = m_IsLinked;
+        ImVec4 statusColor = linked ? ImVec4(0.3f, 1.0f, 0.3f, 1.0f) : ImVec4(1.0f, 0.5f, 0.0f, 1.0f);
+        ImGui::TextColored(statusColor, "Status: %s", linked ? "Linked" : "Disconnected");
+
+        ImGui::SetNextItemWidth(-1);
+        const char* preview = commManager->GetItemNameBuf(m_ActiveCommIdx);
+        if (ImGui::BeginCombo("##CommActive", preview))
+        {
+            for (int i = 0; i < commManager->GetItemCount(); ++i)
+            {
+                bool sel = (i == m_ActiveCommIdx);
+                if (ImGui::Selectable(commManager->GetItemNameBuf(i), sel)) {
+                    if (i != m_ActiveCommIdx) {
+                        m_ActiveCommIdx = i;
+                        // 切换 Comm 时若已连接则自动重连
+                        if (m_IsLinked) {
+                            auto items = commManager->GetAllItems();
+                            if (i >= 0 && i < (int)items.size())
+                                Link(items[i]);
+                        }
+                    }
+                }
+                if (sel) ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+
+        if (!linked)
+        {
+            if (ImGui::Button("Connect", ImVec2(-1, 0)))
+            {
+                auto items = commManager->GetAllItems();
+                if (m_ActiveCommIdx >= 0 && m_ActiveCommIdx < (int)items.size())
+                    Link(items[m_ActiveCommIdx]);
+            }
+        }
+        else
+        {
+            if (ImGui::Button("Disconnect", ImVec2(-1, 0)))
+                Unlink();
+        }
     }
 
     ImGui::Separator();
@@ -216,9 +437,9 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager)
                     int visibleCnt = 0;
                     SensorData sensorData;
                     bool hasData = false;
-                    if (commManager && commManager->IsConnected())
+                    if (m_IsLinked)
                     {
-                        sensorData = commManager->GetSensorData();
+                        sensorData = GetSensorData();
                         hasData = sensorData.is_valid;
                     }
 
