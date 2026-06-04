@@ -10,3 +10,6 @@
 	path = vendor/implot
 	url = https://github.com/epezent/implot.git
 	branch = v0.16
+[submodule "vendor/ImTerm"]
+	path = vendor/ImTerm
+	url = https://github.com/Organic-Code/ImTerm.git
