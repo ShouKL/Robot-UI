@@ -140,6 +140,7 @@ struct ProtocolReceiveConfig {
     std::vector<uint8_t> tail;
     ChecksumType checksum = ChecksumType::Sum8;
     bool include_length = true;
+    bool big_endian = false;   // false=小端(LE), true=大端(BE/网络序)
     uint8_t msg_type = 0;
     std::vector<ReceiveField> fields;
 };
@@ -150,6 +151,7 @@ struct ProtocolSendConfig {
     std::vector<uint8_t> tail;
     ChecksumType checksum = ChecksumType::Sum8;
     bool include_length = true;
+    bool big_endian = false;   // false=小端(LE), true=大端(BE/网络序)
     std::vector<SendField> fields;
 };
 
@@ -232,6 +234,34 @@ inline int GetEncodingByteSize(DataEncoding enc) {
     case DataEncoding::Bool:    return 1;
     default: return 0;
     }
+}
+
+// ================== 字节序工具 ==================
+
+/// 反转 src 的字节序写入 dst（srcLen 字节）
+inline void SwapBytes(const void* src, void* dst, int byteSize) {
+    const auto* s = static_cast<const uint8_t*>(src);
+    auto* d = static_cast<uint8_t*>(dst);
+    for (int i = 0; i < byteSize; ++i)
+        d[i] = s[byteSize - 1 - i];
+}
+
+/// 将值以大端序写入 buf（不改变 buf 以外的内存）
+template<typename T>
+inline void WriteBigEndian(uint8_t* buf, T val) {
+    const auto* s = reinterpret_cast<const uint8_t*>(&val);
+    for (size_t i = 0; i < sizeof(T); ++i)
+        buf[i] = s[sizeof(T) - 1 - i];
+}
+
+/// 从大端序 buf 读取值
+template<typename T>
+inline T ReadBigEndian(const uint8_t* buf) {
+    T val;
+    auto* d = reinterpret_cast<uint8_t*>(&val);
+    for (size_t i = 0; i < sizeof(T); ++i)
+        d[i] = buf[sizeof(T) - 1 - i];
+    return val;
 }
 
 // ================== 级联下拉框：组件 → 子字段 → 编码 ==================
@@ -448,8 +478,20 @@ inline bool GetActuatorField(const ActuatorConfig& data, const std::string& path
 }
 
 /// 根据 SendField 列表构建 payload 字节流
-inline std::vector<uint8_t> BuildPayload(const ActuatorConfig& data, const std::vector<SendField>& fields) {
+inline std::vector<uint8_t> BuildPayload(const ActuatorConfig& data, const std::vector<SendField>& fields, bool big_endian = false) {
     std::vector<uint8_t> payload;
+
+    // Helper：写入多字节值（默认 LE；若 big_endian 则反转）
+    auto writeLE = [&](const void* src, int byteSize) {
+        if (!big_endian) {
+            payload.insert(payload.end(), static_cast<const uint8_t*>(src), static_cast<const uint8_t*>(src) + byteSize);
+        } else {
+            uint8_t tmp[8];
+            SwapBytes(src, tmp, byteSize);
+            payload.insert(payload.end(), tmp, tmp + byteSize);
+        }
+    };
+
     for (const auto& f : fields) {
         double val = 0.0;
         if (!GetActuatorField(data, f.field_path, val)) continue;
@@ -457,13 +499,11 @@ inline std::vector<uint8_t> BuildPayload(const ActuatorConfig& data, const std::
         switch (f.encoding) {
         case DataEncoding::Float32: {
             float fv = static_cast<float>(val);
-            uint8_t buf[4]; std::memcpy(buf, &fv, 4);
-            payload.insert(payload.end(), buf, buf + 4);
+            writeLE(&fv, 4);
             break;
         }
         case DataEncoding::Float64: {
-            uint8_t buf[8]; std::memcpy(buf, &val, 8);
-            payload.insert(payload.end(), buf, buf + 8);
+            writeLE(&val, 8);
             break;
         }
         case DataEncoding::Int8: {
@@ -473,20 +513,17 @@ inline std::vector<uint8_t> BuildPayload(const ActuatorConfig& data, const std::
         }
         case DataEncoding::Int16: {
             int16_t iv = static_cast<int16_t>(std::clamp(val, -32768.0, 32767.0));
-            uint8_t buf[2]; std::memcpy(buf, &iv, 2);
-            payload.insert(payload.end(), buf, buf + 2);
+            writeLE(&iv, 2);
             break;
         }
         case DataEncoding::Int32: {
             int32_t iv = static_cast<int32_t>(std::clamp(val, -2147483648.0, 2147483647.0));
-            uint8_t buf[4]; std::memcpy(buf, &iv, 4);
-            payload.insert(payload.end(), buf, buf + 4);
+            writeLE(&iv, 4);
             break;
         }
         case DataEncoding::Int64: {
             int64_t iv = static_cast<int64_t>(val);
-            uint8_t buf[8]; std::memcpy(buf, &iv, 8);
-            payload.insert(payload.end(), buf, buf + 8);
+            writeLE(&iv, 8);
             break;
         }
         case DataEncoding::Uint8: {
@@ -496,20 +533,17 @@ inline std::vector<uint8_t> BuildPayload(const ActuatorConfig& data, const std::
         }
         case DataEncoding::Uint16: {
             uint16_t uv = static_cast<uint16_t>(std::clamp(val, 0.0, 65535.0));
-            uint8_t buf[2]; std::memcpy(buf, &uv, 2);
-            payload.insert(payload.end(), buf, buf + 2);
+            writeLE(&uv, 2);
             break;
         }
         case DataEncoding::Uint32: {
             uint32_t uv = static_cast<uint32_t>(std::clamp(val, 0.0, 4294967295.0));
-            uint8_t buf[4]; std::memcpy(buf, &uv, 4);
-            payload.insert(payload.end(), buf, buf + 4);
+            writeLE(&uv, 4);
             break;
         }
         case DataEncoding::Uint64: {
             uint64_t uv = static_cast<uint64_t>(val > 0.0 ? val : 0.0);
-            uint8_t buf[8]; std::memcpy(buf, &uv, 8);
-            payload.insert(payload.end(), buf, buf + 8);
+            writeLE(&uv, 8);
             break;
         }
         case DataEncoding::Bool: {
@@ -554,7 +588,7 @@ inline uint16_t ComputeChecksum(ChecksumType type, const uint8_t* data, size_t l
 
 /// 根据 ProtocolSendConfig 将 ActuatorConfig 序列化为完整帧
 inline std::vector<uint8_t> BuildFrame(const ActuatorConfig& data, const ProtocolSendConfig& cfg) {
-    std::vector<uint8_t> payload = BuildPayload(data, cfg.fields);
+    std::vector<uint8_t> payload = BuildPayload(data, cfg.fields, cfg.big_endian);
 
     std::vector<uint8_t> frame;
 
@@ -612,6 +646,88 @@ inline SensorData ParseSensorFrame(const std::vector<uint8_t>& raw_data, const P
     SensorData data;
     data.is_valid = false;
 
+    int csBytes = (cfg.checksum != ChecksumType::None) ? (cfg.checksum == ChecksumType::CRC16 ? 2 : 1) : 0;
+
+    // Helper：从 buf 读取多字节值（默认 LE；若 big_endian 则反转）
+    auto readNum = [&](const uint8_t* buf, DataEncoding enc) -> double {
+        switch (enc) {
+        case DataEncoding::Float32: {
+            float fv;
+            if (cfg.big_endian) { uint8_t t[4]; SwapBytes(buf, t, 4); std::memcpy(&fv, t, 4); }
+            else                 std::memcpy(&fv, buf, 4);
+            return static_cast<double>(fv);
+        }
+        case DataEncoding::Float64: {
+            double dv;
+            if (cfg.big_endian) { uint8_t t[8]; SwapBytes(buf, t, 8); std::memcpy(&dv, t, 8); }
+            else                 std::memcpy(&dv, buf, 8);
+            return dv;
+        }
+        case DataEncoding::Int8:
+            return static_cast<double>(static_cast<int8_t>(buf[0]));
+        case DataEncoding::Int16: {
+            int16_t v;
+            if (cfg.big_endian) v = ReadBigEndian<int16_t>(buf);
+            else                std::memcpy(&v, buf, 2);
+            return static_cast<double>(v);
+        }
+        case DataEncoding::Int32: {
+            int32_t v;
+            if (cfg.big_endian) v = ReadBigEndian<int32_t>(buf);
+            else                std::memcpy(&v, buf, 4);
+            return static_cast<double>(v);
+        }
+        case DataEncoding::Int64: {
+            int64_t v;
+            if (cfg.big_endian) v = ReadBigEndian<int64_t>(buf);
+            else                std::memcpy(&v, buf, 8);
+            return static_cast<double>(v);
+        }
+        case DataEncoding::Uint8:
+            return static_cast<double>(buf[0]);
+        case DataEncoding::Uint16: {
+            uint16_t v;
+            if (cfg.big_endian) v = ReadBigEndian<uint16_t>(buf);
+            else                std::memcpy(&v, buf, 2);
+            return static_cast<double>(v);
+        }
+        case DataEncoding::Uint32: {
+            uint32_t v;
+            if (cfg.big_endian) v = ReadBigEndian<uint32_t>(buf);
+            else                std::memcpy(&v, buf, 4);
+            return static_cast<double>(v);
+        }
+        case DataEncoding::Uint64: {
+            uint64_t v;
+            if (cfg.big_endian) v = ReadBigEndian<uint64_t>(buf);
+            else                std::memcpy(&v, buf, 8);
+            return static_cast<double>(v);
+        }
+        case DataEncoding::Bool:
+            return static_cast<double>(buf[0]);
+        default: return 0.0;
+        }
+    };
+
+    // 判断是否纯数据模式（无帧头/帧尾/msg_type/checksum/长度）
+    bool bRawMode = (cfg.header.empty() && cfg.tail.empty() && !cfg.include_length
+                     && cfg.checksum == ChecksumType::None);
+
+    if (bRawMode) {
+        // 纯数据模式：整帧 = 字段数据，直接从 offset=0 读取
+        size_t fieldOffset = 0;
+        for (const auto& f : cfg.fields) {
+            int byteSize = GetEncodingByteSize(f.encoding);
+            if (fieldOffset + byteSize > raw_data.size()) break;
+            double val = readNum(raw_data.data() + fieldOffset, f.encoding);
+            SetSensorField(data, f.field_path, val);
+            fieldOffset += byteSize;
+        }
+        data.is_valid = true;
+        return data;
+    }
+
+    // === 带帧协议模式 ===
     size_t minSize = cfg.header.size() + (cfg.include_length ? 2 : 0) + 1; // header + len + msg_type
     if (raw_data.size() < minSize) return data;
 
@@ -625,11 +741,11 @@ inline SensorData ParseSensorFrame(const std::vector<uint8_t>& raw_data, const P
         payloadLen = static_cast<uint16_t>(raw_data[offset]) | static_cast<uint16_t>(static_cast<unsigned>(raw_data[offset + 1]) << 8);
         offset += 2;
     } else {
-        payloadLen = static_cast<uint16_t>(raw_data.size() - offset - (cfg.tail.empty() ? 0 : cfg.tail.size()) - 1); // -1 for checksum
+        payloadLen = static_cast<uint16_t>(raw_data.size() - offset - csBytes - cfg.tail.size() - 1); // -1 = msg_type
     }
 
     // 检查总长度
-    size_t totalNeeded = offset + payloadLen + (cfg.checksum != ChecksumType::None ? (cfg.checksum == ChecksumType::CRC16 ? 2 : 1) : 0) + cfg.tail.size();
+    size_t totalNeeded = offset + 1 + payloadLen + csBytes + cfg.tail.size(); // +1 = msg_type
     if (raw_data.size() != totalNeeded) return data;
 
     // 验证 msg_type
@@ -653,73 +769,9 @@ inline SensorData ParseSensorFrame(const std::vector<uint8_t>& raw_data, const P
     for (const auto& f : cfg.fields) {
         int byteSize = GetEncodingByteSize(f.encoding);
         if (fieldOffset + byteSize > raw_data.size()) break;
-
-        switch (f.encoding) {
-        case DataEncoding::Float32: {
-            float fv; std::memcpy(&fv, raw_data.data() + fieldOffset, 4);
-            fieldOffset += 4;
-            SetSensorField(data, f.field_path, static_cast<double>(fv));
-            break;
-        }
-        case DataEncoding::Float64: {
-            double dv; std::memcpy(&dv, raw_data.data() + fieldOffset, 8);
-            fieldOffset += 8;
-            SetSensorField(data, f.field_path, dv);
-            break;
-        }
-        case DataEncoding::Int8: {
-            int8_t iv = static_cast<int8_t>(raw_data[fieldOffset++]);
-            SetSensorField(data, f.field_path, static_cast<double>(iv));
-            break;
-        }
-        case DataEncoding::Int16: {
-            int16_t iv; std::memcpy(&iv, raw_data.data() + fieldOffset, 2);
-            fieldOffset += 2;
-            SetSensorField(data, f.field_path, static_cast<double>(iv));
-            break;
-        }
-        case DataEncoding::Int32: {
-            int32_t iv; std::memcpy(&iv, raw_data.data() + fieldOffset, 4);
-            fieldOffset += 4;
-            SetSensorField(data, f.field_path, static_cast<double>(iv));
-            break;
-        }
-        case DataEncoding::Int64: {
-            int64_t iv; std::memcpy(&iv, raw_data.data() + fieldOffset, 8);
-            fieldOffset += 8;
-            SetSensorField(data, f.field_path, static_cast<double>(iv));
-            break;
-        }
-        case DataEncoding::Uint8: {
-            SetSensorField(data, f.field_path, static_cast<double>(raw_data[fieldOffset++]));
-            break;
-        }
-        case DataEncoding::Uint16: {
-            uint16_t uv; std::memcpy(&uv, raw_data.data() + fieldOffset, 2);
-            fieldOffset += 2;
-            SetSensorField(data, f.field_path, static_cast<double>(uv));
-            break;
-        }
-        case DataEncoding::Uint32: {
-            uint32_t uv; std::memcpy(&uv, raw_data.data() + fieldOffset, 4);
-            fieldOffset += 4;
-            SetSensorField(data, f.field_path, static_cast<double>(uv));
-            break;
-        }
-        case DataEncoding::Uint64: {
-            uint64_t uv; std::memcpy(&uv, raw_data.data() + fieldOffset, 8);
-            fieldOffset += 8;
-            SetSensorField(data, f.field_path, static_cast<double>(uv));
-            break;
-        }
-        case DataEncoding::Bool: {
-            SetSensorField(data, f.field_path, static_cast<double>(raw_data[fieldOffset++]));
-            break;
-        }
-        default:
-            fieldOffset += byteSize;
-            break;
-        }
+        double val = readNum(raw_data.data() + fieldOffset, f.encoding);
+        SetSensorField(data, f.field_path, val);
+        fieldOffset += byteSize;
     }
 
     data.is_valid = true;
@@ -732,9 +784,12 @@ class RobotAPI {
 public:
     virtual ~RobotAPI() = default;
 
-    virtual bool Initialize(const std::string& host_ip, int remote_port, int local_port) = 0;
+    virtual bool Initialize(const std::string& host_ip, int remote_port, int local_port, int transport_type = 0) = 0;
     
     virtual bool HardwareInit(int max_retries = 3) = 0;
+
+    // 检查连接状态
+    virtual bool IsConnected() const = 0;
 
     // 获取传感器数据
     virtual SensorData GetSensorData() = 0;

@@ -141,10 +141,17 @@ void RobotStatus::SetActiveMode(const RobotMode* item)
 {
     std::unique_lock<std::shared_mutex> lock(m_StatusMutex);
     m_ActiveMode = item;
-    if (item)
+    if (item) {
         WL_INFO_TAG("ROBOT_STATUS", "Selected item set to: {}", item->name);
-    else
+        if (m_RobotAPI) {
+            m_RobotAPI->SetProtocolConfig(item->protocol_send);
+            m_RobotAPI->SetProtocolReceiveConfig(item->protocol_receive);
+            WL_INFO_TAG("ROBOT_STATUS", "Protocol config injected ({} send fields, {} recv fields)",
+                        item->protocol_send.fields.size(), item->protocol_receive.fields.size());
+        }
+    } else {
         WL_INFO_TAG("ROBOT_STATUS", "Selected item cleared");
+    }
 }
 
 void RobotStatus::SetActiveGamepad(GamepadMapper* gp)
@@ -253,7 +260,7 @@ bool RobotStatus::Link(const RobotCommConfig& cfg)
     Unlink();  // 断开旧连接
     WL_INFO_TAG("ROBOT_STATUS", "Linking to {}:{} (local: {})...", cfg.host_ip, cfg.remote_port, cfg.local_port);
 
-    bool ok = m_RobotAPI->Initialize(cfg.host_ip, cfg.remote_port, cfg.local_port);
+    bool ok = m_RobotAPI->Initialize(cfg.host_ip, cfg.remote_port, cfg.local_port, cfg.transport_type);
     if (ok) {
         m_IsLinked = true;
         WL_INFO_TAG("ROBOT_STATUS", "Linked successfully: {} ({})", cfg.name, cfg.host_ip);
@@ -272,14 +279,27 @@ void RobotStatus::Unlink()
 
 void RobotStatus::SendActuatorData(const ActuatorConfig& data)
 {
-    if (m_IsLinked)
+    if (m_IsLinked) {
         m_RobotAPI->SendActuatorData(data);
+        // 发送后检查连接是否已被硬件层标记为断开
+        if (!m_RobotAPI->IsConnected()) {
+            WL_ERROR_TAG("ROBOT_STATUS", "Connection lost during send — auto-unlinking");
+            Unlink();
+        }
+    }
 }
 
 SensorData RobotStatus::GetSensorData()
 {
-    if (m_IsLinked)
-        return m_RobotAPI->GetSensorData();
+    if (m_IsLinked) {
+        SensorData d = m_RobotAPI->GetSensorData();
+        // 接收后检查连接是否已被硬件层标记为断开
+        if (!m_RobotAPI->IsConnected()) {
+            WL_ERROR_TAG("ROBOT_STATUS", "Connection lost during recv — auto-unlinking");
+            Unlink();
+        }
+        return d;
+    }
     SensorData d; d.is_valid = false; return d;
 }
 

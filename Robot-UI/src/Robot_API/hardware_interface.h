@@ -31,8 +31,9 @@ public:
     HardwareInterface();
     ~HardwareInterface() override;
 
-    bool Initialize(const std::string& host_ip, int remote_port, int local_port) override;
+    bool Initialize(const std::string& host_ip, int remote_port, int local_port, int transport_type = 0) override;
     bool HardwareInit(int max_retries = 3) override;
+    bool IsConnected() const { return m_IsConnected; }
 
     SensorData GetSensorData() override;
     void SendActuatorData(const ActuatorConfig& data) override;
@@ -46,6 +47,7 @@ private:
     std::mutex m_DataMutex;
 
     int m_LocalPort;
+    int m_TransportType = 0;  // 0=UDP, 1=TCP
     bool m_IsConnected;
     std::string m_TargetIP;
     int m_TargetPort;
@@ -54,7 +56,7 @@ private:
     ProtocolReceiveConfig m_ReceiveCfg;    // 用户自定义接收协议
 
 #if defined(_WIN32) || defined(_WIN64)
-    SOCKET m_Socket;
+    SOCKET m_Socket = INVALID_SOCKET;      // TCP/UDP 共用 socket
     sockaddr_in m_RemoteAddr;
 #endif
 

@@ -333,14 +333,14 @@ void Robot_UI_Layer::ApplyUIState(const UIState& st)
 
 void Robot_UI_Layer::GamepadRoutine()
 {
-    WL_INFO_TAG("GAMEPAD", "Gamepad routine started (20Hz)");
+    WL_INFO_TAG("GAMEPAD", "Gamepad routine started (100Hz)");
     unsigned int iteration = 0;
     while (m_Running)
     {
         ++iteration;
-        // Heartbeat every ~2 seconds (40 iterations at 50ms)
+        // Heartbeat every ~1 second (100 iterations at 10ms)
 
-        if (iteration % 40 == 0)
+        if (iteration % 100 == 0)
             WL_TRACE_TAG("GAMEPAD", "Routine heartbeat #{} (linked={})", iteration, m_RobotStatus ? m_RobotStatus->IsLinked() : false);
 
         // Collect key values for sidebar display (UI thread reads via SetKeyValues)
@@ -387,7 +387,7 @@ void Robot_UI_Layer::GamepadRoutine()
                 m_RobotStatus->SendActuatorData(data);
             }
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(50)); // 20Hz
+        std::this_thread::sleep_for(std::chrono::milliseconds(10)); // 100Hz
     }
     WL_INFO_TAG("GAMEPAD", "Gamepad routine stopped");
 }

@@ -429,6 +429,7 @@ void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const RobotComponentM
 
             out << YAML::Key << "include_length" << YAML::Value << p.include_length;
             out << YAML::Key << "checksum" << YAML::Value << static_cast<int>(p.checksum);
+            out << YAML::Key << "big_endian" << YAML::Value << p.big_endian;
 
             auto emitBytes = [&](const char* key, const std::vector<uint8_t>& bytes) {
                 out << YAML::Key << key << YAML::Value << YAML::BeginSeq;
@@ -461,6 +462,7 @@ void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const RobotComponentM
 
             out << YAML::Key << "include_length" << YAML::Value << pr.include_length;
             out << YAML::Key << "checksum" << YAML::Value << static_cast<int>(pr.checksum);
+            out << YAML::Key << "big_endian" << YAML::Value << pr.big_endian;
             out << YAML::Key << "msg_type" << YAML::Value << static_cast<int>(pr.msg_type);
 
             auto emitBytes = [&](const char* key, const std::vector<uint8_t>& bytes) {
@@ -677,6 +679,8 @@ bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, RobotCompon
                 p.include_length = n.as<bool>();
             if (const YAML::Node& n = ps["checksum"]; n.IsDefined())
                 p.checksum = static_cast<ChecksumType>(n.as<int>());
+            if (const YAML::Node& n = ps["big_endian"]; n.IsDefined())
+                p.big_endian = n.as<bool>();
             p.header = readBytes(ps["header"]);
             p.tail   = readBytes(ps["tail"]);
 
@@ -722,6 +726,8 @@ bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, RobotCompon
                 rc.include_length = n.as<bool>();
             if (const YAML::Node& n = pr["checksum"]; n.IsDefined())
                 rc.checksum = static_cast<ChecksumType>(n.as<int>());
+            if (const YAML::Node& n = pr["big_endian"]; n.IsDefined())
+                rc.big_endian = n.as<bool>();
             if (const YAML::Node& n = pr["msg_type"]; n.IsDefined())
                 rc.msg_type = static_cast<uint8_t>(n.as<int>());
             rc.header = readBytes(pr["header"]);

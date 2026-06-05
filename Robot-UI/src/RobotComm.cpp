@@ -111,6 +111,7 @@ void RobotComm::DrawSendFieldConfig(ProtocolSendConfig& cfg, ActuatorConfig& act
             cfg.checksum = (ChecksumType)csIdx;
 
         ImGui::Checkbox("Include Payload Length (2 bytes LE)", &cfg.include_length);
+        ImGui::Checkbox("Big Endian (network byte order)", &cfg.big_endian);
     }
 
     ImGui::Spacing();
@@ -277,6 +278,7 @@ void RobotComm::DrawReceiveFieldConfig(ProtocolReceiveConfig& cfg, const SensorC
             cfg.checksum = (ChecksumType)csIdx;
 
         ImGui::Checkbox("Include Payload Length (2 bytes LE)", &cfg.include_length);
+        ImGui::Checkbox("Big Endian (network byte order)", &cfg.big_endian);
 
         int msgType = cfg.msg_type;
         ImGui::InputInt("Message Type (byte)", &msgType);
