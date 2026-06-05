@@ -212,6 +212,7 @@ bool NodeGraphManager::LoadGraphYaml(const std::string& yamlStr)
 // ============================================================================
 void NodeGraphManager::DrawContent()
 {
-    m_SelectedGraph->Draw(m_EditorCtx);
+    if (m_SelectedGraph)
+        m_SelectedGraph->Draw(m_EditorCtx);
 }
 

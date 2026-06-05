@@ -18,12 +18,12 @@ void RobotStatus::SyncActiveNodeGraph()
     if (!m_NodeGraphManager) return;
     if (m_ActiveNodeGraphIdx < 0 || m_ActiveNodeGraphIdx >= m_NodeGraphManager->GetItemCount()) return;
 
-    // 从 NodeGraphManager 的活跃项中获取图数据 YAML，加载到求值器
     std::string yaml = m_NodeGraphManager->GetGraphYamlForIndex(m_ActiveNodeGraphIdx);
-    if (yaml.empty()) {
-        WL_WARN_TAG("ROBOT_STATUS", "SyncActiveNodeGraph: no graph data for index {}", m_ActiveNodeGraphIdx);
-        return;
-    }
+    if (yaml.empty()) return;
+
+    // Skip if same as last synced
+    if (yaml == m_LastSyncedYaml) return;
+    m_LastSyncedYaml = yaml;
 
     std::unique_lock<std::shared_mutex> lock(m_StatusMutex);
     if (m_GraphEvaluator->LoadGraphData(yaml))
@@ -53,12 +53,11 @@ void RobotStatus::SyncFromManagerSelected()
     if (selIdx < 0 || selIdx >= m_NodeGraphManager->GetItemCount()) return;
 
     std::string yaml = m_NodeGraphManager->GetGraphYamlForIndex(selIdx);
-    if (yaml.empty()) {
-        WL_WARN_TAG("ROBOT_STATUS", "SyncFromManagerSelected: no graph data at index {}", selIdx);
-        return;
-    }
+    if (yaml.empty()) return;
 
-    // 同时更新 RobotStatus 自己的索引
+    if (yaml == m_LastSyncedYaml) return;
+    m_LastSyncedYaml = yaml;
+
     m_ActiveNodeGraphIdx = selIdx;
 
     std::unique_lock<std::shared_mutex> lock(m_StatusMutex);

@@ -87,6 +87,7 @@ private:
     const RobotMode*                            m_ActiveMode    = nullptr;
     GamepadMapper*                              m_ActiveGamepad = nullptr;
     std::unique_ptr<NodeGraph>                  m_GraphEvaluator;
+    std::string                                 m_LastSyncedYaml;  // skip re-sync if unchanged
     std::shared_ptr<const ActuatorConfig>       m_CurrentCommand;
     SensorData                                  m_CurrentSensor;
     bool                                        m_SensorValid   = false;

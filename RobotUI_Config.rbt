@@ -173,106 +173,306 @@ robot_ui_config:
           XBOX: |
             nodes:
               - id: 1
-                type: 0
-                value: 1.52590219e-05
+                type: 42
+                value: 0
                 key_name: LSX
-                factor: 1
-                min_val: 0
-                max_val: 1
-                digital: false
                 op_mode: 0
                 output_target: ""
+                param:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                state_f:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
               - id: 3
-                type: 0
-                value: -1.52590219e-05
+                type: 42
+                value: 0
                 key_name: LSY
-                factor: 1
-                min_val: 0
-                max_val: 1
-                digital: false
                 op_mode: 0
                 output_target: ""
+                param:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                state_f:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
               - id: 5
-                type: 14
-                value: -1.52590219e-05
+                type: 42
+                value: 0
+                key_name: RSX
+                op_mode: 0
+                output_target: ""
+                param:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                state_f:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+              - id: 7
+                type: 42
+                value: 0
+                key_name: RSY
+                op_mode: 0
+                output_target: ""
+                param:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                state_f:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+              - id: 9
+                type: 44
+                value: 0
                 key_name: ""
-                factor: 1
-                min_val: 0
-                max_val: 1
-                digital: false
                 op_mode: 0
                 output_target: motion.x
-              - id: 7
-                type: 14
-                value: 1.52590219e-05
+                param:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                state_f:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+              - id: 11
+                type: 44
+                value: 0
                 key_name: ""
-                factor: 1
-                min_val: 0
-                max_val: 1
-                digital: false
                 op_mode: 0
                 output_target: motion.y
-              - id: 11
-                type: 0
-                value: 1.52590219e-05
-                key_name: RSX
-                factor: 1
-                min_val: 0
-                max_val: 1
-                digital: false
-                op_mode: 0
-                output_target: ""
+                param:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                state_f:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
               - id: 13
-                type: 14
-                value: 1.52590219e-05
+                type: 44
+                value: 0
                 key_name: ""
-                factor: 1
-                min_val: 0
-                max_val: 1
-                digital: false
-                op_mode: 0
-                output_target: motion.rz
-              - id: 17
-                type: 0
-                value: -1.52590219e-05
-                key_name: RSY
-                factor: 1
-                min_val: 0
-                max_val: 1
-                digital: false
-                op_mode: 0
-                output_target: ""
-              - id: 19
-                type: 14
-                value: -1.52590219e-05
-                key_name: ""
-                factor: 1
-                min_val: 0
-                max_val: 1
-                digital: false
                 op_mode: 0
                 output_target: motion.z
-            links:
-              - id: 9
-                from_node: 1
-                from_pin: 0
-                to_node: 7
-                to_pin: 0
+                param:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                state_f:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
               - id: 15
-                from_node: 11
+                type: 44
+                value: 0
+                key_name: ""
+                op_mode: 0
+                output_target: motion.rz
+                param:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                state_f:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+              - id: 21
+                type: 34
+                value: 8
+                key_name: ""
+                op_mode: 0
+                output_target: ""
+                param:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                state_f:
+                  - 8
+                  - 0
+                  - 0
+                  - 0
+              - id: 22
+                type: 42
+                value: 0
+                key_name: A
+                op_mode: 0
+                output_target: ""
+                param:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                state_f:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+              - id: 25
+                type: 42
+                value: 0
+                key_name: B
+                op_mode: 0
+                output_target: ""
+                param:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                state_f:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+              - id: 26
+                type: 20
+                value: 0
+                key_name: ""
+                op_mode: 0
+                output_target: ""
+                param:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                state_f:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+              - id: 29
+                type: 20
+                value: 0
+                key_name: ""
+                op_mode: 0
+                output_target: ""
+                param:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                state_f:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+            links:
+              - id: 17
+                from_node: 7
+                from_pin: 0
+                to_node: 15
+                to_pin: 0
+              - id: 18
+                from_node: 3
                 from_pin: 0
                 to_node: 13
                 to_pin: 0
-              - id: 16
-                from_node: 3
+              - id: 19
+                from_node: 5
                 from_pin: 0
-                to_node: 5
+                to_node: 11
                 to_pin: 0
-              - id: 21
-                from_node: 17
+              - id: 20
+                from_node: 1
                 from_pin: 0
-                to_node: 19
+                to_node: 9
                 to_pin: 0
+              - id: 32
+                from_node: 22
+                from_pin: 0
+                to_node: 29
+                to_pin: 0
+              - id: 33
+                from_node: 25
+                from_pin: 0
+                to_node: 26
+                to_pin: 0
+              - id: 34
+                from_node: 29
+                from_pin: 0
+                to_node: 21
+                to_pin: 0
+              - id: 35
+                from_node: 26
+                from_pin: 0
+                to_node: 21
+                to_pin: 1
         protocol_send:
           include_length: true
           checksum: 1
@@ -608,7 +808,7 @@ robot_ui_config:
     - id: 1
       name: ROV-XBOX
       is_selected: true
-      editor_yaml: "nodes:\n  - id: 1\n    type: 0\n    value: 1.52590219e-05\n    key_name: LSX\n    factor: 1\n    min_val: 0\n    max_val: 1\n    digital: false\n    op_mode: 0\n    output_target: \"\"\n    pos_x: -44\n    pos_y: 172\n  - id: 3\n    type: 0\n    value: -1.52590219e-05\n    key_name: LSY\n    factor: 1\n    min_val: 0\n    max_val: 1\n    digital: false\n    op_mode: 0\n    output_target: \"\"\n    pos_x: -44\n    pos_y: -20\n  - id: 5\n    type: 14\n    value: -1.52590219e-05\n    key_name: \"\"\n    factor: 1\n    min_val: 0\n    max_val: 1\n    digital: false\n    op_mode: 0\n    output_target: motion.x\n    pos_x: 728\n    pos_y: -190\n  - id: 7\n    type: 14\n    value: 1.52590219e-05\n    key_name: \"\"\n    factor: 1\n    min_val: 0\n    max_val: 1\n    digital: false\n    op_mode: 0\n    output_target: motion.y\n    pos_x: 712\n    pos_y: 18\n  - id: 11\n    type: 0\n    value: 1.52590219e-05\n    key_name: RSX\n    factor: 1\n    min_val: 0\n    max_val: 1\n    digital: false\n    op_mode: 0\n    output_target: \"\"\n    pos_x: -44\n    pos_y: 348\n  - id: 13\n    type: 14\n    value: 1.52590219e-05\n    key_name: \"\"\n    factor: 1\n    min_val: 0\n    max_val: 1\n    digital: false\n    op_mode: 0\n    output_target: motion.rz\n    pos_x: 712\n    pos_y: 242\n  - id: 17\n    type: 0\n    value: -1.52590219e-05\n    key_name: RSY\n    factor: 1\n    min_val: 0\n    max_val: 1\n    digital: false\n    op_mode: 0\n    output_target: \"\"\n    pos_x: -44\n    pos_y: 540\n  - id: 19\n    type: 14\n    value: -1.52590219e-05\n    key_name: \"\"\n    factor: 1\n    min_val: 0\n    max_val: 1\n    digital: false\n    op_mode: 0\n    output_target: motion.z\n    pos_x: 712\n    pos_y: 434\nlinks:\n  - id: 9\n    from_node: 1\n    from_pin: 0\n    to_node: 7\n    to_pin: 0\n  - id: 15\n    from_node: 11\n    from_pin: 0\n    to_node: 13\n    to_pin: 0\n  - id: 16\n    from_node: 3\n    from_pin: 0\n    to_node: 5\n    to_pin: 0\n  - id: 21\n    from_node: 17\n    from_pin: 0\n    to_node: 19\n    to_pin: 0\nactive_robot_mode: ROV\nactive_gamepad_mode: XBOX"
+      editor_yaml: "nodes:\n  - id: 1\n    type: 42\n    value: 0\n    key_name: LSX\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: -20\n  - id: 3\n    type: 42\n    value: 0\n    key_name: LSY\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: 332\n  - id: 5\n    type: 42\n    value: 0\n    key_name: RSX\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: 156\n  - id: 7\n    type: 42\n    value: 0\n    key_name: RSY\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: 508\n  - id: 9\n    type: 44\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.x\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 760\n    pos_y: -14\n  - id: 11\n    type: 44\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.y\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 760\n    pos_y: 146\n  - id: 13\n    type: 44\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.z\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 757\n    pos_y: 322\n  - id: 15\n    type: 44\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.rz\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 757\n    pos_y: 498\n  - id: 21\n    type: 34\n    value: 8\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 8\n      - 0\n      - 0\n      - 0\n    pos_x: 765\n    pos_y: -286\n  - id: 22\n    type: 42\n    value: 0\n    key_name: A\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: -340\n  - id: 25\n    type: 42\n    value: 0\n    key_name: B\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: -180\n  - id: 26\n    type: 20\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 369\n    pos_y: -188\n  - id: 29\n    type: 20\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 369\n    pos_y: -364\nlinks:\n  - id: 17\n    from_node: 7\n    from_pin: 0\n    to_node: 15\n    to_pin: 0\n  - id: 18\n    from_node: 3\n    from_pin: 0\n    to_node: 13\n    to_pin: 0\n  - id: 19\n    from_node: 5\n    from_pin: 0\n    to_node: 11\n    to_pin: 0\n  - id: 20\n    from_node: 1\n    from_pin: 0\n    to_node: 9\n    to_pin: 0\n  - id: 32\n    from_node: 22\n    from_pin: 0\n    to_node: 29\n    to_pin: 0\n  - id: 33\n    from_node: 25\n    from_pin: 0\n    to_node: 26\n    to_pin: 0\n  - id: 34\n    from_node: 29\n    from_pin: 0\n    to_node: 21\n    to_pin: 0\n  - id: 35\n    from_node: 26\n    from_pin: 0\n    to_node: 21\n    to_pin: 1\nactive_robot_mode: ROV\nactive_gamepad_mode: XBOX"
     - id: 2
       name: Item_2
       is_selected: false

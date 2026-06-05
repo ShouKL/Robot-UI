@@ -4,10 +4,11 @@
 // NodeGraph — pure data model + evaluation for the node graph.
 // No UI dependencies (no ImGui drawing, no ed:: API calls in interface).
 // Used by both NodeEditor (visual editing) and RobotStatus (runtime execution).
+// Depends on NodeLibrary for PinType, EditorPin, NodeType, EditorNode.
 // ============================================================================
 
+#include "NodeLibrary.h"
 #include "Robot_API/robot_api.h"
-#include <imgui.h>
 #include <imgui_node_editor.h>   // only for ed::NodeId / ed::PinId / ed::LinkId types
 #include <vector>
 #include <string>
@@ -17,85 +18,13 @@
 #include <shared_mutex>
 #include <mutex>
 
+namespace Walnut { class Image; }
+
 class RobotComponentManager;
 class GamepadMapperManager;
 
 // ============================================================================
-// PinType
-// ============================================================================
-enum class PinType
-{
-    Float,
-};
-
-// ============================================================================
-// Forward declaration
-// ============================================================================
-struct EditorNode;
-
-// ============================================================================
-// Pin — one input or output connector on a node
-// ============================================================================
-struct EditorPin
-{
-    ax::NodeEditor::PinId   ID;
-    EditorNode*             Node = nullptr;
-    std::string             Name;
-    PinType                 Type = PinType::Float;
-
-    EditorPin(int id, const char* name, PinType type = PinType::Float)
-        : ID(id), Name(name), Type(type) {}
-};
-
-// ============================================================================
-// Node
-// ============================================================================
-enum class NodeType
-{
-    KeySource,
-    ConstValue,
-    Add,
-    Subtract,
-    Multiply,
-    Divide,
-    Scale,
-    Clamp,
-    Compare,
-    And,
-    Or,
-    Not,
-    If,
-    While,
-    CustomOutput,
-};
-
-struct EditorNode
-{
-    ax::NodeEditor::NodeId  ID;
-    std::string             Name;
-    NodeType                Type = NodeType::ConstValue;
-    std::vector<EditorPin>  Inputs;
-    std::vector<EditorPin>  Outputs;
-    ImColor                 Color = ImColor(255, 255, 255);
-
-    // -- evaluation data --
-    float Value     = 0.0f;
-    float InputA    = 0.0f;
-    float InputB    = 0.0f;
-    float Factor    = 1.0f;
-    float MinVal    = 0.0f;
-    float MaxVal    = 1.0f;
-    bool  Digital   = false;   // KeySource: clamp output to 0 or 1
-    int   OpMode    = 0;       // Compare: 0=> 1=>= 2=<= 3=< 4=>= 5=!=
-    std::string KeyName;
-    std::string OutputTarget;
-
-    EditorNode(int id, const char* name, NodeType type, ImColor color = ImColor(255, 255, 255))
-        : ID(id), Name(name), Type(type), Color(color) {}
-};
-
-// ============================================================================
-// Link
+// EditorLink — a connection between two pins
 // ============================================================================
 struct EditorLink
 {
@@ -130,29 +59,14 @@ class NodeGraph
 {
 public:
     NodeGraph();
-    ~NodeGraph() = default;
+    ~NodeGraph();
 
     // ---- Node/Link data (public for direct iteration by editor) ----
     std::vector<EditorNode>  m_Nodes;
     std::vector<EditorLink>  m_Links;
 
-    // ---- Spawn factories ----
+    // ---- Spawn factory (delegates to NodeLibrary::CreateEditorNodeByType) ----
     EditorNode* SpawnNode(NodeType type);
-    EditorNode* SpawnKeySource();
-    EditorNode* SpawnConstValue();
-    EditorNode* SpawnAdd();
-    EditorNode* SpawnSubtract();
-    EditorNode* SpawnMultiply();
-    EditorNode* SpawnDivide();
-    EditorNode* SpawnScale();
-    EditorNode* SpawnClamp();
-    EditorNode* SpawnCompare();
-    EditorNode* SpawnAnd();
-    EditorNode* SpawnOr();
-    EditorNode* SpawnNot();
-    EditorNode* SpawnIf();
-    EditorNode* SpawnWhile();
-    EditorNode* SpawnOutput();
 
     void BuildNode(EditorNode* node);
     void RebuildAllNodes();
@@ -210,7 +124,7 @@ public:
 
     // ---- Evaluation ----
     // Pure compute — thread-safe, no member mutation
-    std::map<std::string, float> EvaluateCompute(const std::map<std::string, float>& keyValues) const;
+    std::map<std::string, float> EvaluateCompute(const std::map<std::string, float>& keyValues);
     // Thread-safe read-only evaluation
     std::map<std::string, float> Evaluate(const std::map<std::string, float>& keyValues);
     // Evaluate and write outputs into ActuatorConfig
@@ -228,11 +142,7 @@ public:
     // ---- Per-node widget drawing ----
     void DrawNodeContents(EditorNode& node,
                           const std::set<std::string>& analogKeys,
-                          const std::vector<OutputTargetInfo>& outputTargets,
-                          ax::NodeEditor::NodeId& keySourcePopupNodeId,
-                          bool& keySourcePopupRequested,
-                          ax::NodeEditor::NodeId& outputComboNodeId,
-                          bool& outputComboRequested);
+                          const std::vector<OutputTargetInfo>& outputTargets);
     void DrawMenuBar();
     void DrawKeyValuesSidebar(float sideWidth, const std::set<std::string>& analogKeys);
 
@@ -242,6 +152,11 @@ public:
 
     // ---- Modified flag ----
     void SetModified(bool v) { m_Modified = v; }
+
+    // ---- Run control (play/stop evaluation) ----
+    bool IsRunning() const { return m_IsRunning; }
+    void SetRunning(bool r) { m_IsRunning = r; }
+    void ToggleRunning()    { m_IsRunning = !m_IsRunning; }
 
     // ---- Active mode names (for graph map key) ----
     const std::string& GetActiveRobotModeName()   const { return m_ActiveRobotModeName; }
@@ -269,11 +184,11 @@ private:
     std::string                        m_ActiveGamepadModeName;
 
     // ---- Editor UI data ----
-    bool m_OutputComboRequested = false;
-    ax::NodeEditor::NodeId m_OutputComboNodeId = 0;
-    bool m_KeySourcePopupRequested = false;
-    ax::NodeEditor::NodeId m_KeySourcePopupNodeId = 0;
-
+    bool m_IsRunning = false;
+    std::shared_ptr<Walnut::Image> m_PlayIcon;
+    std::shared_ptr<Walnut::Image> m_StopIcon;
+    ax::NodeEditor::NodeId m_ActiveKeySourceId = 0;  // last-clicked KeySource node
+    ax::NodeEditor::NodeId m_ActiveOutputId    = 0;  // last-clicked CustomOutput node
     RobotComponentManager* m_RobotMgr = nullptr;
     GamepadMapperManager*  m_GamepadMgr = nullptr;
 
@@ -288,12 +203,8 @@ private:
 };
 
 // ============================================================================
-// Free functions (shared by NodeGraph and NodeEditor)
+// Free functions (stay in NodeGraph — depend on robot_api.h types)
 // ============================================================================
-const char* GetNodeTitle(NodeType type);
-ImColor     GetNodeHeaderColor(NodeType type);
-ImColor     GetIconColor(PinType type);
-void        DrawPinIcon(const EditorPin& pin, bool connected, int alpha);
 void        WriteOutputToActuator(const std::string& outputTarget, float value, ActuatorConfig& data);
 std::vector<OutputTargetInfo> BuildOutputTargetsFromProtocol(const ProtocolSendConfig& cfg, const ActuatorConfig& actuator);
 
