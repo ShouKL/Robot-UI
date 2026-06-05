@@ -1,8 +1,12 @@
 #include "RobotStatus.h"
 #include "GamepadMapper.h"
+#include "GamepadMapperManager.h"
 #include "LiveStreamManager.h"
 #include "NodeGraphManager.h"
 #include "RobotCommManager.h"
+#include "RobotComponentManager.h"
+#include <cstring>
+#include <yaml-cpp/yaml.h>
 
 RobotStatus::RobotStatus()
 {
@@ -66,6 +70,64 @@ void RobotStatus::SyncFromManagerSelected()
                     selIdx, m_NodeGraphManager->GetItemNameBuf(selIdx));
     else
         WL_WARN_TAG("ROBOT_STATUS", "Failed to parse graph from Manager selected #{}", selIdx);
+}
+
+// ---- 从当前选中的 NodeGraph 推导 ActiveMode / ActiveGamepad / ActiveComm ----
+void RobotStatus::DeriveActiveFromNodeGraph()
+{
+    if (!m_NodeGraphManager) return;
+    if (m_ActiveNodeGraphIdx < 0 || m_ActiveNodeGraphIdx >= m_NodeGraphManager->GetItemCount()) return;
+
+    std::string yaml = m_NodeGraphManager->GetGraphYamlForIndex(m_ActiveNodeGraphIdx);
+    if (yaml.empty()) return;
+
+    try {
+        YAML::Node root = YAML::Load(yaml);
+
+        // 推导 Component（通过 active_robot_mode 名称匹配）
+        if (m_RobotComponentManager && root["active_robot_mode"]) {
+            std::string modeName = root["active_robot_mode"].as<std::string>();
+            if (!modeName.empty()) {
+                auto& comps = m_RobotComponentManager->GetComponents();
+                for (auto& c : comps) {
+                    if (std::strcmp(c.component.name, modeName.c_str()) == 0) {
+                        SetActiveMode(&c.component);
+                        WL_INFO_TAG("ROBOT_STATUS", "Derived ActiveMode '{}' from NodeGraph #{}",
+                                    modeName, m_ActiveNodeGraphIdx);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 推导 Gamepad（通过 active_gamepad_mode 名称匹配）
+        if (m_GamepadMapperManager && root["active_gamepad_mode"]) {
+            std::string gpName = root["active_gamepad_mode"].as<std::string>();
+            if (!gpName.empty()) {
+                auto& mappers = m_GamepadMapperManager->GetMappers();
+                for (auto& gm : mappers) {
+                    if (std::strcmp(gm.name, gpName.c_str()) == 0) {
+                        SetActiveGamepad(&gm);
+                        WL_INFO_TAG("ROBOT_STATUS", "Derived ActiveGamepad '{}' from NodeGraph #{}",
+                                    gpName, m_ActiveNodeGraphIdx);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 推导 Comm
+        if (m_RobotCommManager && root["comm_index"]) {
+            int commIdx = root["comm_index"].as<int>();
+            if (commIdx >= 0 && commIdx < m_RobotCommManager->GetItemCount()) {
+                SetActiveCommIdx(commIdx);
+                WL_INFO_TAG("ROBOT_STATUS", "Derived ActiveComm #{} from NodeGraph #{}", commIdx, m_ActiveNodeGraphIdx);
+            }
+        }
+    }
+    catch (const std::exception& e) {
+        WL_WARN_TAG("ROBOT_STATUS", "DeriveActiveFromNodeGraph YAML parse failed: {}", e.what());
+    }
 }
 
 RobotStatus::~RobotStatus()
@@ -223,11 +285,15 @@ SensorData RobotStatus::GetSensorData()
 
 void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
                               LiveStreamManager* liveStreamMgr,
-                              NodeGraphManager* nodeGraphMgr)
+                              NodeGraphManager* nodeGraphMgr,
+                              RobotComponentManager* compMgr,
+                              GamepadMapperManager* gpMgr)
 {
-    // 缓存 Manager 指针（每帧刷新，供 SyncActiveNodeGraph 等使用）
-    m_NodeGraphManager = nodeGraphMgr;
-    m_RobotCommManager = commManager;
+    // 缓存 Manager 指针（每帧刷新，供 SyncActiveNodeGraph / DeriveActiveFromNodeGraph 等使用）
+    m_NodeGraphManager        = nodeGraphMgr;
+    m_RobotCommManager        = commManager;
+    m_RobotComponentManager   = compMgr;
+    m_GamepadMapperManager    = gpMgr;
 
     // 响应外部请求（如 RestoreRobotStatusActive 后）同步 NodeGraph
     if (m_NeedsNodeGraphSync) {
@@ -277,7 +343,8 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
                 if (ImGui::Selectable(nodeGraphMgr->GetItemNameBuf(i), sel)) {
                     if (i != m_ActiveNodeGraphIdx) {
                         m_ActiveNodeGraphIdx = i;
-                        SyncActiveNodeGraph();  // 切换 NodeGraph 时立即同步到求值器
+                        SyncActiveNodeGraph();         // 同步图数据到求值器
+                        DeriveActiveFromNodeGraph();   // 从 NodeGraph 推导 ActiveMode / ActiveGamepad / Comm
                     }
                 }
                 if (sel) ImGui::SetItemDefaultFocus();
@@ -286,7 +353,7 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
         }
     }
 
-    // ---- Apply & Connect 按钮 ----
+    // ---- Connect / Disconnect 按钮（Comm 由 NodeGraph 确定，不暴露下拉框）----
     if (commManager && commManager->GetItemCount() > 0)
     {
         if (m_ActiveCommIdx >= commManager->GetItemCount())
@@ -296,29 +363,6 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
         bool linked = m_IsLinked;
         ImVec4 statusColor = linked ? ImVec4(0.3f, 1.0f, 0.3f, 1.0f) : ImVec4(1.0f, 0.5f, 0.0f, 1.0f);
         ImGui::TextColored(statusColor, "Status: %s", linked ? "Linked" : "Disconnected");
-
-        ImGui::SetNextItemWidth(-1);
-        const char* preview = commManager->GetItemNameBuf(m_ActiveCommIdx);
-        if (ImGui::BeginCombo("##CommActive", preview))
-        {
-            for (int i = 0; i < commManager->GetItemCount(); ++i)
-            {
-                bool sel = (i == m_ActiveCommIdx);
-                if (ImGui::Selectable(commManager->GetItemNameBuf(i), sel)) {
-                    if (i != m_ActiveCommIdx) {
-                        m_ActiveCommIdx = i;
-                        // 切换 Comm 时若已连接则自动重连
-                        if (m_IsLinked) {
-                            auto items = commManager->GetAllItems();
-                            if (i >= 0 && i < (int)items.size())
-                                Link(items[i]);
-                        }
-                    }
-                }
-                if (sel) ImGui::SetItemDefaultFocus();
-            }
-            ImGui::EndCombo();
-        }
 
         if (!linked)
         {
@@ -334,6 +378,38 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
             if (ImGui::Button("Disconnect", ImVec2(-1, 0)))
                 Unlink();
         }
+    }
+
+    // ---- 当前 Active 项一览 ----
+    {
+        ImGui::Spacing();
+        ImGui::TextDisabled("Active Items:");
+
+        const RobotMode* mode = nullptr;
+        GamepadMapper* gp = nullptr;
+        {
+            std::shared_lock lock(m_StatusMutex);
+            mode = m_ActiveMode;
+            gp = m_ActiveGamepad;
+        }
+
+        ImGui::Text("  Component:    %s", mode ? mode->name : "(none)");
+        ImGui::Text("  Gamepad:      %s", gp ? gp->name : "(none)");
+
+        if (nodeGraphMgr && m_ActiveNodeGraphIdx < nodeGraphMgr->GetItemCount())
+            ImGui::Text("  NodeGraph:    %s", nodeGraphMgr->GetItemNameBuf(m_ActiveNodeGraphIdx));
+        else
+            ImGui::Text("  NodeGraph:    (none)");
+
+        if (liveStreamMgr && m_ActiveLiveStreamIdx < liveStreamMgr->GetItemCount())
+            ImGui::Text("  LiveStream:   %s", liveStreamMgr->GetItemNameBuf(m_ActiveLiveStreamIdx));
+        else
+            ImGui::Text("  LiveStream:   (none)");
+
+        if (commManager && m_ActiveCommIdx < commManager->GetItemCount())
+            ImGui::Text("  Comm Config:  %s", commManager->GetItemNameBuf(m_ActiveCommIdx));
+        else
+            ImGui::Text("  Comm Config:  (none)");
     }
 
     ImGui::Separator();

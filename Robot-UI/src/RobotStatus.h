@@ -1,8 +1,10 @@
 #pragma once
 
 class GamepadMapper;
+class GamepadMapperManager;
 class LiveStreamManager;
 class NodeGraphManager;
+class RobotComponentManager;
 
 #include "Robot_API/robot_api.h"
 #include "Robot_API/hardware_interface.h"
@@ -74,7 +76,9 @@ public:
     // ---- UI ----
     void DrawWindow(bool* p_open, RobotCommManager* commManager = nullptr,
                     LiveStreamManager* liveStreamMgr = nullptr,
-                    NodeGraphManager* nodeGraphMgr = nullptr);
+                    NodeGraphManager* nodeGraphMgr = nullptr,
+                    RobotComponentManager* compMgr = nullptr,
+                    GamepadMapperManager* gpMgr = nullptr);
 
     // ---- 同步 RobotStatus 的 active 选择到实际行为 ----
     void SyncActiveNodeGraph();
@@ -82,6 +86,9 @@ public:
     void SyncFromManagerIfLive();    // 若 live sync 模式开启则实时同步
     void RequestNodeGraphSync() { m_NeedsNodeGraphSync = true; }
     void EnableLiveSync(bool enable);
+
+    // ---- 从当前选中的 NodeGraph 推导 ActiveMode / ActiveGamepad / ActiveComm ----
+    void DeriveActiveFromNodeGraph();
 
 private:
     const RobotMode*                            m_ActiveMode    = nullptr;
@@ -113,8 +120,10 @@ private:
     bool                                m_IsLinked = false;
 
     // 外部 Manager 引用（用于同步 active 选择到实际行为）
-    NodeGraphManager* m_NodeGraphManager = nullptr;
-    RobotCommManager* m_RobotCommManager = nullptr;
+    NodeGraphManager*       m_NodeGraphManager        = nullptr;
+    RobotCommManager*       m_RobotCommManager        = nullptr;
+    RobotComponentManager*  m_RobotComponentManager   = nullptr;
+    GamepadMapperManager*   m_GamepadMapperManager    = nullptr;
 
     // 标记：下次 DrawWindow 时需要同步 NodeGraph
     bool m_NeedsNodeGraphSync = true;  // 初始为 true，首次 Draw 时同步

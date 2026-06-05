@@ -2,6 +2,7 @@
 #include "NodeGraphManager.h"
 #include "RobotComponentManager.h"
 #include "GamepadMapperManager.h"
+#include "RobotCommManager.h"
 #include "Walnut/Core/Log.h"
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -20,8 +21,9 @@ void NodeGraphManager::AddItem()
     item.id = NextId();
     snprintf(item.name, sizeof(item.name), "Item_%d", item.id);
     item.graph = std::make_unique<NodeGraph>();
-    if (m_RobotMgr)  item.graph->SetRobotComponentManager(m_RobotMgr);
-    if (m_GamepadMgr) item.graph->SetGamepadMapperManager(m_GamepadMgr);
+    if (m_RobotMgr)     item.graph->SetRobotComponentManager(m_RobotMgr);
+    if (m_GamepadMgr)   item.graph->SetGamepadMapperManager(m_GamepadMgr);
+    if (m_RobotCommMgr) item.graph->SetRobotCommManager(m_RobotCommMgr);
     m_Items.push_back(std::move(item));
     if (m_Items.size() == 1) {
         m_SelectedIndex = 0;
@@ -68,16 +70,20 @@ void NodeGraphManager::SaveCurrentToItem()
         auto& item = m_Items[m_SelectedIndex];
         item.editorYaml = GetGraphYaml();
         item.graph->LoadGraphData(item.editorYaml);
+        item.comm_index = m_SelectedGraph->GetCommIndex();
     }
 }
 
 void NodeGraphManager::LoadItemToCurrent()
 {
     if (m_SelectedIndex >= 0 && m_SelectedIndex < (int)m_Items.size()) {
-        m_SelectedGraph = m_Items[m_SelectedIndex].graph.get();
+        auto& item = m_Items[m_SelectedIndex];
+        m_SelectedGraph = item.graph.get();
+        m_SelectedGraph->SetCommIndex(item.comm_index);
         // 重新注入依赖到新选中的 graph
-        if (m_RobotMgr)  m_SelectedGraph->SetRobotComponentManager(m_RobotMgr);
-        if (m_GamepadMgr) m_SelectedGraph->SetGamepadMapperManager(m_GamepadMgr);
+        if (m_RobotMgr)     m_SelectedGraph->SetRobotComponentManager(m_RobotMgr);
+        if (m_GamepadMgr)   m_SelectedGraph->SetGamepadMapperManager(m_GamepadMgr);
+        if (m_RobotCommMgr) m_SelectedGraph->SetRobotCommManager(m_RobotCommMgr);
         // mode name 从 YAML 中恢复（GetGraphYaml 已序列化）
         LoadGraphYaml(m_Items[m_SelectedIndex].editorYaml);
     }
@@ -96,6 +102,12 @@ NodeGraphManager::NodeGraphManager()
     m_Items[0].isSelected = true;
     m_SelectedGraph = m_Items[0].graph.get();
     ed::SetCurrentEditor(nullptr);  // clear global context — DrawContent sets it on open
+}
+
+void NodeGraphManager::SetRobotCommManager(RobotCommManager* comm)
+{
+    m_RobotCommMgr = comm;
+    if (m_SelectedGraph) m_SelectedGraph->SetRobotCommManager(comm);
 }
 
 NodeGraphManager::~NodeGraphManager()
@@ -143,6 +155,7 @@ std::vector<GraphItem> NodeGraphManager::GetAllItems() const
         strncpy_s(clone.name, it.name, sizeof(clone.name) - 1);
         clone.graph = it.graph->Clone();
         clone.editorYaml = it.editorYaml;
+        clone.comm_index = it.comm_index;
         snap.push_back(std::move(clone));
     }
     return snap;
@@ -166,6 +179,7 @@ void NodeGraphManager::LoadItems(const std::vector<GraphItem>& items)
             if (m_GamepadMgr) item.graph->SetGamepadMapperManager(m_GamepadMgr);
         }
         item.editorYaml = src.editorYaml;
+        item.comm_index = src.comm_index;
         m_Items.push_back(std::move(item));
     }
     if (m_Items.empty()) {

@@ -40,12 +40,8 @@ void RobotSettingPanel::ApplyEdit()
     // 关闭 live sync，回到 RobotStatus 自己的 active 图
     if (m_RobotStatus) {
         m_RobotStatus->EnableLiveSync(false);
-        m_RobotStatus->SyncActiveNodeGraph();
-        auto* gm = m_GamepadMapperManager->GetSelectedMapper();
-        if (gm) m_RobotStatus->SetActiveGamepad(gm);
+        RestoreRobotStatusActive();
     }
-    m_SavedActiveMode    = nullptr;
-    m_SavedActiveGamepad = nullptr;
     EditDraftBase::ApplyEdit();
 }
 
@@ -142,22 +138,36 @@ void RobotSettingPanel::Draw(bool* p_open)
 
     {
         static int s_LastSelectedId = -1;
-        if (s_LastSelectedId != 2 && m_selected_id == 2) {
-            m_NodeGraphManager->RequestNavigate();
-            // 调试：切到 NodeGraph 时，同步全局 active gamepad
-            auto* gm = m_GamepadMapperManager->GetSelectedMapper();
-            if (m_RobotStatus && gm) m_RobotStatus->SetActiveGamepad(gm);
+        if (s_LastSelectedId != m_selected_id) {
+            if (m_selected_id == 2)
+                m_NodeGraphManager->RequestNavigate();
+            SyncActiveItems(m_selected_id);
+            s_LastSelectedId = m_selected_id;
         }
-        s_LastSelectedId = m_selected_id;
 
-        // 调试：GamepadMapper 中切换 item 时立即同步 active gamepad
-        if (m_selected_id == 1) {
-            int curIdx = m_GamepadMapperManager->GetSelectedIndex();
-            if (curIdx != m_LastGamepadIndex) {
-                m_LastGamepadIndex = curIdx;
-                auto* gm = m_GamepadMapperManager->GetSelectedMapper();
-                if (m_RobotStatus && gm) m_RobotStatus->SetActiveGamepad(gm);
-            }
+        // 统一策略：每帧检测选中项变化 → 重新同步（处理跨组件依赖）
+        int curComponentIdx = m_RobotComponentManager->GetSelectedIndex();
+        int curGamepadIdx   = m_GamepadMapperManager->GetSelectedIndex();
+        int curNodeGraphIdx = m_NodeGraphManager->GetSelectedIndex();
+        int curLiveStreamIdx = -1;
+        for (int i = 0; i < m_LiveStreamManager->GetItemCount(); ++i)
+            if (m_LiveStreamManager->IsItemSelected(i)) { curLiveStreamIdx = i; break; }
+        int curCommIdx = -1;
+        for (int i = 0; i < m_RobotCommManager->GetItemCount(); ++i)
+            if (m_RobotCommManager->IsItemSelected(i)) { curCommIdx = i; break; }
+
+        if (curComponentIdx != m_LastComponentIdx ||
+            curGamepadIdx   != m_LastGamepadIndex ||
+            curNodeGraphIdx != m_LastNodeGraphIdx ||
+            curLiveStreamIdx != m_LastLiveStreamIdx ||
+            curCommIdx      != m_LastCommIdx)
+        {
+            SyncActiveItems(m_selected_id);
+            m_LastComponentIdx  = curComponentIdx;
+            m_LastGamepadIndex  = curGamepadIdx;
+            m_LastNodeGraphIdx  = curNodeGraphIdx;
+            m_LastLiveStreamIdx  = curLiveStreamIdx;
+            m_LastCommIdx        = curCommIdx;
         }
 
         if (ImGui::BeginChild("RSSDetail", ImVec2(0, availableHeight), false, ImGuiWindowFlags_NoScrollbar))
@@ -186,37 +196,109 @@ void RobotSettingPanel::Draw(bool* p_open)
 }
 
 // ============================================================================
-// 保存/恢复 RobotStatus 的 active 状态（调试用）
+// 保存/恢复 — BASE 仅取自 Status 的 LiveStream + NodeGraph 选择
 // ============================================================================
 void RobotSettingPanel::SaveRobotStatusActive()
 {
     if (!m_RobotStatus) return;
-    m_SavedActiveMode     = m_RobotStatus->GetActiveModePtr();
-    m_SavedActiveGamepad  = m_RobotStatus->GetActiveGamepadPtr();
     m_SavedLiveStreamIdx  = m_RobotStatus->GetActiveLiveStreamIdx();
     m_SavedNodeGraphIdx   = m_RobotStatus->GetActiveNodeGraphIdx();
-    m_SavedCommIdx        = m_RobotStatus->GetActiveCommIdx();
-    WL_INFO_TAG("CONFIG", "RobotStatus active state saved (mode={}, gamepad={}, ls={}, ng={}, comm={})",
-        m_SavedActiveMode ? m_SavedActiveMode->name : "null",
-        m_SavedActiveGamepad ? m_SavedActiveGamepad->name : "null",
-        m_SavedLiveStreamIdx, m_SavedNodeGraphIdx, m_SavedCommIdx);
+    WL_INFO_TAG("CONFIG", "Saved BASE: ls={}, ng={}", m_SavedLiveStreamIdx, m_SavedNodeGraphIdx);
 }
 
 void RobotSettingPanel::RestoreRobotStatusActive()
 {
     if (!m_RobotStatus) return;
-    if (m_SavedActiveMode)
-        m_RobotStatus->SetActiveMode(m_SavedActiveMode);
-    if (m_SavedActiveGamepad)
-        m_RobotStatus->SetActiveGamepad(m_SavedActiveGamepad);
+    // 恢复 Status 中保存的 LiveStream 和 NodeGraph 选择
     m_RobotStatus->SetActiveLiveStreamIdx(m_SavedLiveStreamIdx);
     m_RobotStatus->SetActiveNodeGraphIdx(m_SavedNodeGraphIdx);
-    m_RobotStatus->SetActiveCommIdx(m_SavedCommIdx);
-    m_RobotStatus->RequestNodeGraphSync();  // 下一帧 DrawWindow 时触发同步
-    WL_INFO_TAG("CONFIG", "RobotStatus active state restored (mode={}, gamepad={}, ls={}, ng={}, comm={})",
-        m_SavedActiveMode ? m_SavedActiveMode->name : "null",
-        m_SavedActiveGamepad ? m_SavedActiveGamepad->name : "null",
-        m_SavedLiveStreamIdx, m_SavedNodeGraphIdx, m_SavedCommIdx);
-    m_SavedActiveMode    = nullptr;
-    m_SavedActiveGamepad = nullptr;
+    // 确保 NodeGraphManager 选中项指向保存的 NodeGraph（用于后续推导）
+    m_NodeGraphManager->SetSelectedIndex(m_SavedNodeGraphIdx);
+    // 从保存的 NodeGraph 重新推导 Component, Gamepad, Comm（由 RobotStatus 统一处理）
+    m_RobotStatus->DeriveActiveFromNodeGraph();
+    m_RobotStatus->RequestNodeGraphSync();
+    WL_INFO_TAG("CONFIG", "Restored BASE: ls={}, ng={}", m_SavedLiveStreamIdx, m_SavedNodeGraphIdx);
+}
+
+// ============================================================================
+// 统一策略：SyncActiveItems
+//
+// BASE（来自 Status 窗口的选择）:
+//   LiveStream  = m_SavedLiveStreamIdx
+//   NodeGraph   = m_SavedNodeGraphIdx
+//   Component/Gamepad/Comm = 由 RobotStatus::DeriveActiveFromNodeGraph() 推导
+//
+// OVERRIDE（当前标签页）:
+//   标签页组件 Active = 对应 Manager 当前选中项
+//   RobotComm/NodeGraph/GamepadMapper 标签页还需跨组件同步 RobotComponent
+// ============================================================================
+void RobotSettingPanel::SyncActiveItems(int tabId)
+{
+    if (!m_RobotStatus) return;
+
+    // ======== BASE: 恢复 Status 选择 + 从 NodeGraph 推导 ========
+    m_RobotStatus->SetActiveLiveStreamIdx(m_SavedLiveStreamIdx);
+    m_RobotStatus->SetActiveNodeGraphIdx(m_SavedNodeGraphIdx);
+    m_RobotStatus->DeriveActiveFromNodeGraph();
+
+    // ======== OVERRIDE: 当前标签页 Active = Manager 选中项 ========
+    switch (tabId)
+    {
+    case 0: // Component
+        {
+            auto* comp = m_RobotComponentManager->GetSelectedComponent();
+            if (comp)
+                m_RobotStatus->SetActiveMode(&comp->component);
+        }
+        break;
+
+    case 1: // GamepadMapper
+        {
+            auto* gm = m_GamepadMapperManager->GetSelectedMapper();
+            if (gm) {
+                m_RobotStatus->SetActiveGamepad(gm);
+                // 跨组件：RobotComponent Active = gamepad_mapping_Mode 匹配项
+                auto& comps = m_RobotComponentManager->GetComponents();
+                for (auto& c : comps) {
+                    if (std::strcmp(c.component.gamepad_mapping_Mode.c_str(), gm->name) == 0) {
+                        m_RobotStatus->SetActiveMode(&c.component);
+                        break;
+                    }
+                }
+            }
+        }
+        break;
+
+    case 2: // NodeGraph
+        {
+            // 已在 BASE 中从 NodeGraph 推导，但需确保用最新的选中图
+            m_RobotStatus->SetActiveNodeGraphIdx(m_NodeGraphManager->GetSelectedIndex());
+            m_RobotStatus->DeriveActiveFromNodeGraph();
+        }
+        break;
+
+    case 3: // LiveStream
+        {
+            for (int i = 0; i < m_LiveStreamManager->GetItemCount(); ++i)
+                if (m_LiveStreamManager->IsItemSelected(i)) {
+                    m_RobotStatus->SetActiveLiveStreamIdx(i);
+                    break;
+                }
+        }
+        break;
+
+    case 4: // RobotComm
+        {
+            for (int i = 0; i < m_RobotCommManager->GetItemCount(); ++i)
+                if (m_RobotCommManager->IsItemSelected(i)) {
+                    m_RobotStatus->SetActiveCommIdx(i);
+                    break;
+                }
+            // 跨组件：RobotComponent Active = RobotComm 界面选择的 Component
+            auto* comp = m_RobotComponentManager->GetSelectedComponent();
+            if (comp)
+                m_RobotStatus->SetActiveMode(&comp->component);
+        }
+        break;
+    }
 }

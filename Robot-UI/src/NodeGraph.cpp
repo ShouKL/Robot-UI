@@ -2,6 +2,7 @@
 #include "NodeGraph.h"
 #include "RobotComponentManager.h"
 #include "GamepadMapperManager.h"
+#include "RobotCommManager.h"
 #include "Walnut/Core/Log.h"
 #include <yaml-cpp/yaml.h>
 #include <imgui_internal.h>
@@ -395,6 +396,10 @@ std::string NodeGraph::GetGraphDataYaml() const
         out << YAML::EndMap;
     }
     out << YAML::EndSeq;
+
+    out << YAML::Key << "active_robot_mode"   << YAML::Value << m_ActiveRobotModeName;
+    out << YAML::Key << "active_gamepad_mode" << YAML::Value << m_ActiveGamepadModeName;
+    out << YAML::Key << "comm_index"          << YAML::Value << m_CommIndex;
 
     out << YAML::EndMap;
     return out.c_str();
@@ -949,13 +954,8 @@ void NodeGraph::Draw(ax::NodeEditor::EditorContext* editorCtx)
     DrawMenuBar();
 
     // -------- Pull data from managers --------
-    std::vector<std::string> robotModeNames;
     std::vector<std::string> gamepadModeNames;
     {
-        if (m_RobotMgr) {
-            for (const auto& c : m_RobotMgr->GetComponents())
-                robotModeNames.push_back(c.component.name);
-        }
         if (m_GamepadMgr) {
             for (const auto& gm : m_GamepadMgr->GetMappers())
                 gamepadModeNames.push_back(gm.name);
@@ -999,33 +999,11 @@ void NodeGraph::Draw(ax::NodeEditor::EditorContext* editorCtx)
 
     // -------- item selector --------
     {
-        if (!robotModeNames.empty())
-        {
-            ImGui::TextUnformatted("RobotComm:");
-            ImGui::SameLine();
-            ImGui::SetNextItemWidth(160);
-            int selectedRobotIdx = 0;
-            for (int i = 0; i < (int)robotModeNames.size(); ++i) {
-                if (robotModeNames[i] == m_ActiveRobotModeName) { selectedRobotIdx = i; break; }
-            }
-            if (ImGui::Combo("##RobotModeCombo", &selectedRobotIdx,
-                [](void* data, int idx, const char** out) {
-                    auto& vec = *(const std::vector<std::string>*)data;
-                    *out = vec[idx].c_str(); return true;
-                }, (void*)&robotModeNames, (int)robotModeNames.size()))
-            {
-                if (selectedRobotIdx >= 0 && selectedRobotIdx < (int)robotModeNames.size()) {
-                    SwitchRobotMode(robotModeNames[selectedRobotIdx], GetActiveGamepadModeName());
-                }
-            }
-            ImGui::SameLine();
-        }
-
         if (!gamepadModeNames.empty())
         {
             ImGui::TextUnformatted("Gamepad Mapper:");
             ImGui::SameLine();
-            ImGui::SetNextItemWidth(160);
+            ImGui::SetNextItemWidth(140);
             int selectedGamepadIdx = 0;
             for (int i = 0; i < (int)gamepadModeNames.size(); ++i) {
                 if (gamepadModeNames[i] == m_ActiveGamepadModeName) { selectedGamepadIdx = i; break; }
@@ -1041,6 +1019,28 @@ void NodeGraph::Draw(ax::NodeEditor::EditorContext* editorCtx)
                 }
             }
             ImGui::SameLine();
+        }
+
+        // ---- Comm Config 选择（来自 RobotCommManager）----
+        if (m_CommMgr && m_CommMgr->GetItemCount() > 0)
+        {
+            ImGui::TextUnformatted("Comm Config:");
+            ImGui::SameLine();
+            ImGui::SetNextItemWidth(140);
+            if (m_CommIndex >= m_CommMgr->GetItemCount())
+                m_CommIndex = 0;
+            const char* preview = m_CommMgr->GetItemNameBuf(m_CommIndex);
+            if (ImGui::BeginCombo("##CommConfigCombo", preview))
+            {
+                for (int i = 0; i < m_CommMgr->GetItemCount(); ++i)
+                {
+                    bool sel = (i == m_CommIndex);
+                    if (ImGui::Selectable(m_CommMgr->GetItemNameBuf(i), sel))
+                        m_CommIndex = i;
+                    if (sel) ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
         }
 
         ImGui::Separator();

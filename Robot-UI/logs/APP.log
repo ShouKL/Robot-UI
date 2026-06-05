@@ -1,31 +1,235 @@
-[19:28:03] [info] APP: [APP] Robot UI application created
-[19:28:03] [info] APP: [APP] Robot UI initializing...
-[19:28:03] [info] APP: [COMP] Item added: Item_1 (id=1)
-[19:28:03] [info] APP: [GAMEPAD] Item added: Item_1 (id=1)
-[19:28:03] [info] APP: [COMM] component added: Item_1 (id=1)
-[19:28:03] [info] APP: [APP] RobotSettingPanel created
-[19:28:03] [info] APP: [ROBOT_STATUS] RobotStatus created (with headless graph evaluator)
-[19:28:03] [info] APP: [ROBOT_STATUS] Selected item set to: Item_1
-[19:28:03] [info] APP: [ROBOT_STATUS] No graph for item 'Item_1' + gamepad '', cleared
-[19:28:03] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_1
-[19:28:03] [info] APP: [APP] ImPlot context created
-[19:28:03] [info] APP: [APP] Gamepad thread started
-[19:28:03] [info] APP: [GAMEPAD] Gamepad routine started (20Hz)
-[19:28:03] [info] APP: [APP] Kernel loaded: C:\Users\29164\Desktop\Robot-UI\bin\Dist-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
-[19:28:03] [info] APP: [APP] Loading component: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
-[19:28:03] [info] APP: [component] Loading component: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
-[19:28:03] [info] APP: [APP] Robot config loaded: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
-[19:28:03] [info] APP: [COMM] Loaded 2 comm configs
-[19:28:03] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[19:28:03] [info] APP: [ROBOT_STATUS] Loaded legacy graph for item 'ROV'
-[19:28:03] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
-[19:28:03] [info] APP: [APP] Robot UI initialized successfully
-[19:28:03] [info] APP: [CONFIG] RobotStatus active state saved (mode=ROV, gamepad=XBOX, ls=0, ng=0, comm=0)
-[19:28:03] [info] APP: [ROBOT_STATUS] Live sync to Manager: ON
-[19:28:03] [info] APP: [CONFIG] RobotSetting editing started
-[19:28:03] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #0 (ROV-XBOX)
-[19:28:05] [trace] APP: [GAMEPAD] Routine heartbeat #40 (linked=false)
-[19:28:05] [info] APP: [APP] Robot UI shutting down...
-[19:28:05] [info] APP: [APP] Kernel saved: C:\Users\29164\Desktop\Robot-UI\bin\Dist-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
-[19:28:06] [info] APP: [GAMEPAD] Gamepad routine stopped
-[19:28:06] [info] APP: [APP] Gamepad thread joined
+[23:38:52] [info] APP: [APP] Robot UI application created
+[23:38:52] [info] APP: [APP] Robot UI initializing...
+[23:38:52] [info] APP: [COMP] Item added: Item_1 (id=1)
+[23:38:52] [info] APP: [GAMEPAD] Item added: Item_1 (id=1)
+[23:38:52] [info] APP: [COMM] component added: Item_1 (id=1)
+[23:38:52] [info] APP: [APP] RobotSettingPanel created
+[23:38:52] [info] APP: [ROBOT_STATUS] RobotStatus created (with headless graph evaluator)
+[23:38:52] [info] APP: [ROBOT_STATUS] Selected item set to: Item_1
+[23:38:52] [info] APP: [ROBOT_STATUS] No graph for item 'Item_1' + gamepad '', cleared
+[23:38:52] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_1
+[23:38:52] [info] APP: [APP] ImPlot context created
+[23:38:52] [info] APP: [APP] Gamepad thread started
+[23:38:52] [info] APP: [GAMEPAD] Gamepad routine started (20Hz)
+[23:38:52] [info] APP: [APP] Kernel loaded: C:\Users\29164\Desktop\Robot-UI\bin\Debug-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
+[23:38:52] [info] APP: [APP] Loading component: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
+[23:38:52] [info] APP: [component] Loading component: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
+[23:38:52] [info] APP: [APP] Robot config loaded: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
+[23:38:52] [info] APP: [COMM] Loaded 2 comm configs
+[23:38:52] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:38:52] [info] APP: [ROBOT_STATUS] Loaded graph for item 'ROV' + gamepad ''
+[23:38:52] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:38:52] [info] APP: [APP] Robot UI initialized successfully
+[23:38:52] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #0 (ROV-XBOX)
+[23:38:54] [trace] APP: [GAMEPAD] Routine heartbeat #40 (linked=false)
+[23:38:56] [info] APP: [CONFIG] Saved BASE: ls=0, ng=0
+[23:38:56] [info] APP: [ROBOT_STATUS] Live sync to Manager: ON
+[23:38:56] [info] APP: [CONFIG] RobotSetting editing started
+[23:38:56] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:38:56] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:38:56] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:38:56] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:38:56] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[23:38:56] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:38:56] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:38:56] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:38:56] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:38:56] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:38:56] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[23:38:56] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:38:56] [trace] APP: [GAMEPAD] Routine heartbeat #80 (linked=false)
+[23:38:57] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:38:57] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:38:57] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:38:57] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:38:57] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[23:38:57] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:38:57] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:38:57] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:38:57] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:38:57] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[23:38:58] [trace] APP: [GAMEPAD] Routine heartbeat #120 (linked=false)
+[23:39:00] [trace] APP: [GAMEPAD] Routine heartbeat #160 (linked=false)
+[23:39:01] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:39:01] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:39:01] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:39:01] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:39:01] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[23:39:01] [info] APP: [ROBOT_STATUS] Selected item set to: Item_2
+[23:39:01] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'Item_2' from NodeGraph #1
+[23:39:01] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_2
+[23:39:01] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'Item_2' from NodeGraph #1
+[23:39:01] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #1
+[23:39:01] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #1 (Item_2)
+[23:39:02] [trace] APP: [GAMEPAD] Routine heartbeat #200 (linked=false)
+[23:39:03] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:39:03] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:39:03] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:39:03] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:39:03] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[23:39:03] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:39:03] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:39:03] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:39:03] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:39:03] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[23:39:03] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[23:39:04] [trace] APP: [GAMEPAD] Routine heartbeat #240 (linked=false)
+[23:39:05] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:39:05] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:39:05] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:39:05] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:39:05] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[23:39:05] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:39:06] [trace] APP: [GAMEPAD] Routine heartbeat #280 (linked=false)
+[23:39:08] [trace] APP: [GAMEPAD] Routine heartbeat #320 (linked=false)
+[23:39:10] [trace] APP: [GAMEPAD] Routine heartbeat #360 (linked=false)
+[23:39:11] [info] APP: [CONFIG] Applying RobotSetting...
+[23:39:11] [info] APP: [ROBOT_STATUS] Live sync to Manager: OFF
+[23:39:11] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:39:11] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:39:11] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:39:11] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:39:11] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[23:39:11] [info] APP: [CONFIG] Restored BASE: ls=0, ng=0
+[23:39:11] [info] APP: [CONFIG] Saved BASE: ls=0, ng=0
+[23:39:11] [info] APP: [ROBOT_STATUS] Live sync to Manager: ON
+[23:39:11] [info] APP: [CONFIG] RobotSetting editing started
+[23:39:12] [trace] APP: [GAMEPAD] Routine heartbeat #400 (linked=false)
+[23:39:14] [trace] APP: [GAMEPAD] Routine heartbeat #440 (linked=false)
+[23:39:17] [trace] APP: [GAMEPAD] Routine heartbeat #480 (linked=false)
+[23:39:18] [info] APP: [CONFIG] Applying RobotSetting...
+[23:39:18] [info] APP: [ROBOT_STATUS] Live sync to Manager: OFF
+[23:39:18] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:39:18] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:39:18] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:39:18] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:39:18] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[23:39:18] [info] APP: [CONFIG] Restored BASE: ls=0, ng=0
+[23:39:18] [info] APP: [CONFIG] Saved BASE: ls=0, ng=0
+[23:39:18] [info] APP: [ROBOT_STATUS] Live sync to Manager: ON
+[23:39:18] [info] APP: [CONFIG] RobotSetting editing started
+[23:39:19] [trace] APP: [GAMEPAD] Routine heartbeat #520 (linked=false)
+[23:39:21] [trace] APP: [GAMEPAD] Routine heartbeat #560 (linked=false)
+[23:39:21] [info] APP: [component] Saving component: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
+[23:39:21] [info] APP: [APP] Robot config saved: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
+[23:39:23] [trace] APP: [GAMEPAD] Routine heartbeat #600 (linked=false)
+[23:39:25] [trace] APP: [GAMEPAD] Routine heartbeat #640 (linked=false)
+[23:39:25] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #1 (Item_2)
+[23:39:25] [info] APP: [ROBOT_STATUS] Selected item set to: Item_2
+[23:39:25] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'Item_2' from NodeGraph #1
+[23:39:25] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_2
+[23:39:25] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'Item_2' from NodeGraph #1
+[23:39:25] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #1
+[23:39:27] [trace] APP: [GAMEPAD] Routine heartbeat #680 (linked=false)
+[23:39:27] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #0 (ROV-XBOX)
+[23:39:27] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:39:27] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:39:27] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:39:27] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:39:27] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[23:39:29] [trace] APP: [GAMEPAD] Routine heartbeat #720 (linked=false)
+[23:39:31] [trace] APP: [GAMEPAD] Routine heartbeat #760 (linked=false)
+[23:39:33] [trace] APP: [GAMEPAD] Routine heartbeat #800 (linked=false)
+[23:39:35] [trace] APP: [GAMEPAD] Routine heartbeat #840 (linked=false)
+[23:39:37] [trace] APP: [GAMEPAD] Routine heartbeat #880 (linked=false)
+[23:39:38] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:39:38] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:39:38] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:39:38] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:39:38] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[23:39:39] [trace] APP: [GAMEPAD] Routine heartbeat #920 (linked=false)
+[23:39:39] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:39:39] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:39:39] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:39:39] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:39:39] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[23:39:39] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:39:39] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:39:39] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:39:39] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:39:39] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[23:39:41] [trace] APP: [GAMEPAD] Routine heartbeat #960 (linked=false)
+[23:39:41] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:39:41] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:39:41] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:39:41] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:39:41] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[23:39:41] [info] APP: [ROBOT_STATUS] Selected item set to: Item_2
+[23:39:41] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'Item_2' from NodeGraph #1
+[23:39:41] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_2
+[23:39:41] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'Item_2' from NodeGraph #1
+[23:39:41] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #1
+[23:39:41] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #1 (Item_2)
+[23:39:43] [trace] APP: [GAMEPAD] Routine heartbeat #1000 (linked=false)
+[23:39:44] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #1 (Item_2)
+[23:39:45] [trace] APP: [GAMEPAD] Routine heartbeat #1040 (linked=false)
+[23:39:45] [info] APP: [CONFIG] Applying RobotSetting...
+[23:39:45] [info] APP: [ROBOT_STATUS] Live sync to Manager: OFF
+[23:39:45] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:39:45] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:39:45] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:39:45] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:39:45] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[23:39:45] [info] APP: [CONFIG] Restored BASE: ls=0, ng=0
+[23:39:45] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #0 (ROV-XBOX)
+[23:39:45] [info] APP: [CONFIG] Saved BASE: ls=0, ng=0
+[23:39:45] [info] APP: [ROBOT_STATUS] Live sync to Manager: ON
+[23:39:45] [info] APP: [CONFIG] RobotSetting editing started
+[23:39:45] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:39:45] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:39:45] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:39:45] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:39:45] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[23:39:46] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:39:46] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:39:46] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:39:46] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:39:46] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[23:39:47] [trace] APP: [GAMEPAD] Routine heartbeat #1080 (linked=false)
+[23:39:49] [trace] APP: [GAMEPAD] Routine heartbeat #1120 (linked=false)
+[23:39:50] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #1 (Item_2)
+[23:39:50] [info] APP: [ROBOT_STATUS] Selected item set to: Item_2
+[23:39:50] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'Item_2' from NodeGraph #1
+[23:39:50] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_2
+[23:39:50] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'Item_2' from NodeGraph #1
+[23:39:50] [info] APP: [ROBOT_STATUS] Derived ActiveComm #1 from NodeGraph #1
+[23:39:51] [trace] APP: [GAMEPAD] Routine heartbeat #1160 (linked=false)
+[23:39:52] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #0 (ROV-XBOX)
+[23:39:52] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:39:52] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:39:52] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:39:52] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:39:52] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[23:39:53] [trace] APP: [GAMEPAD] Routine heartbeat #1200 (linked=false)
+[23:39:55] [trace] APP: [GAMEPAD] Routine heartbeat #1240 (linked=false)
+[23:39:57] [trace] APP: [GAMEPAD] Routine heartbeat #1280 (linked=false)
+[23:39:59] [trace] APP: [GAMEPAD] Routine heartbeat #1320 (linked=false)
+[23:40:01] [trace] APP: [GAMEPAD] Routine heartbeat #1360 (linked=false)
+[23:40:03] [trace] APP: [GAMEPAD] Routine heartbeat #1400 (linked=false)
+[23:40:05] [trace] APP: [GAMEPAD] Routine heartbeat #1440 (linked=false)
+[23:40:07] [trace] APP: [GAMEPAD] Routine heartbeat #1480 (linked=false)
+[23:40:09] [trace] APP: [GAMEPAD] Routine heartbeat #1520 (linked=false)
+[23:40:11] [trace] APP: [GAMEPAD] Routine heartbeat #1560 (linked=false)
+[23:40:11] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #1 (Item_2)
+[23:40:11] [info] APP: [ROBOT_STATUS] Selected item set to: Item_2
+[23:40:11] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'Item_2' from NodeGraph #1
+[23:40:11] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_2
+[23:40:11] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'Item_2' from NodeGraph #1
+[23:40:11] [info] APP: [ROBOT_STATUS] Derived ActiveComm #1 from NodeGraph #1
+[23:40:13] [trace] APP: [GAMEPAD] Routine heartbeat #1600 (linked=false)
+[23:40:14] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #0 (ROV-XBOX)
+[23:40:14] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:40:14] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:40:14] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:40:14] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:40:14] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[23:40:15] [info] APP: [ROBOT_STATUS] Linking to 192.168.0.10:8888 (local: 8888)...
+[23:40:15] [info] APP: [ROBOT_STATUS] Linked successfully: ROV (192.168.0.10)
+[23:40:16] [trace] APP: [GAMEPAD] Routine heartbeat #1640 (linked=true)
+[23:40:16] [info] APP: [ROBOT_STATUS] Unlinked
+[23:40:18] [trace] APP: [GAMEPAD] Routine heartbeat #1680 (linked=false)
+[23:40:20] [trace] APP: [GAMEPAD] Routine heartbeat #1720 (linked=false)
+[23:40:21] [info] APP: [APP] Robot UI shutting down...
+[23:40:21] [info] APP: [APP] Kernel saved: C:\Users\29164\Desktop\Robot-UI\bin\Debug-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
+[23:40:21] [info] APP: [GAMEPAD] Gamepad routine stopped
+[23:40:21] [info] APP: [APP] Gamepad thread joined

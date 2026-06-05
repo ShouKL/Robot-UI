@@ -53,6 +53,7 @@ Robot_UI_Layer::Robot_UI_Layer()
         auto& gpMgr   = rsp->GetGamepadMapperManager();
         rsp->GetNodeGraphManager().SetRobotComponentManager(&compMgr);
         rsp->GetNodeGraphManager().SetGamepadMapperManager(&gpMgr);
+        rsp->GetNodeGraphManager().SetRobotCommManager(commMgr);
     }
 
     // 注入 RobotStatus 到 RobotSettingPanel（用于切到 NodeGraph 时同步 gamepad）
@@ -426,7 +427,9 @@ void Robot_UI_Layer::OnUIRender()
         m_RobotStatus->DrawWindow(&m_RobotStatusOpen,
             m_RobotSettingPanel->GetRobotCommManager(),
             m_RobotSettingPanel->GetLiveStreamManager(),
-            &m_RobotSettingPanel->GetNodeGraphManager());
+            &m_RobotSettingPanel->GetNodeGraphManager(),
+            &m_RobotSettingPanel->GetRobotComponentManager(),
+            &m_RobotSettingPanel->GetGamepadMapperManager());
     }
 
     // 推力曲线编辑器窗口

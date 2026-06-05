@@ -16,6 +16,7 @@
 
 class RobotComponentManager;
 class GamepadMapperManager;
+class RobotCommManager;
 
 struct GraphItem
 {
@@ -23,7 +24,8 @@ struct GraphItem
     bool isSelected = false;
     char name[64] = "Default";
     std::unique_ptr<NodeGraph> graph;
-    std::string editorYaml;  // cached full YAML (with positions) for editor restore
+    std::string editorYaml;      // cached full YAML (with positions) for editor restore
+    int  comm_index = 0;         // 关联的 RobotComm 配置索引
 };
 
 class NodeGraphManager : public ManagerBase
@@ -52,6 +54,7 @@ public:
     // ---- Dependency injection ----
     void SetRobotComponentManager(RobotComponentManager* c);
     void SetGamepadMapperManager(GamepadMapperManager* g);
+    void SetRobotCommManager(RobotCommManager* comm);
 
     // ---- Internal (called by RobotSettingPanel) ----
     void ApplyChanges();
@@ -80,4 +83,5 @@ private:
 
     RobotComponentManager* m_RobotMgr = nullptr;
     GamepadMapperManager*  m_GamepadMgr = nullptr;
+    RobotCommManager*      m_RobotCommMgr = nullptr;
 };

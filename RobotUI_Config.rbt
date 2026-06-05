@@ -170,6 +170,12 @@ robot_ui_config:
             []
 
         node_graph_pairs:
+          "": |
+            nodes:
+              []
+            links:
+              []
+
           XBOX: |
             nodes:
               - id: 1
@@ -473,6 +479,9 @@ robot_ui_config:
                 from_pin: 0
                 to_node: 21
                 to_pin: 1
+            active_robot_mode: ROV
+            active_gamepad_mode: XBOX
+            comm_index: 0
         protocol_send:
           include_length: true
           checksum: 1
@@ -558,6 +567,13 @@ robot_ui_config:
           []
         servos:
           []
+        node_graph_pairs:
+          Item_2: |
+            nodes:
+              []
+            links:
+              []
+
         protocol_send:
           include_length: true
           checksum: 1
@@ -794,7 +810,7 @@ robot_ui_config:
     pt_end: 0
   robot_comm:
     nodes:
-      - name: Item_1
+      - name: ROV
         host_ip: 192.168.0.10
         remote_port: 8888
         local_port: 8888
@@ -812,4 +828,4 @@ robot_ui_config:
     - id: 2
       name: Item_2
       is_selected: false
-      editor_yaml: "nodes:\n  []\nlinks:\n  []\nactive_robot_mode: ROV\nactive_gamepad_mode: XBOX"
+      editor_yaml: "nodes:\n  []\nlinks:\n  []\nactive_robot_mode: Item_2\nactive_gamepad_mode: Item_2"

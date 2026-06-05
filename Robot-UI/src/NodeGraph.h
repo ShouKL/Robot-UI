@@ -22,6 +22,7 @@ namespace Walnut { class Image; }
 
 class RobotComponentManager;
 class GamepadMapperManager;
+#include "RobotCommManager.h"
 
 // ============================================================================
 // EditorLink — a connection between two pins
@@ -91,6 +92,11 @@ public:
     // ---- Dependency injection (pulls data from managers directly) ----
     void SetRobotComponentManager(RobotComponentManager* c) { m_RobotMgr = c; }
     void SetGamepadMapperManager(GamepadMapperManager* g)    { m_GamepadMgr = g; }
+    void SetRobotCommManager(RobotCommManager* comm)         { m_CommMgr = comm; }
+
+    // ---- Comm 配置选择 ----
+    int  GetCommIndex() const { return m_CommIndex; }
+    void SetCommIndex(int idx) { m_CommIndex = idx; }
 
     // ---- External data feeding (runtime values from gamepad thread) ----
     void SetCurrentModePair(const std::string& robotMode, const std::string& gamepadMode);
@@ -191,6 +197,9 @@ private:
     ax::NodeEditor::NodeId m_ActiveOutputId    = 0;  // last-clicked CustomOutput node
     RobotComponentManager* m_RobotMgr = nullptr;
     GamepadMapperManager*  m_GamepadMgr = nullptr;
+    RobotCommManager*      m_CommMgr = nullptr;
+
+    int m_CommIndex = 0;  // 关联的 RobotComm 配置索引
 
     // ---- Cached per-frame data from managers (populated in Draw) ----
     KeyNameList                        m_AvailableKeys;
