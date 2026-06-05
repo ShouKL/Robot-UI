@@ -1,0 +1,2 @@
+// Application icon compiled into the executable
+APP_ICON ICON "..\\picture\\Kernel.ico"

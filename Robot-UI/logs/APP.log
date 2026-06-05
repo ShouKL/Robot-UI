@@ -1,59 +1,31 @@
-[17:39:05] [info] APP: [APP] Robot UI application created
-[17:39:05] [info] APP: [APP] Robot UI initializing...
-[17:39:05] [info] APP: [COMP] Item added: Item_1 (id=1)
-[17:39:05] [info] APP: [GAMEPAD] Item added: Item_1 (id=1)
-[17:39:05] [info] APP: [COMM] component added: Item_1 (id=1)
-[17:39:05] [info] APP: [APP] RobotSettingPanel created
-[17:39:05] [info] APP: [ROBOT_STATUS] RobotStatus created (with headless graph evaluator)
-[17:39:05] [info] APP: [ROBOT_STATUS] Selected item set to: Item_1
-[17:39:05] [info] APP: [ROBOT_STATUS] No graph for item 'Item_1' + gamepad '', cleared
-[17:39:05] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_1
-[17:39:05] [info] APP: [APP] ImPlot context created
-[17:39:05] [info] APP: [APP] Gamepad thread started
-[17:39:05] [info] APP: [GAMEPAD] Gamepad routine started (20Hz)
-[17:39:05] [info] APP: [APP] Kernel loaded: C:\Users\29164\Desktop\Robot-UI\bin\Debug-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
-[17:39:05] [info] APP: [APP] Loading component: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
-[17:39:05] [info] APP: [component] Loading component: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
-[17:39:05] [info] APP: [APP] Robot config loaded: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
-[17:39:05] [info] APP: [COMM] Loaded 2 comm configs
-[17:39:05] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[17:39:05] [info] APP: [ROBOT_STATUS] Loaded legacy graph for item 'ROV'
-[17:39:05] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
-[17:39:05] [info] APP: [APP] Robot UI initialized successfully
-[17:39:05] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #0 (ROV-XBOX)
-[17:39:07] [trace] APP: [GAMEPAD] Routine heartbeat #40 (linked=false)
-[17:39:08] [info] APP: [CONFIG] RobotStatus active state saved (mode=ROV, gamepad=XBOX, ls=0, ng=0, comm=0)
-[17:39:08] [info] APP: [ROBOT_STATUS] Live sync to Manager: ON
-[17:39:08] [info] APP: [CONFIG] RobotSetting editing started
-[17:39:09] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
-[17:39:09] [trace] APP: [GAMEPAD] Routine heartbeat #80 (linked=false)
-[17:39:11] [trace] APP: [GAMEPAD] Routine heartbeat #120 (linked=false)
-[17:39:13] [trace] APP: [GAMEPAD] Routine heartbeat #160 (linked=false)
-[17:39:15] [trace] APP: [GAMEPAD] Routine heartbeat #200 (linked=false)
-[17:39:17] [trace] APP: [GAMEPAD] Routine heartbeat #240 (linked=false)
-[17:39:19] [trace] APP: [GAMEPAD] Routine heartbeat #280 (linked=false)
-[17:39:21] [trace] APP: [GAMEPAD] Routine heartbeat #320 (linked=false)
-[17:39:23] [trace] APP: [GAMEPAD] Routine heartbeat #360 (linked=false)
-[17:39:25] [trace] APP: [GAMEPAD] Routine heartbeat #400 (linked=false)
-[17:39:27] [trace] APP: [GAMEPAD] Routine heartbeat #440 (linked=false)
-[17:39:29] [trace] APP: [GAMEPAD] Routine heartbeat #480 (linked=false)
-[17:39:32] [trace] APP: [GAMEPAD] Routine heartbeat #520 (linked=false)
-[17:39:34] [trace] APP: [GAMEPAD] Routine heartbeat #560 (linked=false)
-[17:39:36] [trace] APP: [GAMEPAD] Routine heartbeat #600 (linked=false)
-[17:39:38] [trace] APP: [GAMEPAD] Routine heartbeat #640 (linked=false)
-[17:39:40] [trace] APP: [GAMEPAD] Routine heartbeat #680 (linked=false)
-[17:39:42] [trace] APP: [GAMEPAD] Routine heartbeat #720 (linked=false)
-[17:39:44] [trace] APP: [GAMEPAD] Routine heartbeat #760 (linked=false)
-[17:39:46] [trace] APP: [GAMEPAD] Routine heartbeat #800 (linked=false)
-[17:39:48] [trace] APP: [GAMEPAD] Routine heartbeat #840 (linked=false)
-[17:39:50] [trace] APP: [GAMEPAD] Routine heartbeat #880 (linked=false)
-[17:39:52] [trace] APP: [GAMEPAD] Routine heartbeat #920 (linked=false)
-[17:39:54] [trace] APP: [GAMEPAD] Routine heartbeat #960 (linked=false)
-[17:39:56] [trace] APP: [GAMEPAD] Routine heartbeat #1000 (linked=false)
-[17:39:58] [trace] APP: [GAMEPAD] Routine heartbeat #1040 (linked=false)
-[17:40:00] [trace] APP: [GAMEPAD] Routine heartbeat #1080 (linked=false)
-[17:40:02] [trace] APP: [GAMEPAD] Routine heartbeat #1120 (linked=false)
-[17:40:03] [info] APP: [APP] Robot UI shutting down...
-[17:40:03] [info] APP: [APP] Kernel saved: C:\Users\29164\Desktop\Robot-UI\bin\Debug-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
-[17:40:03] [info] APP: [GAMEPAD] Gamepad routine stopped
-[17:40:03] [info] APP: [APP] Gamepad thread joined
+[19:28:03] [info] APP: [APP] Robot UI application created
+[19:28:03] [info] APP: [APP] Robot UI initializing...
+[19:28:03] [info] APP: [COMP] Item added: Item_1 (id=1)
+[19:28:03] [info] APP: [GAMEPAD] Item added: Item_1 (id=1)
+[19:28:03] [info] APP: [COMM] component added: Item_1 (id=1)
+[19:28:03] [info] APP: [APP] RobotSettingPanel created
+[19:28:03] [info] APP: [ROBOT_STATUS] RobotStatus created (with headless graph evaluator)
+[19:28:03] [info] APP: [ROBOT_STATUS] Selected item set to: Item_1
+[19:28:03] [info] APP: [ROBOT_STATUS] No graph for item 'Item_1' + gamepad '', cleared
+[19:28:03] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_1
+[19:28:03] [info] APP: [APP] ImPlot context created
+[19:28:03] [info] APP: [APP] Gamepad thread started
+[19:28:03] [info] APP: [GAMEPAD] Gamepad routine started (20Hz)
+[19:28:03] [info] APP: [APP] Kernel loaded: C:\Users\29164\Desktop\Robot-UI\bin\Dist-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
+[19:28:03] [info] APP: [APP] Loading component: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
+[19:28:03] [info] APP: [component] Loading component: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
+[19:28:03] [info] APP: [APP] Robot config loaded: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
+[19:28:03] [info] APP: [COMM] Loaded 2 comm configs
+[19:28:03] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[19:28:03] [info] APP: [ROBOT_STATUS] Loaded legacy graph for item 'ROV'
+[19:28:03] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[19:28:03] [info] APP: [APP] Robot UI initialized successfully
+[19:28:03] [info] APP: [CONFIG] RobotStatus active state saved (mode=ROV, gamepad=XBOX, ls=0, ng=0, comm=0)
+[19:28:03] [info] APP: [ROBOT_STATUS] Live sync to Manager: ON
+[19:28:03] [info] APP: [CONFIG] RobotSetting editing started
+[19:28:03] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #0 (ROV-XBOX)
+[19:28:05] [trace] APP: [GAMEPAD] Routine heartbeat #40 (linked=false)
+[19:28:05] [info] APP: [APP] Robot UI shutting down...
+[19:28:05] [info] APP: [APP] Kernel saved: C:\Users\29164\Desktop\Robot-UI\bin\Dist-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
+[19:28:06] [info] APP: [GAMEPAD] Gamepad routine stopped
+[19:28:06] [info] APP: [APP] Gamepad thread joined

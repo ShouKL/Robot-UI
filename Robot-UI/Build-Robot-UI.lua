@@ -11,7 +11,8 @@ project "Robot-UI"
            "../vendor/imgui-node-editor/imgui_node_editor.cpp",
            "../vendor/imgui-node-editor/imgui_node_editor_api.cpp",
            "../vendor/implot/implot.cpp",
-           "../vendor/implot/implot_items.cpp" }
+           "../vendor/implot/implot_items.cpp",
+           "../asset/file/icon.rc" }
 
 
    OPENCV = os.getenv("OPENCV")
@@ -62,7 +63,7 @@ project "Robot-UI"
 
    links
    {
-      "../Walnut/vendor/yaml-cpp/bin/Debug-windows-x86_64/yaml-cpp/yaml-cpp.lib",
+      "../Walnut/vendor/yaml-cpp/bin/" .. outputdir .. "/yaml-cpp/yaml-cpp.lib",
       "%{LibraryDir.Mujoco}/mujoco.lib",
       "%{LibraryDir.GStreamer}/gstreamer-1.0.lib",
       "%{LibraryDir.GStreamer}/glib-2.0.lib",

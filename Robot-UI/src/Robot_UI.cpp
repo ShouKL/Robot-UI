@@ -457,6 +457,8 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
     spec.Name = "Robot UI";
     spec.CustomTitlebar = true;
 
+    spec.IconPath = "../asset/picture/Kernel.png";
+
     Walnut::Application* app = new Walnut::Application(spec);
 
     WL_INFO_TAG("APP", "Robot UI application created");
