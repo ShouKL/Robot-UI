@@ -25,6 +25,7 @@ struct UIState
     bool robot_comm_open       = true;
     bool notification_open      = false;
     bool terminal_open          = false;
+    bool monitor_wall_open      = false;
     int  robot_active_mode     = 0;
     int  gamepad_active_mode   = 0;
     float node_left_side_width  = 180.0f;

@@ -72,6 +72,16 @@ void RobotStatus::SyncFromManagerSelected()
         WL_WARN_TAG("ROBOT_STATUS", "Failed to parse graph from Manager selected #{}", selIdx);
 }
 
+// ---- 获取当前活跃 Comm 的发送频率 ----
+int RobotStatus::GetSendFreqHz() const
+{
+    if (!m_RobotCommManager || m_ActiveCommIdx < 0) return 100;
+    auto items = m_RobotCommManager->GetAllItems();
+    if (m_ActiveCommIdx >= (int)items.size()) return 100;
+    int hz = items[m_ActiveCommIdx].send_freq_hz;
+    return hz > 0 ? hz : 100;
+}
+
 // ---- 从当前选中的 NodeGraph 推导 ActiveMode / ActiveGamepad / ActiveComm ----
 void RobotStatus::DeriveActiveFromNodeGraph()
 {
@@ -143,12 +153,6 @@ void RobotStatus::SetActiveMode(const RobotMode* item)
     m_ActiveMode = item;
     if (item) {
         WL_INFO_TAG("ROBOT_STATUS", "Selected item set to: {}", item->name);
-        if (m_RobotAPI) {
-            m_RobotAPI->SetProtocolConfig(item->protocol_send);
-            m_RobotAPI->SetProtocolReceiveConfig(item->protocol_receive);
-            WL_INFO_TAG("ROBOT_STATUS", "Protocol config injected ({} send fields, {} recv fields)",
-                        item->protocol_send.fields.size(), item->protocol_receive.fields.size());
-        }
     } else {
         WL_INFO_TAG("ROBOT_STATUS", "Selected item cleared");
     }
@@ -210,8 +214,8 @@ GamepadMapper* RobotStatus::GetActiveGamepadPtr() const { std::shared_lock lock(
 const std::string RobotStatus::GetActiveModeName() const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode ? std::string(m_ActiveMode->name) : ""; }
 
 const ActuatorConfig&        RobotStatus::GetAppliedActuator()   const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode->actuator_config; }
-const ProtocolSendConfig&    RobotStatus::GetAppliedSendConfig() const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode->protocol_send; }
-const ProtocolReceiveConfig& RobotStatus::GetAppliedRecvConfig() const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode->protocol_receive; }
+const std::vector<ProtocolSendConfig>& RobotStatus::GetAppliedSendConfig() const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode->protocol_send; }
+const std::vector<ProtocolReceiveConfig>& RobotStatus::GetAppliedRecvConfig() const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode->protocol_receive; }
 const SensorConfig&          RobotStatus::GetSensorConfig()      const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode->sensor_config; }
 bool RobotStatus::HasTemperature() const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode && m_ActiveMode->sensor_config.has_temperature; }
 bool RobotStatus::HasHumidity()    const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode && m_ActiveMode->sensor_config.has_humidity; }
@@ -275,6 +279,7 @@ void RobotStatus::Unlink()
     if (m_IsLinked)
         WL_INFO_TAG("ROBOT_STATUS", "Unlinked");
     m_IsLinked = false;
+    m_LastSyncedProtocolItem = nullptr;
 }
 
 void RobotStatus::SendActuatorData(const ActuatorConfig& data)
@@ -437,28 +442,73 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
     // 快照：在共享锁下获取所有需要的数据，然后用局部变量绘制
     const RobotMode* item = nullptr;
     std::shared_ptr<const ActuatorConfig> cmd;
+    bool linked;
     {
         std::shared_lock lock(m_StatusMutex);
         item = m_ActiveMode;
         cmd  = m_CurrentCommand;
+        linked = m_IsLinked;
     }
-    if (!cmd) cmd = std::make_shared<const ActuatorConfig>();
+    // 未连接时，使用 RobotComponent 中配置的初始值；连接后使用实时求值结果
+    if (!cmd || !linked)
+        cmd = std::make_shared<const ActuatorConfig>(item ? item->actuator_config : ActuatorConfig{});
 
     if (!item) { ImGui::TextDisabled("No selected item"); ImGui::End(); return; }
 
-    // === Actuator — 按分组折叠显示 ===
-    if (ImGui::CollapsingHeader("Actuator", ImGuiTreeNodeFlags_DefaultOpen))
+    // === Send Control — 控制发送哪些数据帧 ===
+    if (ImGui::CollapsingHeader("Send Control", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        const auto& sendCfg = item->protocol_send;
-        if (sendCfg.fields.empty())
+        const auto& sendCfgs = item->protocol_send;
+        if (sendCfgs.empty())
         {
-            ImGui::TextDisabled("  No send fields configured");
+            ImGui::TextDisabled("  No send frames configured");
         }
         else
         {
+            ImGui::Indent();
+            auto* modeMut = const_cast<RobotMode*>(item);
+
+            // 当前活跃 item 变化时，自动推送协议配置到 HardwareInterface
+            if (m_IsLinked && m_LastSyncedProtocolItem != item) {
+                m_RobotAPI->SetProtocolConfig(sendCfgs);
+                m_RobotAPI->SetProtocolReceiveConfig(item->protocol_receive);
+                m_LastSyncedProtocolItem = item;
+            }
+
+            bool anyChanged = false;
+            for (size_t i = 0; i < sendCfgs.size(); ++i)
+            {
+                auto& sc = modeMut->protocol_send[i];
+                ImGui::PushID((int)i);
+                if (ImGui::Checkbox("##sendEn", &sc.enabled))
+                    anyChanged = true;
+                ImGui::PopID();
+                ImGui::SameLine();
+                ImGui::TextColored(sc.enabled ? ImVec4(0.3f, 1.0f, 0.3f, 1.0f) : ImVec4(0.5f, 0.5f, 0.5f, 1.0f),
+                    "%s  [0x%02X] %s (%zu fields)",
+                    sc.name, sc.command_byte, sc.enabled ? "ON" : "OFF", sc.fields.size());
+            }
+            if (anyChanged && m_IsLinked)
+                m_RobotAPI->SetProtocolConfig(modeMut->protocol_send);
+            ImGui::Unindent();
+        }
+    }
+
+    // === Actuator — 分组来自 protocol_send，值实时显示（连接时用求值结果，未连接用初始配置） ===
+    if (ImGui::CollapsingHeader("Actuator", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        const auto& sendCfgs = item->protocol_send;
+        if (sendCfgs.empty())
+        {
+            ImGui::TextDisabled("  No send frames configured");
+        }
+        else
+        {
+            // 聚合所有 send frame 的字段（按 group 分组）
             std::map<std::string, std::vector<const SendField*>> groups;
-            for (const auto& f : sendCfg.fields)
-                groups[f.group.empty() ? "Default" : f.group].push_back(&f);
+            for (const auto& sc : sendCfgs)
+                for (const auto& f : sc.fields)
+                    groups[f.group.empty() ? "Default" : f.group].push_back(&f);
 
             ImGui::Indent();
             for (const auto& g : groups)
@@ -471,34 +521,8 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
                         if (!f->visible) continue;
                         ++visibleCnt;
 
-                        float val = 0.0f;
-                        if (f->field_path == "motion.x")        val = (float)cmd->motion.x;
-                        else if (f->field_path == "motion.y")   val = (float)cmd->motion.y;
-                        else if (f->field_path == "motion.z")   val = (float)cmd->motion.z;
-                        else if (f->field_path == "motion.rx")  val = (float)cmd->motion.rx;
-                        else if (f->field_path == "motion.ry")  val = (float)cmd->motion.ry;
-                        else if (f->field_path == "motion.rz")  val = (float)cmd->motion.rz;
-                        else if (f->field_path.find("brushlessmotor.") == 0)
-                        {
-                            auto dot = f->field_path.find('.', 15);
-                            std::string idStr = f->field_path.substr(15, dot - 15);
-                            int mid = atoi(idStr.c_str());
-                            std::string sub = f->field_path.substr(dot + 1);
-                            if (cmd->brushlessmotor.count(mid))
-                            {
-                                if (sub == "target_speed")
-                                    val = (float)cmd->brushlessmotor.at(mid).target_speed.value;
-                            }
-                        }
-                        else if (f->field_path.find("servo.") == 0)
-                        {
-                            auto dot = f->field_path.find('.', 6);
-                            std::string idStr = f->field_path.substr(6, dot - 6);
-                            int sid = atoi(idStr.c_str());
-                            if (cmd->servo.count(sid))
-                                val = (float)cmd->servo.at(sid).angle.value;
-                        }
-
+                        double val = 0.0;
+                        GetActuatorField(*cmd, f->field_path, val);
                         ImGui::Text("  %s = %.2f", f->name.c_str(), val);
                     }
                     if (visibleCnt == 0)
@@ -513,16 +537,18 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
     // === Sensor — 按分组折叠显示 ===
     if (ImGui::CollapsingHeader("Sensor", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        const auto& recvCfg = item->protocol_receive;
-        if (recvCfg.fields.empty())
+        const auto& recvCfgs = item->protocol_receive;
+        if (recvCfgs.empty())
         {
-            ImGui::TextDisabled("  No receive fields configured");
+            ImGui::TextDisabled("  No receive frames configured");
         }
         else
         {
+            // 聚合所有接收帧的字段（按 group 分组）
             std::map<std::string, std::vector<const ReceiveField*>> groups;
-            for (const auto& f : recvCfg.fields)
-                groups[f.group.empty() ? "Default" : f.group].push_back(&f);
+            for (const auto& rc : recvCfgs)
+                for (const auto& f : rc.fields)
+                    groups[f.group.empty() ? "Default" : f.group].push_back(&f);
 
             ImGui::Indent();
             for (const auto& g : groups)
@@ -543,18 +569,10 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
                         if (!f->visible) continue;
                         ++visibleCnt;
 
-                        float val = 0.0f;
-                        if (hasData)
-                        {
-                            if (f->field_path == "temperature.value")
-                                val = (float)sensorData.temperature.value;
-                            else if (f->field_path == "humidity.value")
-                                val = (float)sensorData.humidity.value;
-                            else if (f->field_path == "depth.value")
-                                val = (float)sensorData.depth.value;
-                        }
+                        double val = 0.0;
+                        bool hasVal = hasData && GetSensorField(sensorData, f->field_path, val);
 
-                        if (hasData)
+                        if (hasVal)
                             ImGui::Text("  %s = %.2f", f->name.c_str(), val);
                         else
                             ImGui::Text("  %s = --", f->name.c_str());

@@ -10,141 +10,141 @@ robot_ui_config:
         protocol_type: 0
         has_motion: true
         has_temperature: true
-        has_humidity: true
+        has_humidity: false
         has_depth: true
         brushless_motors:
           - id: 0
             name: LeftFront
             target_speed: 0
             target_speed_enc: 0
-            np_mid: 0
+            np_mid: 2921.0300000000002
             np_mid_enc: 0
-            np_ini: 0
+            np_ini: 2717.21
             np_ini_enc: 0
-            pp_ini: 0
+            pp_ini: 3066.6199999999999
             pp_ini_enc: 0
-            pp_mid: 0
+            pp_mid: 3212.21
             pp_mid_enc: 0
-            nt_end: 0
+            nt_end: -931.91999999999996
             nt_end_enc: 0
-            nt_mid: 0
+            nt_mid: -137.16999999999999
             nt_mid_enc: 0
-            pt_mid: 0
+            pt_mid: 165.37
             pt_mid_enc: 0
-            pt_end: 0
+            pt_end: 1329.8900000000001
             pt_end_enc: 0
-            pwm_min: 0
-            pwm_max: 0
-          - id: 1
+            pwm_min: 2600
+            pwm_max: 3400
+          - id: 4
             name: LeftRear
             target_speed: 0
             target_speed_enc: 0
-            np_mid: 0
+            np_mid: 2921.0300000000002
             np_mid_enc: 0
-            np_ini: 0
+            np_ini: 2717.21
             np_ini_enc: 0
-            pp_ini: 0
+            pp_ini: 3066.6199999999999
             pp_ini_enc: 0
-            pp_mid: 0
+            pp_mid: 3212.21
             pp_mid_enc: 0
-            nt_end: 0
+            nt_end: -931.91999999999996
             nt_end_enc: 0
-            nt_mid: 0
+            nt_mid: -137.16999999999999
             nt_mid_enc: 0
-            pt_mid: 0
+            pt_mid: 165.37
             pt_mid_enc: 0
-            pt_end: 0
+            pt_end: 1329.8900000000001
             pt_end_enc: 0
-            pwm_min: 0
-            pwm_max: 0
-          - id: 2
+            pwm_min: 2600
+            pwm_max: 3400
+          - id: 1
             name: RightFront
             target_speed: 0
             target_speed_enc: 0
-            np_mid: 0
+            np_mid: 2921.0300000000002
             np_mid_enc: 0
-            np_ini: 0
+            np_ini: 2717.21
             np_ini_enc: 0
-            pp_ini: 0
+            pp_ini: 3066.6199999999999
             pp_ini_enc: 0
-            pp_mid: 0
+            pp_mid: 3212.21
             pp_mid_enc: 0
-            nt_end: 0
+            nt_end: -931.91999999999996
             nt_end_enc: 0
-            nt_mid: 0
+            nt_mid: -137.16999999999999
             nt_mid_enc: 0
-            pt_mid: 0
+            pt_mid: 165.37
             pt_mid_enc: 0
-            pt_end: 0
+            pt_end: 1329.8900000000001
             pt_end_enc: 0
-            pwm_min: 0
-            pwm_max: 0
-          - id: 3
+            pwm_min: 2600
+            pwm_max: 3400
+          - id: 5
             name: RightRear
             target_speed: 0
             target_speed_enc: 0
-            np_mid: 0
+            np_mid: 2921.0300000000002
             np_mid_enc: 0
-            np_ini: 0
+            np_ini: 2717.21
             np_ini_enc: 0
-            pp_ini: 0
+            pp_ini: 3066.6199999999999
             pp_ini_enc: 0
-            pp_mid: 0
+            pp_mid: 3212.21
             pp_mid_enc: 0
-            nt_end: 0
+            nt_end: -931.91999999999996
             nt_end_enc: 0
-            nt_mid: 0
+            nt_mid: -137.16999999999999
             nt_mid_enc: 0
-            pt_mid: 0
+            pt_mid: 165.37
             pt_mid_enc: 0
-            pt_end: 0
+            pt_end: 1329.8900000000001
             pt_end_enc: 0
-            pwm_min: 0
-            pwm_max: 0
-          - id: 4
+            pwm_min: 2600
+            pwm_max: 3400
+          - id: 2
             name: LeftVertical
             target_speed: 0
             target_speed_enc: 0
-            np_mid: 0
+            np_mid: 2921.0300000000002
             np_mid_enc: 0
-            np_ini: 0
+            np_ini: 2717.21
             np_ini_enc: 0
-            pp_ini: 0
+            pp_ini: 3066.6199999999999
             pp_ini_enc: 0
-            pp_mid: 0
+            pp_mid: 3212.21
             pp_mid_enc: 0
-            nt_end: 0
+            nt_end: -931.91999999999996
             nt_end_enc: 0
-            nt_mid: 0
+            nt_mid: -137.16999999999999
             nt_mid_enc: 0
-            pt_mid: 0
+            pt_mid: 165.37
             pt_mid_enc: 0
-            pt_end: 0
+            pt_end: 1329.8900000000001
             pt_end_enc: 0
-            pwm_min: 0
-            pwm_max: 0
-          - id: 5
+            pwm_min: 2600
+            pwm_max: 3400
+          - id: 3
             name: RightVertical
             target_speed: 0
             target_speed_enc: 0
-            np_mid: 0
+            np_mid: 2921.0300000000002
             np_mid_enc: 0
-            np_ini: 0
+            np_ini: 2717.21
             np_ini_enc: 0
-            pp_ini: 0
+            pp_ini: 3066.6199999999999
             pp_ini_enc: 0
-            pp_mid: 0
+            pp_mid: 3212.21
             pp_mid_enc: 0
-            nt_end: 0
+            nt_end: -931.91999999999996
             nt_end_enc: 0
-            nt_mid: 0
+            nt_mid: -137.16999999999999
             nt_mid_enc: 0
-            pt_mid: 0
+            pt_mid: 165.37
             pt_mid_enc: 0
-            pt_end: 0
+            pt_end: 1329.8900000000001
             pt_end_enc: 0
-            pwm_min: 0
-            pwm_max: 0
+            pwm_min: 2600
+            pwm_max: 3400
         servos:
           - id: 0
             name: Servo
@@ -180,7 +180,7 @@ robot_ui_config:
             nodes:
               - id: 1
                 type: 42
-                value: 0
+                value: 1.52590219e-05
                 key_name: LSX
                 op_mode: 0
                 output_target: ""
@@ -200,8 +200,8 @@ robot_ui_config:
                   - 0
               - id: 3
                 type: 42
-                value: 0
-                key_name: LSY
+                value: 1.52590219e-05
+                key_name: RSX
                 op_mode: 0
                 output_target: ""
                 param:
@@ -220,8 +220,8 @@ robot_ui_config:
                   - 0
               - id: 5
                 type: 42
-                value: 0
-                key_name: RSX
+                value: -1.52590219e-05
+                key_name: LSY
                 op_mode: 0
                 output_target: ""
                 param:
@@ -240,7 +240,7 @@ robot_ui_config:
                   - 0
               - id: 7
                 type: 42
-                value: 0
+                value: -1.52590219e-05
                 key_name: RSY
                 op_mode: 0
                 output_target: ""
@@ -260,7 +260,7 @@ robot_ui_config:
                   - 0
               - id: 9
                 type: 44
-                value: 0
+                value: 1.52590219e-05
                 key_name: ""
                 op_mode: 0
                 output_target: motion.x
@@ -280,7 +280,7 @@ robot_ui_config:
                   - 0
               - id: 11
                 type: 44
-                value: 0
+                value: -1.52590219e-05
                 key_name: ""
                 op_mode: 0
                 output_target: motion.y
@@ -300,7 +300,7 @@ robot_ui_config:
                   - 0
               - id: 13
                 type: 44
-                value: 0
+                value: 1.52590219e-05
                 key_name: ""
                 op_mode: 0
                 output_target: motion.z
@@ -320,7 +320,7 @@ robot_ui_config:
                   - 0
               - id: 15
                 type: 44
-                value: 0
+                value: -1.52590219e-05
                 key_name: ""
                 op_mode: 0
                 output_target: motion.rz
@@ -483,76 +483,549 @@ robot_ui_config:
             active_gamepad_mode: XBOX
             comm_index: 0
         protocol_send:
-          include_length: true
-          checksum: 1
-          header:
-            []
-          tail:
-            []
-          fields:
-            - name: X
-              path: motion.x
-              encoding: 0
-              group: Motion
-              visible: true
-              fix: false
-            - name: Y
-              path: motion.y
-              encoding: 0
-              group: Motion
-              visible: true
-              fix: false
-            - name: Z
-              path: motion.z
-              encoding: 0
-              group: Motion
-              visible: true
-              fix: false
-            - name: RZ
-              path: motion.rz
-              encoding: 0
-              group: Motion
-              visible: true
-              fix: false
-            - name: new_field
-              path: ""
-              encoding: 0
-              group: ""
-              visible: true
-              fix: false
-            - name: new_field
-              path: ""
-              encoding: 0
-              group: ""
-              visible: true
-              fix: false
+          - name: Motion
+            command_byte: 1
+            enabled: true
+            include_length: false
+            checksum: 2
+            big_endian: false
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: X
+                path: motion.x
+                encoding: 0
+                group: Motion
+                visible: true
+                fix: false
+                fix_value: 0
+              - name: Y
+                path: motion.y
+                encoding: 0
+                group: Motion
+                visible: true
+                fix: false
+                fix_value: 0
+              - name: Z
+                path: motion.z
+                encoding: 0
+                group: Motion
+                visible: true
+                fix: false
+                fix_value: 0
+              - name: RX
+                path: motion.rx
+                encoding: 0
+                group: Motion
+                visible: true
+                fix: false
+                fix_value: 0
+              - name: RY
+                path: motion.ry
+                encoding: 0
+                group: Motion
+                visible: true
+                fix: false
+                fix_value: 0
+              - name: RZ
+                path: motion.rz
+                encoding: 0
+                group: Motion
+                visible: true
+                fix: false
+                fix_value: 0
+              - name: Angle
+                path: servo.Servo.angle
+                encoding: 0
+                group: Servo
+                visible: true
+                fix: false
+                fix_value: 0
+          - name: LeftFront
+            command_byte: 2
+            enabled: true
+            include_length: false
+            checksum: 2
+            big_endian: false
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: ID
+                path: brushlessmotor.LeftFront.id
+                encoding: 0
+                group: LeftFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_mid
+                path: brushlessmotor.LeftFront.curve.np_mid
+                encoding: 0
+                group: LeftFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_ini
+                path: brushlessmotor.LeftFront.curve.np_ini
+                encoding: 0
+                group: LeftFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_ini
+                path: brushlessmotor.LeftFront.curve.pp_ini
+                encoding: 0
+                group: LeftFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_mid
+                path: brushlessmotor.LeftFront.curve.pp_mid
+                encoding: 0
+                group: LeftFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_end
+                path: brushlessmotor.LeftFront.curve.nt_end
+                encoding: 0
+                group: LeftFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_mid
+                path: brushlessmotor.LeftFront.curve.nt_mid
+                encoding: 0
+                group: LeftFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_mid
+                path: brushlessmotor.LeftFront.curve.pt_mid
+                encoding: 0
+                group: LeftFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_end
+                path: brushlessmotor.LeftFront.curve.pt_end
+                encoding: 0
+                group: LeftFront
+                visible: true
+                fix: true
+                fix_value: 0
+          - name: RightFront
+            command_byte: 2
+            enabled: true
+            include_length: false
+            checksum: 2
+            big_endian: false
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: ID
+                path: brushlessmotor.RightFront.id
+                encoding: 6
+                group: RightFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_mid
+                path: brushlessmotor.RightFront.curve.np_mid
+                encoding: 0
+                group: RightFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_ini
+                path: brushlessmotor.RightFront.curve.np_ini
+                encoding: 0
+                group: RightFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_ini
+                path: brushlessmotor.RightFront.curve.pp_ini
+                encoding: 0
+                group: RightFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_mid
+                path: brushlessmotor.RightFront.curve.pp_mid
+                encoding: 0
+                group: RightFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_end
+                path: brushlessmotor.RightFront.curve.nt_end
+                encoding: 0
+                group: RightFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_mid
+                path: brushlessmotor.RightFront.curve.nt_mid
+                encoding: 0
+                group: RightFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_mid
+                path: brushlessmotor.RightFront.curve.pt_mid
+                encoding: 0
+                group: RightFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_end
+                path: brushlessmotor.RightFront.curve.pt_end
+                encoding: 0
+                group: RightFront
+                visible: true
+                fix: true
+                fix_value: 0
+          - name: LeftVertical
+            command_byte: 2
+            enabled: true
+            include_length: false
+            checksum: 2
+            big_endian: false
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: ID
+                path: brushlessmotor.LeftVertical.id
+                encoding: 6
+                group: LeftVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_mid
+                path: brushlessmotor.LeftVertical.curve.np_mid
+                encoding: 0
+                group: LeftVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_ini
+                path: brushlessmotor.LeftVertical.curve.np_ini
+                encoding: 0
+                group: LeftVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_ini
+                path: brushlessmotor.LeftVertical.curve.pp_ini
+                encoding: 0
+                group: LeftVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_mid
+                path: brushlessmotor.LeftVertical.curve.pp_mid
+                encoding: 0
+                group: LeftVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_end
+                path: brushlessmotor.LeftVertical.curve.nt_end
+                encoding: 0
+                group: LeftVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_mid
+                path: brushlessmotor.LeftVertical.curve.nt_mid
+                encoding: 0
+                group: LeftVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_mid
+                path: brushlessmotor.LeftVertical.curve.pt_mid
+                encoding: 0
+                group: LeftVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_end
+                path: brushlessmotor.LeftVertical.curve.pt_end
+                encoding: 0
+                group: LeftVertical
+                visible: true
+                fix: true
+                fix_value: 0
+          - name: RightVertical
+            command_byte: 2
+            enabled: true
+            include_length: false
+            checksum: 2
+            big_endian: false
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: ID
+                path: brushlessmotor.RightVertical.id
+                encoding: 6
+                group: RightVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_mid
+                path: brushlessmotor.RightVertical.curve.np_mid
+                encoding: 0
+                group: RightVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_ini
+                path: brushlessmotor.RightVertical.curve.np_ini
+                encoding: 0
+                group: RightVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_ini
+                path: brushlessmotor.RightVertical.curve.pp_ini
+                encoding: 0
+                group: RightVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_mid
+                path: brushlessmotor.RightVertical.curve.pp_mid
+                encoding: 0
+                group: RightVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_end
+                path: brushlessmotor.RightVertical.curve.nt_end
+                encoding: 0
+                group: RightVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_mid
+                path: brushlessmotor.RightVertical.curve.nt_mid
+                encoding: 0
+                group: RightVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_mid
+                path: brushlessmotor.RightVertical.curve.pt_mid
+                encoding: 0
+                group: RightVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_end
+                path: brushlessmotor.RightVertical.curve.pt_end
+                encoding: 0
+                group: RightVertical
+                visible: true
+                fix: true
+                fix_value: 0
+          - name: LeftRear
+            command_byte: 2
+            enabled: true
+            include_length: false
+            checksum: 2
+            big_endian: false
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: ID
+                path: brushlessmotor.LeftRear.id
+                encoding: 6
+                group: LeftRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_mid
+                path: brushlessmotor.LeftRear.curve.np_mid
+                encoding: 0
+                group: LeftRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_ini
+                path: brushlessmotor.LeftRear.curve.np_ini
+                encoding: 0
+                group: LeftRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_ini
+                path: brushlessmotor.LeftRear.curve.pp_ini
+                encoding: 0
+                group: LeftRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_mid
+                path: brushlessmotor.LeftRear.curve.pp_mid
+                encoding: 0
+                group: LeftRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_end
+                path: brushlessmotor.LeftRear.curve.nt_end
+                encoding: 0
+                group: LeftRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_mid
+                path: brushlessmotor.LeftRear.curve.nt_mid
+                encoding: 0
+                group: LeftRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_mid
+                path: brushlessmotor.LeftRear.curve.pt_mid
+                encoding: 0
+                group: LeftRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_end
+                path: brushlessmotor.LeftRear.curve.pt_end
+                encoding: 0
+                group: LeftRear
+                visible: true
+                fix: true
+                fix_value: 0
+          - name: RightRear
+            command_byte: 2
+            enabled: true
+            include_length: false
+            checksum: 2
+            big_endian: false
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: ID
+                path: brushlessmotor.RightRear.id
+                encoding: 6
+                group: RightRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_mid
+                path: brushlessmotor.RightRear.curve.np_mid
+                encoding: 0
+                group: RightRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_ini
+                path: brushlessmotor.RightRear.curve.np_ini
+                encoding: 0
+                group: RightRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_ini
+                path: brushlessmotor.RightRear.curve.pp_ini
+                encoding: 0
+                group: RightRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_mid
+                path: brushlessmotor.RightRear.curve.pp_mid
+                encoding: 0
+                group: RightRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_end
+                path: brushlessmotor.RightRear.curve.nt_end
+                encoding: 0
+                group: RightRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_mid
+                path: brushlessmotor.RightRear.curve.nt_mid
+                encoding: 0
+                group: RightRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_mid
+                path: brushlessmotor.RightRear.curve.pt_mid
+                encoding: 0
+                group: RightRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_end
+                path: brushlessmotor.RightRear.curve.pt_end
+                encoding: 0
+                group: RightRear
+                visible: true
+                fix: true
+                fix_value: 0
         protocol_receive:
-          include_length: false
-          checksum: 0
-          msg_type: 12
-          header:
-            []
-          tail:
-            []
-          fields:
-            - name: Temperature
-              path: temperature.value
-              encoding: 0
-              group: Sensor
-              visible: true
-              fix: false
-            - name: Humidity
-              path: humidity.value
-              encoding: 0
-              group: Sensor
-              visible: true
-              fix: false
-            - name: Depth
-              path: depth.value
-              encoding: 0
-              group: Sensor
-              visible: true
-              fix: false
+          - name: Sensor
+            command_byte: 3
+            include_length: false
+            checksum: 2
+            big_endian: false
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: Depth
+                path: depth.value
+                encoding: 0
+                group: Sensor
+                visible: true
+                fix: false
+              - name: Temperature
+                path: temperature.value
+                encoding: 0
+                group: Sensor
+                visible: true
+                fix: false
       - name: Item_2
         gamepad_mapping: ""
         host_ip: ""
@@ -575,24 +1048,30 @@ robot_ui_config:
               []
 
         protocol_send:
-          include_length: true
-          checksum: 1
-          header:
-            []
-          tail:
-            []
-          fields:
-            []
+          - name: Send
+            command_byte: 0
+            enabled: true
+            include_length: true
+            checksum: 1
+            big_endian: false
+            header:
+              []
+            tail:
+              []
+            fields:
+              []
         protocol_receive:
-          include_length: true
-          checksum: 1
-          msg_type: 0
-          header:
-            []
-          tail:
-            []
-          fields:
-            []
+          - name: Receive
+            command_byte: 0
+            include_length: true
+            checksum: 1
+            big_endian: false
+            header:
+              []
+            tail:
+              []
+            fields:
+              []
     active_mode: 0
   gamepad:
     items:
@@ -748,16 +1227,16 @@ robot_ui_config:
           []
     active_mode: 0
   streams:
-    - name: Camera
-      ip: 0.0.0.0
-      user: ""
-      pass: ""
+    - name: Beyond
+      ip: 192.168.0.38
+      user: admin
+      pass: 123456
       port: 0
-      brand: 2
+      brand: 0
       channel: 1
       codec: 0
       stream_type: 0
-      protocol: 0
+      protocol: 1
       custom_path: ""
       latency: 0
       udp_buffer_size: 0
@@ -810,21 +1289,23 @@ robot_ui_config:
     pt_end: 0
   robot_comm:
     nodes:
-      - name: ROV
-        host_ip: 192.168.31.23
-        remote_port: 8888
-        local_port: 8888
-        transport_type: 1
+      - name: Beyond
+        host_ip: 192.168.0.233
+        remote_port: 2200
+        local_port: 1100
+        transport_type: 0
+        send_freq_hz: 100
       - name: Item_2
         host_ip: 192.168.0.10
         remote_port: 8888
         local_port: 8888
         transport_type: 0
+        send_freq_hz: 100
   graph_items:
     - id: 1
       name: ROV-XBOX
       is_selected: true
-      editor_yaml: "nodes:\n  - id: 1\n    type: 42\n    value: 0\n    key_name: LSX\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: -20\n  - id: 3\n    type: 42\n    value: 0\n    key_name: LSY\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: 332\n  - id: 5\n    type: 42\n    value: 0\n    key_name: RSX\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: 156\n  - id: 7\n    type: 42\n    value: 0\n    key_name: RSY\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: 508\n  - id: 9\n    type: 44\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.x\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 760\n    pos_y: -14\n  - id: 11\n    type: 44\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.y\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 760\n    pos_y: 146\n  - id: 13\n    type: 44\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.z\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 757\n    pos_y: 322\n  - id: 15\n    type: 44\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.rz\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 757\n    pos_y: 498\n  - id: 21\n    type: 34\n    value: 8\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 8\n      - 0\n      - 0\n      - 0\n    pos_x: 765\n    pos_y: -286\n  - id: 22\n    type: 42\n    value: 0\n    key_name: A\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: -340\n  - id: 25\n    type: 42\n    value: 0\n    key_name: B\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: -180\n  - id: 26\n    type: 20\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 369\n    pos_y: -188\n  - id: 29\n    type: 20\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 369\n    pos_y: -364\nlinks:\n  - id: 17\n    from_node: 7\n    from_pin: 0\n    to_node: 15\n    to_pin: 0\n  - id: 18\n    from_node: 3\n    from_pin: 0\n    to_node: 13\n    to_pin: 0\n  - id: 19\n    from_node: 5\n    from_pin: 0\n    to_node: 11\n    to_pin: 0\n  - id: 20\n    from_node: 1\n    from_pin: 0\n    to_node: 9\n    to_pin: 0\n  - id: 32\n    from_node: 22\n    from_pin: 0\n    to_node: 29\n    to_pin: 0\n  - id: 33\n    from_node: 25\n    from_pin: 0\n    to_node: 26\n    to_pin: 0\n  - id: 34\n    from_node: 29\n    from_pin: 0\n    to_node: 21\n    to_pin: 0\n  - id: 35\n    from_node: 26\n    from_pin: 0\n    to_node: 21\n    to_pin: 1\nactive_robot_mode: ROV\nactive_gamepad_mode: XBOX"
+      editor_yaml: "nodes:\n  - id: 1\n    type: 42\n    value: 1.52590219e-05\n    key_name: LSX\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: -20\n  - id: 3\n    type: 42\n    value: 1.52590219e-05\n    key_name: RSX\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: 332\n  - id: 5\n    type: 42\n    value: -1.52590219e-05\n    key_name: LSY\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: 156\n  - id: 7\n    type: 42\n    value: -1.52590219e-05\n    key_name: RSY\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: 508\n  - id: 9\n    type: 44\n    value: 1.52590219e-05\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.x\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 760\n    pos_y: -14\n  - id: 11\n    type: 44\n    value: -1.52590219e-05\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.y\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 760\n    pos_y: 146\n  - id: 13\n    type: 44\n    value: 1.52590219e-05\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.z\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 757\n    pos_y: 322\n  - id: 15\n    type: 44\n    value: -1.52590219e-05\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.rz\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 757\n    pos_y: 498\n  - id: 21\n    type: 34\n    value: 8\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 8\n      - 0\n      - 0\n      - 0\n    pos_x: 765\n    pos_y: -286\n  - id: 22\n    type: 42\n    value: 0\n    key_name: A\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: -340\n  - id: 25\n    type: 42\n    value: 0\n    key_name: B\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: -180\n  - id: 26\n    type: 20\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 369\n    pos_y: -188\n  - id: 29\n    type: 20\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 369\n    pos_y: -364\nlinks:\n  - id: 17\n    from_node: 7\n    from_pin: 0\n    to_node: 15\n    to_pin: 0\n  - id: 18\n    from_node: 3\n    from_pin: 0\n    to_node: 13\n    to_pin: 0\n  - id: 19\n    from_node: 5\n    from_pin: 0\n    to_node: 11\n    to_pin: 0\n  - id: 20\n    from_node: 1\n    from_pin: 0\n    to_node: 9\n    to_pin: 0\n  - id: 32\n    from_node: 22\n    from_pin: 0\n    to_node: 29\n    to_pin: 0\n  - id: 33\n    from_node: 25\n    from_pin: 0\n    to_node: 26\n    to_pin: 0\n  - id: 34\n    from_node: 29\n    from_pin: 0\n    to_node: 21\n    to_pin: 0\n  - id: 35\n    from_node: 26\n    from_pin: 0\n    to_node: 21\n    to_pin: 1\nactive_robot_mode: ROV\nactive_gamepad_mode: XBOX"
     - id: 2
       name: Item_2
       is_selected: false

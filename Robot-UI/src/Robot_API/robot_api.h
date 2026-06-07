@@ -100,8 +100,8 @@ struct MotionControl {
 };
 
 struct ActuatorConfig {
-    std::map<int, BrushlessMotor> brushlessmotor;
-    std::map<int, Servo> servo;
+    std::vector<BrushlessMotor> brushlessmotor;
+    std::vector<Servo> servo;
     MotionControl motion;
     bool has_motion = false;
 };
@@ -124,6 +124,7 @@ struct SendField {
     std::string group;
     bool visible = true;
     bool fix = false;
+    double fix_value = 0.0;   // fix=true 时使用此固定值，不从 ActuatorConfig 读取
 };
 
 struct ReceiveField {
@@ -136,17 +137,20 @@ struct ReceiveField {
 };
 
 struct ProtocolReceiveConfig {
+    char    name[32] = "Receive";  // 帧名称（用户自定义）
+    uint8_t command_byte = 0x00;   // 帧类型字节：与发送端对应，用于匹配帧类型
     std::vector<uint8_t> header;
     std::vector<uint8_t> tail;
     ChecksumType checksum = ChecksumType::Sum8;
     bool include_length = true;
     bool big_endian = false;   // false=小端(LE), true=大端(BE/网络序)
-    uint8_t msg_type = 0;
     std::vector<ReceiveField> fields;
 };
 
 struct ProtocolSendConfig {
-    std::string format_name;
+    char    name[32] = "Send";     // 帧名称（用户自定义）
+    uint8_t command_byte = 0x00;   // 帧类型字节：标识帧类型，接收端用于区分不同数据帧
+    bool    enabled = true;        // 是否发送此帧（RobotStatus 可控制）
     std::vector<uint8_t> header;
     std::vector<uint8_t> tail;
     ChecksumType checksum = ChecksumType::Sum8;
@@ -169,8 +173,8 @@ struct RobotMode {
     SensorConfig  sensor_config;
 
     // 协议配置
-    ProtocolSendConfig    protocol_send;
-    ProtocolReceiveConfig protocol_receive;
+    std::vector<ProtocolSendConfig>    protocol_send;    // 多帧发送配置
+    std::vector<ProtocolReceiveConfig> protocol_receive; // 多帧接收配置
 
     // 网络
     std::string host_ip;
@@ -285,23 +289,25 @@ inline std::vector<FieldComponent> GetSendComponents(const ActuatorConfig& data,
     std::vector<FieldComponent> comps;
     if (data.has_motion)
         comps.push_back({"motion", "Motion", "motion.", false});
-    for (const auto& kv : data.brushlessmotor) {
-        char buf[16];
-        _snprintf_s(buf, sizeof(buf), "m%d", kv.first);
-        std::string label = kv.second.name.empty()
-            ? std::string("Motor #") + std::to_string(kv.first)
-            : kv.second.name;
-        comps.push_back({buf, label,
-            std::string("brushlessmotor.") + std::to_string(kv.first) + ".", false});
+    for (const auto& motor : data.brushlessmotor) {
+        std::string motorName = motor.name.empty()
+            ? std::string("Motor_") + std::to_string(motor.id)
+            : motor.name;
+        std::string label = motor.name.empty()
+            ? std::string("Motor #") + std::to_string(motor.id)
+            : motor.name;
+        comps.push_back({"m" + motorName, label,
+            std::string("brushlessmotor.") + motorName + ".", false});
     }
-    for (const auto& kv : data.servo) {
-        char buf[16];
-        _snprintf_s(buf, sizeof(buf), "s%d", kv.first);
-        std::string label = kv.second.name.empty()
-            ? std::string("Servo #") + std::to_string(kv.first)
-            : kv.second.name;
-        comps.push_back({buf, label,
-            std::string("servo.") + std::to_string(kv.first) + ".", false});
+    for (const auto& sv : data.servo) {
+        std::string servoName = sv.name.empty()
+            ? std::string("Servo_") + std::to_string(sv.id)
+            : sv.name;
+        std::string label = sv.name.empty()
+            ? std::string("Servo #") + std::to_string(sv.id)
+            : sv.name;
+        comps.push_back({"s" + servoName, label,
+            std::string("servo.") + servoName + ".", false});
     }
     return comps;
 }
@@ -326,7 +332,7 @@ inline std::vector<FieldSubField> GetSubFields(const FieldComponent& comp) {
             {"rz", "RZ"},
         };
     }
-    if (comp.id[0] == 'm') { // motor
+    if (comp.path_prefix.rfind("brushlessmotor.", 0) == 0) { // motor
         return {
             {"id",           "ID"},
             {"target_speed", "Target Speed"},
@@ -340,7 +346,7 @@ inline std::vector<FieldSubField> GetSubFields(const FieldComponent& comp) {
             {"curve.pt_end", "Curve pt_end"},
         };
     }
-    if (comp.id[0] == 's') { // servo
+    if (comp.path_prefix.rfind("servo.", 0) == 0) { // servo
         return {
             {"id",    "ID"},
             {"angle", "Angle"},
@@ -438,27 +444,41 @@ inline bool GetActuatorField(const ActuatorConfig& data, const std::string& path
 
     // --- brushlessmotor ---
     if (segs[0] == "brushlessmotor" && segs.size() >= 3) {
-        int id = std::stoi(segs[1]);
-        auto it = data.brushlessmotor.find(id);
-        if (it == data.brushlessmotor.end()) return false;
-        const BrushlessMotor& motor = it->second;
+        const std::string& motorName = segs[1];
+        // 尝试按名称匹配，同时提取可能的数字 id 作为回退
+        int fallbackId = -1;
+        // 从名称中尝试提取数字 id（如 "Motor0"→0, "Motor_0"→0, "motor3"→3）
+        {
+            std::string digits;
+            for (int ci = (int)motorName.size() - 1; ci >= 0; --ci) {
+                if (std::isdigit((unsigned char)motorName[ci]))
+                    digits = motorName[ci] + digits;
+                else break;
+            }
+            if (!digits.empty()) fallbackId = std::stoi(digits);
+        }
+        for (const auto& motor : data.brushlessmotor) {
+            std::string fb = std::string("Motor_") + std::to_string(motor.id);
+            if (motor.name != motorName && fb != motorName && motor.id != fallbackId) continue;
 
-        if (segs[2] == "id" && segs.size() == 3) {
-            out = motor.id; return true;
-        }
-        if (segs[2] == "target_speed" && segs.size() == 3) {
-            out = motor.target_speed; return true;
-        }
-        if (segs[2] == "curve" && segs.size() == 4) {
-            const ThrustCurve& c = motor.curve;
-            if      (segs[3] == "np_mid") { out = c.np_mid; return true; }
-            else if (segs[3] == "np_ini") { out = c.np_ini; return true; }
-            else if (segs[3] == "pp_ini") { out = c.pp_ini; return true; }
-            else if (segs[3] == "pp_mid") { out = c.pp_mid; return true; }
-            else if (segs[3] == "nt_end") { out = c.nt_end; return true; }
-            else if (segs[3] == "nt_mid") { out = c.nt_mid; return true; }
-            else if (segs[3] == "pt_mid") { out = c.pt_mid; return true; }
-            else if (segs[3] == "pt_end") { out = c.pt_end; return true; }
+            if (segs[2] == "id" && segs.size() == 3) {
+                out = motor.id; return true;
+            }
+            if (segs[2] == "target_speed" && segs.size() == 3) {
+                out = motor.target_speed; return true;
+            }
+            if (segs[2] == "curve" && segs.size() == 4) {
+                const ThrustCurve& c = motor.curve;
+                if      (segs[3] == "np_mid") { out = c.np_mid; return true; }
+                else if (segs[3] == "np_ini") { out = c.np_ini; return true; }
+                else if (segs[3] == "pp_ini") { out = c.pp_ini; return true; }
+                else if (segs[3] == "pp_mid") { out = c.pp_mid; return true; }
+                else if (segs[3] == "nt_end") { out = c.nt_end; return true; }
+                else if (segs[3] == "nt_mid") { out = c.nt_mid; return true; }
+                else if (segs[3] == "pt_mid") { out = c.pt_mid; return true; }
+                else if (segs[3] == "pt_end") { out = c.pt_end; return true; }
+                return false;
+            }
             return false;
         }
         return false;
@@ -466,11 +486,24 @@ inline bool GetActuatorField(const ActuatorConfig& data, const std::string& path
 
     // --- servo ---
     if (segs[0] == "servo" && segs.size() == 3) {
-        int id = std::stoi(segs[1]);
-        auto it = data.servo.find(id);
-        if (it == data.servo.end()) return false;
-        if (segs[2] == "id")    { out = it->second.id;    return true; }
-        if (segs[2] == "angle") { out = it->second.angle; return true; }
+        const std::string& servoName = segs[1];
+        int fallbackId = -1;
+        {
+            std::string digits;
+            for (int ci = (int)servoName.size() - 1; ci >= 0; --ci) {
+                if (std::isdigit((unsigned char)servoName[ci]))
+                    digits = servoName[ci] + digits;
+                else break;
+            }
+            if (!digits.empty()) fallbackId = std::stoi(digits);
+        }
+        for (const auto& sv : data.servo) {
+            std::string fb = std::string("Servo_") + std::to_string(sv.id);
+            if (sv.name != servoName && fb != servoName && sv.id != fallbackId) continue;
+            if (segs[2] == "id")    { out = sv.id;    return true; }
+            if (segs[2] == "angle") { out = sv.angle; return true; }
+            return false;
+        }
         return false;
     }
 
@@ -493,7 +526,8 @@ inline std::vector<uint8_t> BuildPayload(const ActuatorConfig& data, const std::
     };
 
     for (const auto& f : fields) {
-        double val = 0.0;
+        double val;
+        
         if (!GetActuatorField(data, f.field_path, val)) continue;
 
         switch (f.encoding) {
@@ -587,6 +621,7 @@ inline uint16_t ComputeChecksum(ChecksumType type, const uint8_t* data, size_t l
 }
 
 /// 根据 ProtocolSendConfig 将 ActuatorConfig 序列化为完整帧
+/// 帧结构: [Header] [Command Byte] [Optional: Length LE] [Payload] [Optional: Checksum] [Tail]
 inline std::vector<uint8_t> BuildFrame(const ActuatorConfig& data, const ProtocolSendConfig& cfg) {
     std::vector<uint8_t> payload = BuildPayload(data, cfg.fields, cfg.big_endian);
 
@@ -594,6 +629,9 @@ inline std::vector<uint8_t> BuildFrame(const ActuatorConfig& data, const Protoco
 
     // 帧头
     frame.insert(frame.end(), cfg.header.begin(), cfg.header.end());
+
+    // 命令位（1 字节）
+    frame.push_back(cfg.command_byte);
 
     // 长度字段（2 字节小端）
     if (cfg.include_length) {
@@ -728,7 +766,7 @@ inline SensorData ParseSensorFrame(const std::vector<uint8_t>& raw_data, const P
     }
 
     // === 带帧协议模式 ===
-    size_t minSize = cfg.header.size() + (cfg.include_length ? 2 : 0) + 1; // header + len + msg_type
+    size_t minSize = cfg.header.size() + (cfg.include_length ? 2 : 0) + 1; // header + len + command_byte
     if (raw_data.size() < minSize) return data;
 
     // 检查帧头
@@ -741,16 +779,16 @@ inline SensorData ParseSensorFrame(const std::vector<uint8_t>& raw_data, const P
         payloadLen = static_cast<uint16_t>(raw_data[offset]) | static_cast<uint16_t>(static_cast<unsigned>(raw_data[offset + 1]) << 8);
         offset += 2;
     } else {
-        payloadLen = static_cast<uint16_t>(raw_data.size() - offset - csBytes - cfg.tail.size() - 1); // -1 = msg_type
+        payloadLen = static_cast<uint16_t>(raw_data.size() - offset - csBytes - cfg.tail.size() - 1); // -1 = command_byte
     }
 
     // 检查总长度
-    size_t totalNeeded = offset + 1 + payloadLen + csBytes + cfg.tail.size(); // +1 = msg_type
+    size_t totalNeeded = offset + 1 + payloadLen + csBytes + cfg.tail.size(); // +1 = command_byte
     if (raw_data.size() != totalNeeded) return data;
 
-    // 验证 msg_type
-    uint8_t msgType = raw_data[offset++];
-    if (msgType != cfg.msg_type) return data;
+    // 验证 command_byte
+    uint8_t cmdByte = raw_data[offset++];
+    if (cmdByte != cfg.command_byte) return data;
 
     // 校验
     if (cfg.checksum != ChecksumType::None) {
@@ -797,9 +835,9 @@ public:
     // 发送执行器数据（使用内部存储的协议配置）
     virtual void SendActuatorData(const ActuatorConfig& data) = 0;
 
-    // 设置协议发送配置
-    virtual void SetProtocolConfig(const ProtocolSendConfig& config) = 0;
+    // 设置协议发送配置（多帧）
+    virtual void SetProtocolConfig(const std::vector<ProtocolSendConfig>& configs) = 0;
 
-    // 设置协议接收配置
-    virtual void SetProtocolReceiveConfig(const ProtocolReceiveConfig& config) = 0;
+    // 设置协议接收配置（多帧）
+    virtual void SetProtocolReceiveConfig(const std::vector<ProtocolReceiveConfig>& configs) = 0;
 };

@@ -38,8 +38,8 @@ public:
     SensorData GetSensorData() override;
     void SendActuatorData(const ActuatorConfig& data) override;
 
-    void SetProtocolConfig(const ProtocolSendConfig& config) override;
-    void SetProtocolReceiveConfig(const ProtocolReceiveConfig& config) override;
+    void SetProtocolConfig(const std::vector<ProtocolSendConfig>& configs) override;
+    void SetProtocolReceiveConfig(const std::vector<ProtocolReceiveConfig>& configs) override;
 
 private:
     SensorData m_CurrentSensorData;
@@ -52,14 +52,14 @@ private:
     std::string m_TargetIP;
     int m_TargetPort;
 
-    ProtocolSendConfig m_ProtocolCfg;      // 用户自定义发送协议
-    ProtocolReceiveConfig m_ReceiveCfg;    // 用户自定义接收协议
+    std::vector<ProtocolSendConfig>    m_ProtocolCfgs;   // 用户自定义发送协议（多帧）
+    std::vector<ProtocolReceiveConfig> m_ReceiveCfgs;    // 用户自定义接收协议（多帧）
 
 #if defined(_WIN32) || defined(_WIN64)
     SOCKET m_Socket = INVALID_SOCKET;      // TCP/UDP 共用 socket
     sockaddr_in m_RemoteAddr;
 #endif
 
-    std::vector<uint8_t> SerializeActuatorData(const ActuatorConfig& data);
+    std::vector<std::vector<uint8_t>> SerializeActuatorData(const ActuatorConfig& data);
     SensorData DeserializeSensorData(const std::vector<uint8_t>& raw_data);
 };

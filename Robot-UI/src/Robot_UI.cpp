@@ -22,11 +22,13 @@ Robot_UI_Layer::Robot_UI_Layer()
     m_OptionPanel        = std::make_unique<OptionPanel>();
     m_RobotSettingPanel  = std::make_unique<RobotSettingPanel>();
     m_RobotStatus        = std::make_unique<RobotStatus>();
+    m_MonitorWall        = std::make_unique<MonitorWall>();
     m_FileManager        = std::make_unique<FileManager>();
     m_TerminalPanel      = std::make_unique<TerminalPanel>();
 
     auto* rsp      = m_RobotSettingPanel.get();
     auto* commMgr  = rsp->GetRobotCommManager();
+    m_MonitorWall->SetLiveStreamManager(rsp->GetLiveStreamManager());
 
     // 初始同步：设置 RobotStatus 的活跃模式指针
     if (m_RobotStatus)
@@ -260,6 +262,7 @@ void Robot_UI_Layer::SaveKernelFile(const std::string& path)
     uiState.thrust_curve_editor_open = m_ThrustCurveEditorOpen;
     uiState.notification_open         = m_TerminalOpen;
     uiState.terminal_open             = m_TerminalOpen;
+    uiState.monitor_wall_open         = m_MonitorWallOpen;
     uiState.robot_comm_open          = m_RobotSettingPanel->GetRobotCommOpen();
     if (m_RobotSettingPanel)
         uiState.robot_active_mode    = m_RobotSettingPanel->GetRobotComponentManager().GetSelectedIndex();
@@ -323,6 +326,7 @@ void Robot_UI_Layer::ApplyUIState(const UIState& st)
     m_RobotSettingOpen        = st.node_editor_open;
     m_ThrustCurveEditorOpen   = st.thrust_curve_editor_open;
     m_TerminalOpen            = st.notification_open || st.terminal_open;
+    m_MonitorWallOpen         = st.monitor_wall_open;
     m_RobotSettingPanel->GetRobotCommOpen()     = st.robot_comm_open;
 
     if (m_RobotSettingPanel) {
@@ -383,11 +387,11 @@ void Robot_UI_Layer::GamepadRoutine()
             if (m_RobotStatus)
                 m_RobotStatus->UpdateCommandData(cmdPtr);
 
-            if (m_RobotStatus->IsLinked()) {
-                m_RobotStatus->SendActuatorData(data);
-            }
+            m_RobotStatus->SendActuatorData(data);
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(10)); // 100Hz
+        int freqHz = m_RobotStatus ? m_RobotStatus->GetSendFreqHz() : 100;
+        if (freqHz < 1) freqHz = 1;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000 / freqHz));
     }
     WL_INFO_TAG("GAMEPAD", "Gamepad routine stopped");
 }
@@ -430,6 +434,24 @@ void Robot_UI_Layer::OnUIRender()
             &m_RobotSettingPanel->GetNodeGraphManager(),
             &m_RobotSettingPanel->GetRobotComponentManager(),
             &m_RobotSettingPanel->GetGamepadMapperManager());
+    }
+
+    // MonitorWall — 独立窗口，不随 Connect/Disconnect 自动开关
+    if (m_MonitorWallOpen && m_MonitorWall)
+    {
+        m_MonitorWall->SetActiveStreamIndex(m_RobotStatus->GetActiveLiveStreamIdx());
+
+        // 检测 RobotStatus 连接状态变化，同步流启停
+        bool linked = m_RobotStatus->IsLinked();
+        if (linked != m_LastLinkState) {
+            m_LastLinkState = linked;
+            if (linked)
+                m_MonitorWall->ConnectStream();
+            else
+                m_MonitorWall->DisconnectStream();
+        }
+
+        m_MonitorWall->Draw(&m_MonitorWallOpen);
     }
 
     // 推力曲线编辑器窗口
@@ -536,6 +558,7 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
             if (ImGui::BeginMenu("View"))
             {
                 ImGui::MenuItem("Robot Status", nullptr, &uiLayer->GetShowRobotStatus());
+                ImGui::MenuItem("Monitor Wall", nullptr, &uiLayer->GetShowMonitorWall());
                 ImGui::MenuItem("Terminal", nullptr, &uiLayer->GetShowTerminal());
                 
                 ImGui::EndMenu();

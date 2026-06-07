@@ -1452,19 +1452,21 @@ void WriteOutputToActuator(const std::string& target, float val, ActuatorConfig&
 
     // --- brushlessmotor ---
     if (segs[0] == "brushlessmotor" && segs.size() >= 3) {
-        int id = std::stoi(segs[1]);
-        auto& motor = data.brushlessmotor[id];
-        motor.id = id;
-        if (segs[2] == "target_speed") { motor.target_speed = val; return; }
-        if (segs[2] == "curve" && segs.size() == 4) {
-            if      (segs[3] == "np_mid") motor.curve.np_mid = val;
-            else if (segs[3] == "np_ini") motor.curve.np_ini = val;
-            else if (segs[3] == "pp_ini") motor.curve.pp_ini = val;
-            else if (segs[3] == "pp_mid") motor.curve.pp_mid = val;
-            else if (segs[3] == "nt_end") motor.curve.nt_end = val;
-            else if (segs[3] == "nt_mid") motor.curve.nt_mid = val;
-            else if (segs[3] == "pt_mid") motor.curve.pt_mid = val;
-            else if (segs[3] == "pt_end") motor.curve.pt_end = val;
+        const std::string& motorName = segs[1];
+        for (auto& motor : data.brushlessmotor) {
+            if (motor.name != motorName) continue;
+            if (segs[2] == "target_speed") { motor.target_speed = val; return; }
+            if (segs[2] == "curve" && segs.size() == 4) {
+                if      (segs[3] == "np_mid") motor.curve.np_mid = val;
+                else if (segs[3] == "np_ini") motor.curve.np_ini = val;
+                else if (segs[3] == "pp_ini") motor.curve.pp_ini = val;
+                else if (segs[3] == "pp_mid") motor.curve.pp_mid = val;
+                else if (segs[3] == "nt_end") motor.curve.nt_end = val;
+                else if (segs[3] == "nt_mid") motor.curve.nt_mid = val;
+                else if (segs[3] == "pt_mid") motor.curve.pt_mid = val;
+                else if (segs[3] == "pt_end") motor.curve.pt_end = val;
+                return;
+            }
             return;
         }
         return;
@@ -1472,10 +1474,12 @@ void WriteOutputToActuator(const std::string& target, float val, ActuatorConfig&
 
     // --- servo ---
     if (segs[0] == "servo" && segs.size() == 3) {
-        int id = std::stoi(segs[1]);
-        auto& s = data.servo[id];
-        s.id = id;
-        if (segs[2] == "angle") { s.angle = val; return; }
+        const std::string& servoName = segs[1];
+        for (auto& sv : data.servo) {
+            if (sv.name != servoName) continue;
+            if (segs[2] == "angle") { sv.angle = val; return; }
+            return;
+        }
         return;
     }
 }
@@ -1483,35 +1487,37 @@ void WriteOutputToActuator(const std::string& target, float val, ActuatorConfig&
 // ============================================================================
 // BuildOutputTargetsFromProtocol
 // ============================================================================
-std::vector<OutputTargetInfo> BuildOutputTargetsFromProtocol(const ProtocolSendConfig& cfg, const ActuatorConfig& actuator)
+std::vector<OutputTargetInfo> BuildOutputTargetsFromProtocol(const std::vector<ProtocolSendConfig>& cfgs, const ActuatorConfig& actuator)
 {
     std::vector<OutputTargetInfo> targets;
 
     auto components = GetSendComponents(actuator, SensorConfig{});
 
-    for (const auto& field : cfg.fields)
-    {
-        if (field.fix) continue;
+    for (const auto& cfg : cfgs) {
+        for (const auto& field : cfg.fields)
+        {
+            if (field.fix) continue;
 
-        std::string curCompId = ResolveComponentId(field.field_path);
-        std::string curSub = ResolveSubField(field.field_path);
-        std::string displayName = field.name;
+            std::string curCompId = ResolveComponentId(field.field_path);
+            std::string curSub = ResolveSubField(field.field_path);
+            std::string displayName = field.name;
 
-        for (const auto& c : components) {
-            if (c.id == curCompId) {
-                auto sfs = GetSubFields(c);
-                for (const auto& sf : sfs) {
-                    if (sf.key == curSub) {
-                        displayName = c.label + " > " + sf.label;
-                        break;
+            for (const auto& c : components) {
+                if (c.id == curCompId) {
+                    auto sfs = GetSubFields(c);
+                    for (const auto& sf : sfs) {
+                        if (sf.key == curSub) {
+                            displayName = c.label + " > " + sf.label;
+                            break;
+                        }
                     }
+                    if (displayName == field.name) displayName = c.label + " > " + curSub;
+                    break;
                 }
-                if (displayName == field.name) displayName = c.label + " > " + curSub;
-                break;
             }
-        }
 
-        targets.push_back({displayName, field.field_path, field.encoding});
+            targets.push_back({displayName, field.field_path, field.encoding});
+        }
     }
 
     return targets;

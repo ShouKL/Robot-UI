@@ -215,7 +215,7 @@ private:
 // Free functions (stay in NodeGraph — depend on robot_api.h types)
 // ============================================================================
 void        WriteOutputToActuator(const std::string& outputTarget, float value, ActuatorConfig& data);
-std::vector<OutputTargetInfo> BuildOutputTargetsFromProtocol(const ProtocolSendConfig& cfg, const ActuatorConfig& actuator);
+std::vector<OutputTargetInfo> BuildOutputTargetsFromProtocol(const std::vector<ProtocolSendConfig>& cfgs, const ActuatorConfig& actuator);
 
 // ============================================================================
 // GraphNode — 纯数据（不含 NodeGraph 实例/EditorContext），用于序列化/传递

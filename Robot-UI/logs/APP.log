@@ -1,246 +1,633 @@
-[01:29:19] [info] APP: [APP] Robot UI application created
-[01:29:19] [info] APP: [APP] Robot UI initializing...
-[01:29:19] [info] APP: [COMP] Item added: Item_1 (id=1)
-[01:29:19] [info] APP: [GAMEPAD] Item added: Item_1 (id=1)
-[01:29:19] [info] APP: [COMM] component added: Item_1 (id=1)
-[01:29:19] [info] APP: [APP] RobotSettingPanel created
-[01:29:19] [info] APP: [ROBOT_STATUS] RobotStatus created (with headless graph evaluator)
-[01:29:19] [info] APP: [ROBOT_STATUS] Selected item set to: Item_1
-[01:29:19] [info] APP: [ROBOT_STATUS] Protocol config injected (0 send fields, 0 recv fields)
-[01:29:19] [info] APP: [ROBOT_STATUS] No graph for item 'Item_1' + gamepad '', cleared
-[01:29:19] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_1
-[01:29:19] [info] APP: [APP] ImPlot context created
-[01:29:19] [info] APP: [APP] Gamepad thread started
-[01:29:19] [info] APP: [GAMEPAD] Gamepad routine started (100Hz)
-[01:29:19] [info] APP: [APP] Kernel loaded: C:\Users\29164\Desktop\Robot-UI\bin\Debug-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
-[01:29:19] [info] APP: [APP] Loading component: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
-[01:29:19] [info] APP: [component] Loading component: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
-[01:29:19] [info] APP: [APP] Robot config loaded: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
-[01:29:19] [info] APP: [COMM] Loaded 2 comm configs
-[01:29:19] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:29:19] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:29:19] [info] APP: [ROBOT_STATUS] Loaded graph for item 'ROV' + gamepad ''
-[01:29:19] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
-[01:29:19] [info] APP: [APP] Robot UI initialized successfully
-[01:29:20] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #0 (ROV-XBOX)
-[01:29:20] [trace] APP: [GAMEPAD] Routine heartbeat #100 (linked=false)
-[01:29:21] [trace] APP: [GAMEPAD] Routine heartbeat #200 (linked=false)
-[01:29:23] [trace] APP: [GAMEPAD] Routine heartbeat #300 (linked=false)
-[01:29:24] [trace] APP: [GAMEPAD] Routine heartbeat #400 (linked=false)
-[01:29:25] [trace] APP: [GAMEPAD] Routine heartbeat #500 (linked=false)
-[01:29:26] [trace] APP: [GAMEPAD] Routine heartbeat #600 (linked=false)
-[01:29:26] [info] APP: [CONFIG] Saved BASE: ls=0, ng=0
-[01:29:26] [info] APP: [ROBOT_STATUS] Live sync to Manager: ON
-[01:29:26] [info] APP: [CONFIG] RobotSetting editing started
-[01:29:26] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:29:26] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:29:26] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
-[01:29:26] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
-[01:29:26] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
-[01:29:26] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
-[01:29:26] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:29:26] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:29:26] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:29:26] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:29:26] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
-[01:29:26] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
-[01:29:26] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
-[01:29:26] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
-[01:29:26] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:29:26] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:29:27] [trace] APP: [GAMEPAD] Routine heartbeat #700 (linked=false)
-[01:29:28] [trace] APP: [GAMEPAD] Routine heartbeat #800 (linked=false)
-[01:29:28] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:29:28] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:29:28] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
-[01:29:28] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
-[01:29:28] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
-[01:29:28] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
-[01:29:28] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:29:28] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:29:29] [trace] APP: [GAMEPAD] Routine heartbeat #900 (linked=false)
-[01:29:30] [trace] APP: [GAMEPAD] Routine heartbeat #1000 (linked=false)
-[01:29:31] [trace] APP: [GAMEPAD] Routine heartbeat #1100 (linked=false)
-[01:29:32] [trace] APP: [GAMEPAD] Routine heartbeat #1200 (linked=false)
-[01:29:33] [trace] APP: [GAMEPAD] Routine heartbeat #1300 (linked=false)
-[01:29:34] [trace] APP: [GAMEPAD] Routine heartbeat #1400 (linked=false)
-[01:29:36] [trace] APP: [GAMEPAD] Routine heartbeat #1500 (linked=false)
-[01:29:37] [trace] APP: [GAMEPAD] Routine heartbeat #1600 (linked=false)
-[01:29:38] [trace] APP: [GAMEPAD] Routine heartbeat #1700 (linked=false)
-[01:29:39] [trace] APP: [GAMEPAD] Routine heartbeat #1800 (linked=false)
-[01:29:39] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:29:39] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:29:39] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
-[01:29:39] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
-[01:29:39] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
-[01:29:39] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
-[01:29:39] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:29:39] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:29:40] [trace] APP: [GAMEPAD] Routine heartbeat #1900 (linked=false)
-[01:29:40] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:29:40] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:29:40] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
-[01:29:40] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
-[01:29:40] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
-[01:29:40] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
-[01:29:40] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:29:40] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:29:41] [trace] APP: [GAMEPAD] Routine heartbeat #2000 (linked=false)
-[01:29:42] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:29:42] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:29:42] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
-[01:29:42] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
-[01:29:42] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
-[01:29:42] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
-[01:29:42] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:29:42] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:29:42] [trace] APP: [GAMEPAD] Routine heartbeat #2100 (linked=false)
-[01:29:43] [trace] APP: [GAMEPAD] Routine heartbeat #2200 (linked=false)
-[01:29:44] [trace] APP: [GAMEPAD] Routine heartbeat #2300 (linked=false)
-[01:29:45] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:29:45] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:29:45] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
-[01:29:45] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
-[01:29:45] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
-[01:29:45] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
-[01:29:45] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:29:45] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:29:45] [trace] APP: [GAMEPAD] Routine heartbeat #2400 (linked=false)
-[01:29:46] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:29:46] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:29:46] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
-[01:29:46] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
-[01:29:46] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
-[01:29:46] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
-[01:29:46] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:29:46] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:29:47] [trace] APP: [GAMEPAD] Routine heartbeat #2500 (linked=false)
-[01:29:48] [trace] APP: [GAMEPAD] Routine heartbeat #2600 (linked=false)
-[01:29:49] [trace] APP: [GAMEPAD] Routine heartbeat #2700 (linked=false)
-[01:29:50] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:29:50] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:29:50] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
-[01:29:50] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
-[01:29:50] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
-[01:29:50] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
-[01:29:50] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:29:50] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:29:50] [trace] APP: [GAMEPAD] Routine heartbeat #2800 (linked=false)
-[01:29:51] [trace] APP: [GAMEPAD] Routine heartbeat #2900 (linked=false)
-[01:29:52] [trace] APP: [GAMEPAD] Routine heartbeat #3000 (linked=false)
-[01:29:53] [trace] APP: [GAMEPAD] Routine heartbeat #3100 (linked=false)
-[01:29:54] [trace] APP: [GAMEPAD] Routine heartbeat #3200 (linked=false)
-[01:29:55] [trace] APP: [GAMEPAD] Routine heartbeat #3300 (linked=false)
-[01:29:56] [trace] APP: [GAMEPAD] Routine heartbeat #3400 (linked=false)
-[01:29:58] [trace] APP: [GAMEPAD] Routine heartbeat #3500 (linked=false)
-[01:29:58] [info] APP: [CONFIG] Applying RobotSetting...
-[01:29:58] [info] APP: [ROBOT_STATUS] Live sync to Manager: OFF
-[01:29:59] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:29:59] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:29:59] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
-[01:29:59] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
-[01:29:59] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
-[01:29:59] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
-[01:29:59] [info] APP: [CONFIG] Restored BASE: ls=0, ng=0
-[01:29:59] [info] APP: [CONFIG] Saved BASE: ls=0, ng=0
-[01:29:59] [info] APP: [ROBOT_STATUS] Live sync to Manager: ON
-[01:29:59] [info] APP: [CONFIG] RobotSetting editing started
-[01:29:59] [trace] APP: [GAMEPAD] Routine heartbeat #3600 (linked=false)
-[01:30:00] [trace] APP: [GAMEPAD] Routine heartbeat #3700 (linked=false)
-[01:30:00] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:30:00] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:30:00] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
-[01:30:00] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
-[01:30:00] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
-[01:30:00] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
-[01:30:00] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:30:00] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:30:01] [trace] APP: [GAMEPAD] Routine heartbeat #3800 (linked=false)
-[01:30:02] [trace] APP: [GAMEPAD] Routine heartbeat #3900 (linked=false)
-[01:30:02] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:30:02] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:30:02] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
-[01:30:02] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
-[01:30:02] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
-[01:30:02] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
-[01:30:02] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:30:02] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:30:03] [trace] APP: [GAMEPAD] Routine heartbeat #4000 (linked=false)
-[01:30:04] [trace] APP: [GAMEPAD] Routine heartbeat #4100 (linked=false)
-[01:30:05] [trace] APP: [GAMEPAD] Routine heartbeat #4200 (linked=false)
-[01:30:06] [info] APP: [CONFIG] Reverting RobotSetting...
-[01:30:06] [info] APP: [ROBOT_STATUS] Live sync to Manager: OFF
-[01:30:06] [info] APP: [COMM] Loaded 2 comm configs
-[01:30:06] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[01:30:06] [info] APP: [ROBOT_STATUS] Protocol config injected (6 send fields, 3 recv fields)
-[01:30:06] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
-[01:30:06] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
-[01:30:06] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
-[01:30:06] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
-[01:30:06] [info] APP: [CONFIG] Restored BASE: ls=0, ng=0
-[01:30:06] [info] APP: [CONFIG] Saved BASE: ls=0, ng=0
-[01:30:06] [info] APP: [ROBOT_STATUS] Live sync to Manager: ON
-[01:30:06] [info] APP: [CONFIG] RobotSetting editing started
-[01:30:11] [info] APP: [ROBOT_STATUS] Linking to 192.168.31.23:8888 (local: 8888)...
-[01:30:11] [info] APP: [HW] TCP connected to 192.168.31.23:8888
-[01:30:11] [info] APP: [ROBOT_STATUS] Linked successfully: ROV (192.168.31.23)
-[01:30:12] [info] APP: [HW] [TCP] recv idle #300 — socket_err=0 connected=1 -> 192.168.31.23:8888
-[01:30:14] [info] APP: [HW] [TCP] recv idle #600 — socket_err=0 connected=1 -> 192.168.31.23:8888
-[01:30:15] [info] APP: [HW] [TCP] recv idle #900 — socket_err=0 connected=1 -> 192.168.31.23:8888
-[01:30:16] [info] APP: [HW] [TCP] recv idle #1200 — socket_err=0 connected=1 -> 192.168.31.23:8888
-[01:30:18] [info] APP: [HW] [TCP] recv idle #1500 — socket_err=0 connected=1 -> 192.168.31.23:8888
-[01:30:19] [info] APP: [HW] [TCP] recv idle #1800 — socket_err=0 connected=1 -> 192.168.31.23:8888
-[01:30:20] [info] APP: [HW] [TCP] recv idle #2100 — socket_err=0 connected=1 -> 192.168.31.23:8888
-[01:30:21] [info] APP: [HW] [TCP] recv idle #2400 — socket_err=0 connected=1 -> 192.168.31.23:8888
-[01:30:23] [info] APP: [HW] [TCP] recv idle #2700 — socket_err=0 connected=1 -> 192.168.31.23:8888
-[01:30:24] [info] APP: [HW] [TCP] recv idle #3000 — socket_err=0 connected=1 -> 192.168.31.23:8888
-[01:30:25] [info] APP: [HW] [TCP] recv idle #3300 — socket_err=0 connected=1 -> 192.168.31.23:8888
-[01:30:26] [info] APP: [HW] [TCP] recv idle #3600 — socket_err=0 connected=1 -> 192.168.31.23:8888
-[01:30:27] [info] APP: [ROBOT_STATUS] Unlinked
-[01:30:27] [info] APP: [ROBOT_STATUS] Linking to 192.168.31.23:8888 (local: 8888)...
-[01:30:27] [info] APP: [HW] TCP connected to 192.168.31.23:8888
-[01:30:27] [info] APP: [ROBOT_STATUS] Linked successfully: ROV (192.168.31.23)
-[01:30:28] [info] APP: [HW] [TCP] recv idle #3900 — socket_err=0 connected=1 -> 192.168.31.23:8888
-[01:30:30] [info] APP: [HW] [TCP] recv idle #4200 — socket_err=0 connected=1 -> 192.168.31.23:8888
-[01:30:31] [info] APP: [HW] [TCP] recv idle #4500 — socket_err=0 connected=1 -> 192.168.31.23:8888
-[01:30:32] [info] APP: [HW] [TCP] recv idle #4800 — socket_err=0 connected=1 -> 192.168.31.23:8888
-[01:30:33] [info] APP: [HW] [TCP] recv idle #5100 — socket_err=0 connected=1 -> 192.168.31.23:8888
-[01:30:35] [info] APP: [HW] [TCP] recv idle #5400 — socket_err=0 connected=1 -> 192.168.31.23:8888
-[01:30:36] [info] APP: [HW] [TCP] recv idle #5700 — socket_err=0 connected=1 -> 192.168.31.23:8888
-[01:30:37] [info] APP: [HW] [TCP] recv idle #6000 — socket_err=0 connected=1 -> 192.168.31.23:8888
-[01:30:38] [info] APP: [HW] [TCP] recv idle #6300 — socket_err=0 connected=1 -> 192.168.31.23:8888
-[01:30:43] [info] APP: [HW] [TCP] recv idle #6600 — socket_err=0 connected=1 -> 192.168.31.23:8888
-[01:30:43] [info] APP: [HW] recv #1 12B valid=1 hex: 41 45 33 33 41 BA 66 66 42 5C 00 00 
-[01:30:43] [info] APP: [HW]   temperature: 12.325  humidity: 23.300  depth: 55.000
-[01:30:43] [info] APP: [HW] recv #2 12B valid=1 hex: 41 45 33 33 41 BA 66 66 42 5C 00 00 
-[01:30:43] [info] APP: [HW]   temperature: 12.325  humidity: 23.300  depth: 55.000
-[01:30:44] [info] APP: [HW] recv #3 12B valid=1 hex: 41 45 33 33 41 BA 66 66 42 5C 00 00 
-[01:30:44] [info] APP: [HW]   temperature: 12.325  humidity: 23.300  depth: 55.000
-[01:30:44] [info] APP: [HW] recv #4 12B valid=1 hex: 41 45 33 33 41 BA 66 66 42 5C 00 00 
-[01:30:44] [info] APP: [HW]   temperature: 12.325  humidity: 23.300  depth: 55.000
-[01:30:45] [info] APP: [HW] recv #5 12B valid=1 hex: 41 45 33 33 41 BA 66 66 42 5C 00 00 
-[01:30:45] [info] APP: [HW]   temperature: 12.325  humidity: 23.300  depth: 55.000
-[01:30:45] [info] APP: [HW] recv #6 12B valid=1 hex: 41 45 33 33 41 BA 66 66 42 5C 00 00 
-[01:30:45] [info] APP: [HW]   temperature: 12.325  humidity: 23.300  depth: 55.000
-[01:30:46] [info] APP: [HW] recv #7 12B valid=1 hex: 41 45 33 33 41 BA 66 66 42 5C 00 00 
-[01:30:46] [info] APP: [HW]   temperature: 12.325  humidity: 23.300  depth: 55.000
-[01:30:46] [info] APP: [HW] recv #8 12B valid=1 hex: 41 45 33 33 41 BA 66 66 42 5C 00 00 
-[01:30:46] [info] APP: [HW]   temperature: 12.325  humidity: 23.300  depth: 55.000
-[01:30:47] [info] APP: [HW] recv #9 12B valid=1 hex: 41 45 33 33 41 BA 66 66 42 5C 00 00 
-[01:30:47] [info] APP: [HW]   temperature: 12.325  humidity: 23.300  depth: 55.000
-[01:30:47] [info] APP: [HW] recv #10 12B valid=1 hex: 41 45 33 33 41 BA 66 66 42 5C 00 00 
-[01:30:47] [info] APP: [HW]   temperature: 12.325  humidity: 23.300  depth: 55.000
-[01:30:48] [info] APP: [HW] recv #11 12B valid=1 hex: 41 45 33 33 41 BA 66 66 42 5C 00 00 
-[01:30:48] [info] APP: [HW]   temperature: 12.325  humidity: 23.300  depth: 55.000
-[01:30:48] [info] APP: [HW] recv #12 12B valid=1 hex: 41 45 33 33 41 BA 66 66 42 5C 00 00 
-[01:30:48] [info] APP: [HW]   temperature: 12.325  humidity: 23.300  depth: 55.000
-[01:30:49] [info] APP: [HW] recv #13 12B valid=1 hex: 41 45 33 33 41 BA 66 66 42 5C 00 00 
-[01:30:49] [info] APP: [HW]   temperature: 12.325  humidity: 23.300  depth: 55.000
-[01:30:49] [info] APP: [HW] recv #14 12B valid=1 hex: 41 45 33 33 41 BA 66 66 42 5C 00 00 
-[01:30:49] [info] APP: [HW]   temperature: 12.325  humidity: 23.300  depth: 55.000
-[01:30:50] [info] APP: [HW] recv #15 12B valid=1 hex: 41 45 33 33 41 BA 66 66 42 5C 00 00 
-[01:30:50] [info] APP: [HW]   temperature: 12.325  humidity: 23.300  depth: 55.000
-[01:30:50] [info] APP: [HW] recv #16 12B valid=1 hex: 41 45 33 33 41 BA 66 66 42 5C 00 00 
-[01:30:50] [info] APP: [HW]   temperature: 12.325  humidity: 23.300  depth: 55.000
-[01:30:51] [info] APP: [HW] recv #17 12B valid=1 hex: 41 45 33 33 41 BA 66 66 42 5C 00 00 
-[01:30:51] [info] APP: [HW]   temperature: 12.325  humidity: 23.300  depth: 55.000
+[02:54:09] [info] APP: [APP] Robot UI application created
+[02:54:09] [info] APP: [APP] Robot UI initializing...
+[02:54:09] [info] APP: [COMP] Item added: Item_1 (id=1)
+[02:54:09] [info] APP: [GAMEPAD] Item added: Item_1 (id=1)
+[02:54:09] [info] APP: [COMM] component added: Item_1 (id=1)
+[02:54:09] [info] APP: [APP] RobotSettingPanel created
+[02:54:09] [info] APP: [ROBOT_STATUS] RobotStatus created (with headless graph evaluator)
+[02:54:09] [info] APP: [MONITOR_WALL] MonitorWall created
+[02:54:09] [info] APP: [ROBOT_STATUS] Selected item set to: Item_1
+[02:54:09] [info] APP: [ROBOT_STATUS] No graph for item 'Item_1' + gamepad '', cleared
+[02:54:09] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_1
+[02:54:09] [info] APP: [APP] ImPlot context created
+[02:54:09] [info] APP: [APP] Gamepad thread started
+[02:54:09] [info] APP: [GAMEPAD] Gamepad routine started (100Hz)
+[02:54:09] [info] APP: [APP] Kernel loaded: C:\Users\29164\Desktop\Robot-UI\bin\Debug-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
+[02:54:09] [info] APP: [APP] Loading component: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
+[02:54:09] [info] APP: [component] Loading component: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
+[02:54:09] [info] APP: [APP] Robot config loaded: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
+[02:54:09] [info] APP: [COMM] Loaded 2 comm configs
+[02:54:09] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[02:54:09] [info] APP: [ROBOT_STATUS] Loaded graph for item 'ROV' + gamepad ''
+[02:54:09] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[02:54:09] [info] APP: [APP] Robot UI initialized successfully
+[02:54:09] [info] APP: [CONFIG] Saved BASE: ls=0, ng=0
+[02:54:09] [info] APP: [ROBOT_STATUS] Live sync to Manager: ON
+[02:54:09] [info] APP: [CONFIG] RobotSetting editing started
+[02:54:09] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[02:54:09] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[02:54:09] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #0 (ROV-XBOX)
+[02:54:09] [info] APP: [CONFIG] Applying RobotSetting...
+[02:54:09] [info] APP: [ROBOT_STATUS] Live sync to Manager: OFF
+[02:54:09] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[02:54:09] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[02:54:09] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[02:54:09] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[02:54:09] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[02:54:09] [info] APP: [CONFIG] Restored BASE: ls=0, ng=0
+[02:54:10] [trace] APP: [GAMEPAD] Routine heartbeat #100 (linked=false)
+[02:54:11] [trace] APP: [GAMEPAD] Routine heartbeat #200 (linked=false)
+[02:54:12] [trace] APP: [GAMEPAD] Routine heartbeat #300 (linked=false)
+[02:54:13] [trace] APP: [GAMEPAD] Routine heartbeat #400 (linked=false)
+[02:54:14] [trace] APP: [GAMEPAD] Routine heartbeat #500 (linked=false)
+[02:54:15] [trace] APP: [GAMEPAD] Routine heartbeat #600 (linked=false)
+[02:54:16] [trace] APP: [GAMEPAD] Routine heartbeat #700 (linked=false)
+[02:54:17] [trace] APP: [GAMEPAD] Routine heartbeat #800 (linked=false)
+[02:54:18] [info] APP: [ROBOT_STATUS] Linking to 192.168.0.233:2200 (local: 1100)...
+[02:54:18] [info] APP: [HW] UDP bound to :1100 -> 192.168.0.233:2200
+[02:54:18] [info] APP: [ROBOT_STATUS] Linked successfully: Beyond (192.168.0.233)
+[02:54:18] [info] APP: [MONITOR_WALL] Opening stream: Beyond
+[02:54:18] [trace] APP: [GAMEPAD] Routine heartbeat #900 (linked=true)
+[02:54:19] [info] APP: [HW] send #100 34B: FA AF 01 80 00 80 37 80 00 80 37 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:54:20] [trace] APP: [GAMEPAD] Routine heartbeat #1000 (linked=true)
+[02:54:20] [info] APP: [ROBOT_STATUS] Unlinked
+[02:54:20] [info] APP: [MONITOR_WALL] Closing stream: Beyond
+[02:54:21] [trace] APP: [GAMEPAD] Routine heartbeat #1100 (linked=false)
+[02:54:22] [trace] APP: [GAMEPAD] Routine heartbeat #1200 (linked=false)
+[02:54:23] [trace] APP: [GAMEPAD] Routine heartbeat #1300 (linked=false)
+[02:54:24] [trace] APP: [GAMEPAD] Routine heartbeat #1400 (linked=false)
+[02:54:24] [info] APP: [ROBOT_STATUS] Linking to 192.168.0.233:2200 (local: 1100)...
+[02:54:24] [info] APP: [HW] UDP bound to :1100 -> 192.168.0.233:2200
+[02:54:24] [info] APP: [ROBOT_STATUS] Linked successfully: Beyond (192.168.0.233)
+[02:54:24] [info] APP: [MONITOR_WALL] Opening stream: Beyond
+[02:54:24] [info] APP: [HW] send #200 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:25] [trace] APP: [GAMEPAD] Routine heartbeat #1500 (linked=true)
+[02:54:25] [info] APP: [HW] send #300 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:25] [info] APP: [ROBOT_STATUS] Unlinked
+[02:54:25] [info] APP: [MONITOR_WALL] Closing stream: Beyond
+[02:54:26] [trace] APP: [GAMEPAD] Routine heartbeat #1600 (linked=false)
+[02:54:27] [trace] APP: [GAMEPAD] Routine heartbeat #1700 (linked=false)
+[02:54:28] [trace] APP: [GAMEPAD] Routine heartbeat #1800 (linked=false)
+[02:54:29] [trace] APP: [GAMEPAD] Routine heartbeat #1900 (linked=false)
+[02:54:30] [trace] APP: [GAMEPAD] Routine heartbeat #2000 (linked=false)
+[02:54:32] [trace] APP: [GAMEPAD] Routine heartbeat #2100 (linked=false)
+[02:54:32] [info] APP: [ROBOT_STATUS] Linking to 192.168.0.233:2200 (local: 1100)...
+[02:54:32] [info] APP: [HW] UDP bound to :1100 -> 192.168.0.233:2200
+[02:54:32] [info] APP: [ROBOT_STATUS] Linked successfully: Beyond (192.168.0.233)
+[02:54:32] [info] APP: [MONITOR_WALL] Opening stream: Beyond
+[02:54:32] [info] APP: [HW] send #400 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:54:32] [info] APP: [HW] send #500 34B: FA AF 01 80 00 80 37 80 00 80 37 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:54:32] [info] APP: [HW] send #600 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:54:33] [info] APP: [HW] send #700 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:54:33] [info] APP: [HW] send #800 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:54:33] [trace] APP: [GAMEPAD] Routine heartbeat #2200 (linked=true)
+[02:54:33] [info] APP: [HW] send #900 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:33] [info] APP: [HW] send #1000 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:54:33] [info] APP: [HW] send #1100 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:54:33] [info] APP: [HW] [UDP] recv idle #300 — socket_err=0 connected=1 -> 192.168.0.233:2200
+[02:54:33] [info] APP: [HW] send #1200 34B: FA AF 01 80 00 80 37 80 00 80 37 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:54:34] [info] APP: [HW] send #1300 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:54:34] [info] APP: [HW] send #1400 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:54:34] [info] APP: [HW] send #1500 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:54:34] [trace] APP: [GAMEPAD] Routine heartbeat #2300 (linked=true)
+[02:54:34] [info] APP: [HW] send #1600 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:34] [info] APP: [HW] send #1700 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:54:34] [info] APP: [HW] send #1800 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:54:35] [info] APP: [HW] send #1900 34B: FA AF 01 80 00 80 37 80 00 80 37 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:54:35] [info] APP: [HW] send #2000 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:54:35] [info] APP: [HW] send #2100 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:54:35] [info] APP: [HW] send #2200 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:54:35] [trace] APP: [GAMEPAD] Routine heartbeat #2400 (linked=true)
+[02:54:35] [info] APP: [HW] send #2300 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:36] [info] APP: [HW] send #2400 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:54:36] [info] APP: [HW] send #2500 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:54:36] [info] APP: [HW] send #2600 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:54:36] [info] APP: [HW] send #2700 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:54:36] [trace] APP: [GAMEPAD] Routine heartbeat #2500 (linked=true)
+[02:54:36] [info] APP: [HW] send #2800 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:54:37] [info] APP: [HW] send #2900 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:37] [info] APP: [HW] send #3000 34B: FA AF 01 80 00 80 37 80 00 80 37 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:54:38] [trace] APP: [GAMEPAD] Routine heartbeat #2600 (linked=true)
+[02:54:38] [info] APP: [HW] send #3100 34B: FA AF 01 80 00 80 37 80 00 80 37 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:54:38] [info] APP: [HW] [UDP] recv idle #600 — socket_err=0 connected=1 -> 192.168.0.233:2200
+[02:54:38] [info] APP: [HW] send #3200 34B: FA AF 01 80 00 80 37 80 00 80 37 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:54:39] [trace] APP: [GAMEPAD] Routine heartbeat #2700 (linked=true)
+[02:54:39] [info] APP: [HW] send #3300 34B: FA AF 01 80 00 80 37 80 00 80 37 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:54:39] [info] APP: [HW] send #3400 34B: FA AF 01 80 00 80 37 80 00 80 37 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:54:40] [trace] APP: [GAMEPAD] Routine heartbeat #2800 (linked=true)
+[02:54:40] [info] APP: [HW] send #3500 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:40] [info] APP: [HW] send #3600 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:54:41] [info] APP: [HW] send #3700 34B: FA AF 01 80 00 80 37 80 00 80 37 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:54:41] [trace] APP: [GAMEPAD] Routine heartbeat #2900 (linked=true)
+[02:54:41] [info] APP: [HW] send #3800 34B: FA AF 01 80 00 80 37 80 00 80 37 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:54:42] [info] APP: [HW] send #3900 34B: FA AF 01 80 00 80 37 80 00 80 37 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:54:42] [info] APP: [HW] send #4000 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:42] [info] APP: [HW] send #4100 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:42] [trace] APP: [GAMEPAD] Routine heartbeat #3000 (linked=true)
+[02:54:42] [info] APP: [HW] send #4200 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:54:42] [info] APP: [HW] send #4300 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:43] [info] APP: [HW] send #4400 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:54:43] [info] APP: [HW] send #4500 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:54:43] [info] APP: [HW] send #4600 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:54:43] [info] APP: [HW] send #4700 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:43] [info] APP: [HW] [UDP] recv idle #900 — socket_err=0 connected=1 -> 192.168.0.233:2200
+[02:54:43] [info] APP: [HW] send #4800 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:54:43] [trace] APP: [GAMEPAD] Routine heartbeat #3100 (linked=true)
+[02:54:44] [info] APP: [HW] send #4900 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:54:44] [info] APP: [HW] send #5000 34B: FA AF 01 80 00 80 37 80 00 80 37 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:54:44] [info] APP: [HW] send #5100 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:54:44] [info] APP: [HW] send #5200 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:54:44] [info] APP: [HW] send #5300 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:54:44] [info] APP: [HW] send #5400 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:45] [info] APP: [HW] send #5500 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:54:45] [trace] APP: [GAMEPAD] Routine heartbeat #3200 (linked=true)
+[02:54:45] [info] APP: [HW] send #5600 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:54:45] [info] APP: [HW] send #5700 34B: FA AF 01 80 00 80 37 80 00 80 37 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:54:45] [info] APP: [HW] send #5800 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:54:45] [info] APP: [HW] send #5900 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:54:46] [info] APP: [HW] send #6000 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:54:46] [info] APP: [HW] send #6100 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:46] [info] APP: [HW] send #6200 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:54:46] [trace] APP: [GAMEPAD] Routine heartbeat #3300 (linked=true)
+[02:54:46] [info] APP: [HW] send #6300 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:54:46] [info] APP: [HW] send #6400 34B: FA AF 01 80 00 80 37 80 00 80 37 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:54:46] [info] APP: [HW] send #6500 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:54:47] [info] APP: [HW] send #6600 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:54:47] [info] APP: [HW] send #6700 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:54:47] [info] APP: [HW] send #6800 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:47] [info] APP: [HW] send #6900 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:54:47] [trace] APP: [GAMEPAD] Routine heartbeat #3400 (linked=true)
+[02:54:47] [info] APP: [HW] send #7000 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:54:48] [info] APP: [HW] send #7100 34B: FA AF 01 C5 02 C5 3E 80 00 80 37 ED DF 6C BF 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 5D FB BF 
+[02:54:48] [info] APP: [HW] send #7200 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:54:48] [info] APP: [HW] send #7300 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:54:48] [info] APP: [HW] send #7400 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:54:48] [info] APP: [HW] send #7500 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:48] [info] APP: [HW] [UDP] recv idle #1200 — socket_err=0 connected=1 -> 192.168.0.233:2200
+[02:54:48] [info] APP: [HW] send #7600 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:54:48] [trace] APP: [GAMEPAD] Routine heartbeat #3500 (linked=true)
+[02:54:49] [info] APP: [HW] send #7700 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:54:49] [info] APP: [HW] send #7800 34B: FA AF 01 80 00 80 37 80 00 80 37 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:54:49] [info] APP: [HW] send #7900 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:54:49] [info] APP: [HW] send #8000 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:54:49] [info] APP: [HW] send #8100 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:54:49] [info] APP: [HW] send #8200 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:50] [info] APP: [HW] send #8300 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:54:50] [trace] APP: [GAMEPAD] Routine heartbeat #3600 (linked=true)
+[02:54:50] [info] APP: [HW] send #8400 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:54:50] [info] APP: [HW] send #8500 34B: FA AF 01 80 00 80 37 F3 3E F3 BE 80 00 80 B7 00 00 00 00 00 00 00 00 E2 DF 61 BF 00 00 00 00 E3 FB BF 
+[02:54:50] [info] APP: [HW] send #8600 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:54:50] [info] APP: [HW] send #8700 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:54:51] [info] APP: [HW] send #8800 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:54:51] [info] APP: [HW] send #8900 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:51] [info] APP: [HW] send #9000 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:54:51] [trace] APP: [GAMEPAD] Routine heartbeat #3700 (linked=true)
+[02:54:51] [info] APP: [HW] send #9100 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:54:51] [info] APP: [HW] send #9200 34B: FA AF 01 80 00 80 37 80 00 80 37 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:54:51] [info] APP: [HW] send #9300 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:54:52] [info] APP: [HW] send #9400 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:54:52] [info] APP: [HW] send #9500 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:54:52] [info] APP: [HW] send #9600 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:52] [info] APP: [HW] send #9700 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:54:52] [trace] APP: [GAMEPAD] Routine heartbeat #3800 (linked=true)
+[02:54:52] [info] APP: [CONFIG] Saved BASE: ls=0, ng=0
+[02:54:52] [info] APP: [ROBOT_STATUS] Live sync to Manager: ON
+[02:54:52] [info] APP: [CONFIG] RobotSetting editing started
+[02:54:52] [info] APP: [HW] send #9800 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:54:52] [info] APP: [HW] send #9900 34B: FA AF 01 80 00 80 37 80 00 80 37 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:54:53] [info] APP: [HW] send #10000 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:54:53] [info] APP: [HW] send #10100 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:54:53] [info] APP: [HW] send #10200 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:54:53] [info] APP: [HW] send #10300 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:53] [info] APP: [HW] send #10400 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:54:53] [trace] APP: [GAMEPAD] Routine heartbeat #3900 (linked=true)
+[02:54:54] [info] APP: [HW] send #10500 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:54:54] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[02:54:54] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[02:54:54] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[02:54:54] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[02:54:54] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[02:54:54] [info] APP: [HW] send #10600 34B: FA AF 01 80 00 80 37 80 00 80 37 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:54:54] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[02:54:54] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[02:54:54] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[02:54:54] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[02:54:54] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[02:54:54] [info] APP: [HW] send #10700 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:54:54] [info] APP: [HW] send #10800 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:54:54] [info] APP: [HW] send #10900 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:54:54] [info] APP: [HW] send #11000 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:55] [info] APP: [HW] send #11100 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:54:55] [info] APP: [HW] [UDP] recv idle #1500 — socket_err=0 connected=1 -> 192.168.0.233:2200
+[02:54:55] [trace] APP: [GAMEPAD] Routine heartbeat #4000 (linked=true)
+[02:54:55] [info] APP: [HW] send #11200 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:54:55] [info] APP: [HW] send #11300 34B: FA AF 01 80 00 80 37 80 00 80 37 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:54:55] [info] APP: [HW] send #11400 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:54:55] [info] APP: [HW] send #11500 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:54:56] [info] APP: [HW] send #11600 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:54:56] [info] APP: [HW] send #11700 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:56] [info] APP: [HW] send #11800 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:54:56] [trace] APP: [GAMEPAD] Routine heartbeat #4100 (linked=true)
+[02:54:56] [info] APP: [HW] send #11900 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:54:56] [info] APP: [HW] send #12000 34B: FA AF 01 80 00 80 37 80 00 80 37 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:54:56] [info] APP: [HW] send #12100 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:54:57] [info] APP: [HW] send #12200 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:54:57] [info] APP: [HW] send #12300 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:54:57] [info] APP: [HW] send #12400 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:57] [info] APP: [HW] send #12500 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:54:57] [trace] APP: [GAMEPAD] Routine heartbeat #4200 (linked=true)
+[02:54:57] [info] APP: [HW] send #12600 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:54:57] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:54:58] [info] APP: [HW] send #12700 34B: FA AF 01 80 00 80 37 00 00 00 00 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 37 FB BF 
+[02:54:58] [info] APP: [HW] send #12800 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:54:58] [info] APP: [HW] send #12900 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:54:58] [info] APP: [HW] send #13000 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:54:58] [info] APP: [HW] send #13100 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:54:58] [info] APP: [HW] send #13200 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:54:58] [trace] APP: [GAMEPAD] Routine heartbeat #4300 (linked=true)
+[02:54:59] [info] APP: [HW] send #13300 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:54:59] [info] APP: [HW] send #13400 34B: FA AF 01 80 00 80 37 00 00 00 00 80 00 80 B7 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 37 FB BF 
+[02:54:59] [info] APP: [HW] send #13500 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:54:59] [info] APP: [HW] send #13600 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:54:59] [info] APP: [HW] send #13700 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:54:59] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:00] [info] APP: [HW] send #13800 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:00] [info] APP: [HW] send #13900 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:00] [trace] APP: [GAMEPAD] Routine heartbeat #4400 (linked=true)
+[02:55:00] [info] APP: [HW] send #14000 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:00] [info] APP: [HW] send #14100 34B: FA AF 01 80 00 80 37 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 80 FB BF 
+[02:55:00] [info] APP: [HW] send #14200 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:00] [info] APP: [HW] send #14300 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:01] [info] APP: [HW] send #14400 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:01] [info] APP: [HW] send #14500 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:01] [info] APP: [HW] send #14600 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:01] [trace] APP: [GAMEPAD] Routine heartbeat #4500 (linked=true)
+[02:55:01] [info] APP: [HW] send #14700 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:01] [info] APP: [HW] send #14800 34B: FA AF 01 80 00 80 37 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 80 FB BF 
+[02:55:02] [info] APP: [HW] send #14900 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:02] [info] APP: [HW] send #15000 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:02] [info] APP: [HW] send #15100 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:02] [info] APP: [HW] send #15200 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:02] [info] APP: [HW] send #15300 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:02] [trace] APP: [GAMEPAD] Routine heartbeat #4600 (linked=true)
+[02:55:02] [info] APP: [HW] send #15400 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:03] [info] APP: [HW] send #15500 34B: FA AF 01 80 00 80 37 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 80 FB BF 
+[02:55:03] [info] APP: [HW] send #15600 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:03] [info] APP: [HW] send #15700 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:03] [info] APP: [HW] send #15800 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:03] [info] APP: [HW] send #15900 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:04] [info] APP: [HW] send #16000 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:04] [trace] APP: [GAMEPAD] Routine heartbeat #4700 (linked=true)
+[02:55:04] [info] APP: [HW] send #16100 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:04] [info] APP: [HW] send #16200 34B: FA AF 01 80 00 80 37 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 80 FB BF 
+[02:55:04] [info] APP: [HW] send #16300 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:04] [info] APP: [HW] send #16400 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:04] [info] APP: [HW] send #16500 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:05] [info] APP: [HW] send #16600 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:05] [info] APP: [HW] send #16700 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:05] [trace] APP: [GAMEPAD] Routine heartbeat #4800 (linked=true)
+[02:55:05] [info] APP: [HW] send #16800 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:05] [info] APP: [HW] send #16900 34B: FA AF 01 80 00 80 37 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 80 FB BF 
+[02:55:05] [info] APP: [HW] [UDP] recv idle #1800 — socket_err=0 connected=1 -> 192.168.0.233:2200
+[02:55:05] [info] APP: [HW] send #17000 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:05] [info] APP: [HW] send #17100 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:06] [info] APP: [HW] send #17200 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:06] [info] APP: [HW] send #17300 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:06] [info] APP: [HW] send #17400 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:06] [trace] APP: [GAMEPAD] Routine heartbeat #4900 (linked=true)
+[02:55:06] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:06] [info] APP: [HW] send #17500 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:06] [info] APP: [HW] send #17600 34B: FA AF 01 80 00 80 37 00 00 00 00 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 B7 FB BF 
+[02:55:07] [info] APP: [HW] send #17700 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:07] [info] APP: [HW] send #17800 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:07] [info] APP: [HW] send #17900 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:07] [info] APP: [HW] send #18000 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:07] [info] APP: [HW] send #18100 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:07] [trace] APP: [GAMEPAD] Routine heartbeat #5000 (linked=true)
+[02:55:07] [info] APP: [HW] send #18200 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:08] [info] APP: [HW] send #18300 34B: FA AF 01 80 00 80 37 00 00 00 00 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 B7 FB BF 
+[02:55:08] [info] APP: [HW] send #18400 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:08] [info] APP: [HW] send #18500 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:08] [info] APP: [HW] send #18600 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:08] [info] APP: [HW] send #18700 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:09] [info] APP: [HW] send #18800 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:09] [trace] APP: [GAMEPAD] Routine heartbeat #5100 (linked=true)
+[02:55:09] [info] APP: [HW] send #18900 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:09] [info] APP: [HW] send #19000 34B: FA AF 01 80 00 80 37 00 00 00 00 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 B7 FB BF 
+[02:55:09] [info] APP: [HW] send #19100 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:09] [info] APP: [HW] send #19200 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:09] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:09] [info] APP: [HW] send #19300 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:10] [info] APP: [HW] send #19400 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:10] [info] APP: [HW] send #19500 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:10] [trace] APP: [GAMEPAD] Routine heartbeat #5200 (linked=true)
+[02:55:10] [info] APP: [HW] send #19600 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:10] [info] APP: [HW] send #19700 34B: FA AF 01 80 00 80 37 80 00 80 B7 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:55:10] [info] APP: [HW] send #19800 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:11] [info] APP: [HW] send #19900 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:11] [info] APP: [HW] send #20000 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:11] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:11] [info] APP: [HW] send #20100 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:11] [info] APP: [HW] send #20200 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:11] [trace] APP: [GAMEPAD] Routine heartbeat #5300 (linked=true)
+[02:55:11] [info] APP: [HW] send #20300 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:11] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:11] [info] APP: [HW] send #20400 34B: FA AF 01 A8 C0 27 BC 98 C0 17 BC 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 80 FB BF 
+[02:55:12] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:12] [info] APP: [HW] send #20500 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:12] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:12] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:12] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:12] [info] APP: [HW] send #20600 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:12] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:12] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:12] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:12] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:12] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:12] [info] APP: [HW] send #20700 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:12] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:12] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:12] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:12] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:12] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:12] [info] APP: [HW] send #20800 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:12] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:13] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:13] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:13] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:13] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:13] [info] APP: [HW] send #20900 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:13] [trace] APP: [GAMEPAD] Routine heartbeat #5400 (linked=true)
+[02:55:13] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:13] [info] APP: [ROBOT_STATUS] Synced graph from Manager selected #0 (ROV-XBOX)
+[02:55:13] [info] APP: [HW] send #21000 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:13] [info] APP: [HW] send #21100 34B: FA AF 01 80 00 80 37 80 00 80 B7 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:55:13] [info] APP: [HW] send #21200 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:13] [info] APP: [HW] send #21300 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:14] [info] APP: [HW] send #21400 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:14] [info] APP: [HW] send #21500 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:14] [info] APP: [HW] send #21600 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:14] [trace] APP: [GAMEPAD] Routine heartbeat #5500 (linked=true)
+[02:55:14] [info] APP: [HW] send #21700 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:14] [info] APP: [HW] send #21800 34B: FA AF 01 80 00 80 37 80 00 80 B7 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:55:15] [info] APP: [HW] send #21900 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:15] [info] APP: [HW] send #22000 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:15] [info] APP: [CONFIG] Applying RobotSetting...
+[02:55:15] [info] APP: [ROBOT_STATUS] Live sync to Manager: OFF
+[02:55:15] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[02:55:15] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[02:55:15] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[02:55:15] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[02:55:15] [info] APP: [ROBOT_STATUS] Derived ActiveComm #0 from NodeGraph #0
+[02:55:15] [info] APP: [CONFIG] Restored BASE: ls=0, ng=0
+[02:55:15] [info] APP: [HW] send #22100 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:15] [info] APP: [CONFIG] Saved BASE: ls=0, ng=0
+[02:55:15] [info] APP: [ROBOT_STATUS] Live sync to Manager: ON
+[02:55:15] [info] APP: [CONFIG] RobotSetting editing started
+[02:55:15] [info] APP: [HW] send #22200 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:15] [info] APP: [HW] send #22300 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:15] [trace] APP: [GAMEPAD] Routine heartbeat #5600 (linked=true)
+[02:55:15] [info] APP: [HW] send #22400 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:16] [info] APP: [HW] send #22500 34B: FA AF 01 80 00 80 37 80 00 80 B7 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:55:16] [info] APP: [HW] send #22600 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:16] [info] APP: [HW] send #22700 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:16] [info] APP: [HW] send #22800 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:16] [info] APP: [HW] send #22900 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:16] [info] APP: [HW] [UDP] recv idle #2100 — socket_err=0 connected=1 -> 192.168.0.233:2200
+[02:55:16] [info] APP: [HW] send #23000 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:17] [trace] APP: [GAMEPAD] Routine heartbeat #5700 (linked=true)
+[02:55:17] [info] APP: [HW] send #23100 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:17] [info] APP: [HW] send #23200 34B: FA AF 01 80 00 80 37 80 00 80 B7 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:55:17] [info] APP: [HW] send #23300 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:17] [info] APP: [HW] send #23400 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:17] [info] APP: [HW] send #23500 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:18] [info] APP: [HW] send #23600 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:18] [info] APP: [HW] send #23700 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:18] [trace] APP: [GAMEPAD] Routine heartbeat #5800 (linked=true)
+[02:55:18] [info] APP: [HW] send #23800 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:18] [info] APP: [HW] send #23900 34B: FA AF 01 80 00 80 37 80 00 80 B7 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:55:18] [info] APP: [HW] send #24000 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:18] [info] APP: [HW] send #24100 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:19] [info] APP: [HW] send #24200 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:19] [info] APP: [HW] send #24300 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:19] [info] APP: [HW] send #24400 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:19] [trace] APP: [GAMEPAD] Routine heartbeat #5900 (linked=true)
+[02:55:19] [info] APP: [HW] send #24500 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:19] [info] APP: [HW] send #24600 34B: FA AF 01 80 00 80 37 80 00 80 B7 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:55:20] [info] APP: [HW] send #24700 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:20] [info] APP: [HW] send #24800 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:20] [info] APP: [HW] send #24900 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:20] [info] APP: [HW] send #25000 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:20] [info] APP: [HW] send #25100 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:20] [trace] APP: [GAMEPAD] Routine heartbeat #6000 (linked=true)
+[02:55:20] [info] APP: [HW] send #25200 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:21] [info] APP: [HW] send #25300 34B: FA AF 01 80 00 80 37 80 00 80 B7 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:55:21] [info] APP: [HW] send #25400 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:21] [info] APP: [HW] send #25500 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:21] [info] APP: [HW] send #25600 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:21] [info] APP: [HW] send #25700 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:21] [info] APP: [HW] [UDP] recv idle #2400 — socket_err=0 connected=1 -> 192.168.0.233:2200
+[02:55:21] [info] APP: [HW] send #25800 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:21] [trace] APP: [GAMEPAD] Routine heartbeat #6100 (linked=true)
+[02:55:22] [info] APP: [HW] send #25900 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:22] [info] APP: [HW] send #26000 34B: FA AF 01 80 00 80 37 80 00 80 B7 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:55:22] [info] APP: [HW] send #26100 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:22] [info] APP: [HW] send #26200 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:22] [info] APP: [HW] send #26300 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:23] [info] APP: [HW] send #26400 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:23] [info] APP: [HW] send #26500 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:23] [trace] APP: [GAMEPAD] Routine heartbeat #6200 (linked=true)
+[02:55:23] [info] APP: [HW] send #26600 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:23] [info] APP: [HW] send #26700 34B: FA AF 01 80 00 80 37 80 00 80 B7 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:55:23] [info] APP: [HW] send #26800 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:23] [info] APP: [HW] send #26900 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:24] [info] APP: [HW] send #27000 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:24] [info] APP: [HW] send #27100 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:24] [info] APP: [HW] send #27200 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:24] [trace] APP: [GAMEPAD] Routine heartbeat #6300 (linked=true)
+[02:55:24] [info] APP: [HW] send #27300 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:24] [info] APP: [HW] send #27400 34B: FA AF 01 80 00 80 37 80 00 80 B7 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:55:24] [info] APP: [HW] send #27500 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:25] [info] APP: [HW] send #27600 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:25] [info] APP: [HW] send #27700 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:25] [info] APP: [HW] send #27800 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:25] [info] APP: [HW] send #27900 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:25] [trace] APP: [GAMEPAD] Routine heartbeat #6400 (linked=true)
+[02:55:25] [info] APP: [HW] send #28000 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:26] [info] APP: [HW] send #28100 34B: FA AF 01 80 00 80 37 80 00 80 B7 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:55:26] [info] APP: [HW] send #28200 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:26] [info] APP: [HW] send #28300 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:26] [info] APP: [HW] send #28400 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:26] [info] APP: [HW] send #28500 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:26] [info] APP: [HW] send #28600 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:26] [trace] APP: [GAMEPAD] Routine heartbeat #6500 (linked=true)
+[02:55:26] [info] APP: [HW] [UDP] recv idle #2700 — socket_err=0 connected=1 -> 192.168.0.233:2200
+[02:55:27] [info] APP: [HW] send #28700 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:27] [info] APP: [HW] send #28800 34B: FA AF 01 80 00 80 37 80 00 80 B7 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:55:27] [info] APP: [HW] send #28900 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:27] [info] APP: [HW] send #29000 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:27] [info] APP: [HW] send #29100 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:27] [info] APP: [HW] send #29200 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:28] [info] APP: [HW] send #29300 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:28] [trace] APP: [GAMEPAD] Routine heartbeat #6600 (linked=true)
+[02:55:28] [info] APP: [HW] send #29400 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:28] [info] APP: [HW] send #29500 34B: FA AF 01 80 00 80 37 80 00 80 B7 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:55:28] [info] APP: [HW] send #29600 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:28] [info] APP: [HW] send #29700 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:29] [info] APP: [HW] send #29800 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:29] [info] APP: [HW] send #29900 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:29] [info] APP: [HW] send #30000 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:29] [trace] APP: [GAMEPAD] Routine heartbeat #6700 (linked=true)
+[02:55:29] [info] APP: [HW] send #30100 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:29] [info] APP: [HW] send #30200 34B: FA AF 01 80 00 80 37 80 00 80 B7 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:55:29] [info] APP: [HW] send #30300 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:30] [info] APP: [HW] send #30400 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:30] [info] APP: [HW] send #30500 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:30] [info] APP: [HW] send #30600 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:30] [info] APP: [HW] send #30700 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:30] [trace] APP: [GAMEPAD] Routine heartbeat #6800 (linked=true)
+[02:55:30] [info] APP: [HW] send #30800 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:30] [info] APP: [HW] send #30900 34B: FA AF 01 80 00 80 37 80 00 80 B7 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:55:31] [info] APP: [HW] send #31000 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:31] [info] APP: [HW] send #31100 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:31] [info] APP: [HW] send #31200 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:31] [info] APP: [HW] send #31300 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:31] [info] APP: [HW] send #31400 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:31] [trace] APP: [GAMEPAD] Routine heartbeat #6900 (linked=true)
+[02:55:31] [info] APP: [HW] [UDP] recv idle #3000 — socket_err=0 connected=1 -> 192.168.0.233:2200
+[02:55:32] [info] APP: [HW] send #31500 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:32] [info] APP: [HW] send #31600 34B: FA AF 01 80 00 80 37 80 00 80 B7 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:55:32] [info] APP: [HW] send #31700 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:32] [info] APP: [HW] send #31800 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:32] [info] APP: [HW] send #31900 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:32] [info] APP: [HW] send #32000 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:33] [info] APP: [HW] send #32100 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:33] [trace] APP: [GAMEPAD] Routine heartbeat #7000 (linked=true)
+[02:55:33] [info] APP: [HW] send #32200 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:33] [info] APP: [HW] send #32300 34B: FA AF 01 80 00 80 37 80 00 80 B7 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:55:33] [info] APP: [HW] send #32400 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:33] [info] APP: [HW] send #32500 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:34] [info] APP: [HW] send #32600 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:34] [info] APP: [HW] send #32700 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:34] [info] APP: [HW] send #32800 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:34] [trace] APP: [GAMEPAD] Routine heartbeat #7100 (linked=true)
+[02:55:34] [info] APP: [HW] send #32900 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:34] [info] APP: [HW] send #33000 34B: FA AF 01 80 00 80 37 80 00 80 B7 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:55:34] [info] APP: [HW] send #33100 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:34] [info] APP: [component] Saving component: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
+[02:55:34] [info] APP: [APP] Robot config saved: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
+[02:55:35] [info] APP: [HW] send #33200 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:35] [info] APP: [HW] send #33300 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:35] [info] APP: [HW] send #33400 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:35] [info] APP: [HW] send #33500 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:35] [trace] APP: [GAMEPAD] Routine heartbeat #7200 (linked=true)
+[02:55:35] [info] APP: [HW] send #33600 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:35] [info] APP: [HW] send #33700 34B: FA AF 01 80 00 80 37 80 00 80 B7 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:55:36] [info] APP: [HW] send #33800 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:36] [info] APP: [HW] send #33900 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:36] [info] APP: [HW] send #34000 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:36] [info] APP: [HW] send #34100 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:36] [info] APP: [HW] send #34200 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:36] [trace] APP: [GAMEPAD] Routine heartbeat #7300 (linked=true)
+[02:55:37] [info] APP: [HW] [UDP] recv idle #3300 — socket_err=0 connected=1 -> 192.168.0.233:2200
+[02:55:37] [info] APP: [HW] send #34300 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:37] [info] APP: [HW] send #34400 34B: FA AF 01 80 00 80 37 80 00 80 B7 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:55:37] [info] APP: [HW] send #34500 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:37] [info] APP: [HW] send #34600 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:37] [info] APP: [HW] send #34700 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:37] [info] APP: [HW] send #34800 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:38] [info] APP: [HW] send #34900 39B: FA AF 02 02 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 22 FB BF 
+[02:55:38] [trace] APP: [GAMEPAD] Routine heartbeat #7400 (linked=true)
+[02:55:38] [info] APP: [HW] send #35000 39B: FA AF 02 04 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 24 FB BF 
+[02:55:38] [info] APP: [HW] send #35100 34B: FA AF 01 80 00 80 37 80 00 80 B7 80 00 80 37 00 00 00 00 00 00 00 00 80 00 80 B7 00 00 00 00 00 FB BF 
+[02:55:38] [info] APP: [HW] send #35200 39B: FA AF 02 01 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 21 FB BF 
+[02:55:38] [info] APP: [HW] send #35300 39B: FA AF 02 03 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 23 FB BF 
+[02:55:38] [info] APP: [HW] send #35400 39B: FA AF 02 05 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 25 FB BF 
+[02:55:39] [info] APP: [HW] send #35500 42B: FA AF 02 00 00 00 00 7B 90 36 45 5C D3 29 45 EC A9 3F 45 5C C3 48 45 E1 FA 68 C4 85 2B 09 C3 B8 5E 25 43 7B 3C A6 44 20 FB BF 
+[02:55:39] [info] APP: [ROBOT_STATUS] Unlinked
+[02:55:39] [info] APP: [MONITOR_WALL] Closing stream: Beyond
+[02:55:39] [trace] APP: [GAMEPAD] Routine heartbeat #7500 (linked=false)
+[02:55:40] [trace] APP: [GAMEPAD] Routine heartbeat #7600 (linked=false)
+[02:55:41] [info] APP: [component] Saving component: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
+[02:55:41] [info] APP: [APP] Robot config saved: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
+[02:55:41] [trace] APP: [GAMEPAD] Routine heartbeat #7700 (linked=false)
+[02:55:42] [trace] APP: [GAMEPAD] Routine heartbeat #7800 (linked=false)
+[02:55:43] [trace] APP: [GAMEPAD] Routine heartbeat #7900 (linked=false)
+[02:55:44] [trace] APP: [GAMEPAD] Routine heartbeat #8000 (linked=false)
+[02:55:45] [trace] APP: [GAMEPAD] Routine heartbeat #8100 (linked=false)
+[02:55:46] [trace] APP: [GAMEPAD] Routine heartbeat #8200 (linked=false)
+[02:55:48] [trace] APP: [GAMEPAD] Routine heartbeat #8300 (linked=false)
+[02:55:49] [trace] APP: [GAMEPAD] Routine heartbeat #8400 (linked=false)
+[02:55:50] [trace] APP: [GAMEPAD] Routine heartbeat #8500 (linked=false)
+[02:55:51] [trace] APP: [GAMEPAD] Routine heartbeat #8600 (linked=false)
+[02:55:52] [trace] APP: [GAMEPAD] Routine heartbeat #8700 (linked=false)
+[02:55:53] [trace] APP: [GAMEPAD] Routine heartbeat #8800 (linked=false)
+[02:55:54] [trace] APP: [GAMEPAD] Routine heartbeat #8900 (linked=false)
+[02:55:55] [trace] APP: [GAMEPAD] Routine heartbeat #9000 (linked=false)
+[02:55:56] [trace] APP: [GAMEPAD] Routine heartbeat #9100 (linked=false)
+[02:55:57] [trace] APP: [GAMEPAD] Routine heartbeat #9200 (linked=false)
+[02:55:58] [trace] APP: [GAMEPAD] Routine heartbeat #9300 (linked=false)
+[02:55:59] [trace] APP: [GAMEPAD] Routine heartbeat #9400 (linked=false)
+[02:56:01] [trace] APP: [GAMEPAD] Routine heartbeat #9500 (linked=false)
+[02:56:02] [trace] APP: [GAMEPAD] Routine heartbeat #9600 (linked=false)
+[02:56:03] [trace] APP: [GAMEPAD] Routine heartbeat #9700 (linked=false)
+[02:56:04] [trace] APP: [GAMEPAD] Routine heartbeat #9800 (linked=false)
+[02:56:05] [trace] APP: [GAMEPAD] Routine heartbeat #9900 (linked=false)
+[02:56:06] [trace] APP: [GAMEPAD] Routine heartbeat #10000 (linked=false)
+[02:56:07] [trace] APP: [GAMEPAD] Routine heartbeat #10100 (linked=false)
+[02:56:08] [trace] APP: [GAMEPAD] Routine heartbeat #10200 (linked=false)
+[02:56:09] [trace] APP: [GAMEPAD] Routine heartbeat #10300 (linked=false)
+[02:56:10] [trace] APP: [GAMEPAD] Routine heartbeat #10400 (linked=false)
+[02:56:11] [trace] APP: [GAMEPAD] Routine heartbeat #10500 (linked=false)
+[02:56:12] [trace] APP: [GAMEPAD] Routine heartbeat #10600 (linked=false)
+[02:56:14] [trace] APP: [GAMEPAD] Routine heartbeat #10700 (linked=false)
+[02:56:15] [trace] APP: [GAMEPAD] Routine heartbeat #10800 (linked=false)
+[02:56:16] [trace] APP: [GAMEPAD] Routine heartbeat #10900 (linked=false)
+[02:56:17] [trace] APP: [GAMEPAD] Routine heartbeat #11000 (linked=false)
+[02:56:18] [trace] APP: [GAMEPAD] Routine heartbeat #11100 (linked=false)
+[02:56:19] [trace] APP: [GAMEPAD] Routine heartbeat #11200 (linked=false)
+[02:56:20] [trace] APP: [GAMEPAD] Routine heartbeat #11300 (linked=false)
+[02:56:21] [trace] APP: [GAMEPAD] Routine heartbeat #11400 (linked=false)
+[02:56:22] [trace] APP: [GAMEPAD] Routine heartbeat #11500 (linked=false)
+[02:56:23] [trace] APP: [GAMEPAD] Routine heartbeat #11600 (linked=false)
+[02:56:24] [trace] APP: [GAMEPAD] Routine heartbeat #11700 (linked=false)
+[02:56:25] [trace] APP: [GAMEPAD] Routine heartbeat #11800 (linked=false)
+[02:56:27] [trace] APP: [GAMEPAD] Routine heartbeat #11900 (linked=false)
+[02:56:28] [trace] APP: [GAMEPAD] Routine heartbeat #12000 (linked=false)
+[02:56:29] [trace] APP: [GAMEPAD] Routine heartbeat #12100 (linked=false)
+[02:56:30] [trace] APP: [GAMEPAD] Routine heartbeat #12200 (linked=false)
+[02:56:31] [trace] APP: [GAMEPAD] Routine heartbeat #12300 (linked=false)
+[02:56:32] [trace] APP: [GAMEPAD] Routine heartbeat #12400 (linked=false)
+[02:56:33] [trace] APP: [GAMEPAD] Routine heartbeat #12500 (linked=false)
+[02:56:34] [trace] APP: [GAMEPAD] Routine heartbeat #12600 (linked=false)
+[02:56:35] [trace] APP: [GAMEPAD] Routine heartbeat #12700 (linked=false)
+[02:56:36] [trace] APP: [GAMEPAD] Routine heartbeat #12800 (linked=false)
+[02:56:37] [trace] APP: [GAMEPAD] Routine heartbeat #12900 (linked=false)
+[02:56:38] [trace] APP: [GAMEPAD] Routine heartbeat #13000 (linked=false)
+[02:56:39] [trace] APP: [GAMEPAD] Routine heartbeat #13100 (linked=false)
+[02:56:41] [trace] APP: [GAMEPAD] Routine heartbeat #13200 (linked=false)
+[02:56:42] [trace] APP: [GAMEPAD] Routine heartbeat #13300 (linked=false)
+[02:56:43] [trace] APP: [GAMEPAD] Routine heartbeat #13400 (linked=false)
+[02:56:44] [trace] APP: [GAMEPAD] Routine heartbeat #13500 (linked=false)
+[02:56:45] [trace] APP: [GAMEPAD] Routine heartbeat #13600 (linked=false)
+[02:56:47] [trace] APP: [GAMEPAD] Routine heartbeat #13700 (linked=false)
+[02:56:48] [trace] APP: [GAMEPAD] Routine heartbeat #13800 (linked=false)
+[02:56:50] [trace] APP: [GAMEPAD] Routine heartbeat #13900 (linked=false)
+[02:56:52] [trace] APP: [GAMEPAD] Routine heartbeat #14000 (linked=false)
+[02:56:53] [trace] APP: [GAMEPAD] Routine heartbeat #14100 (linked=false)
+[02:56:55] [trace] APP: [GAMEPAD] Routine heartbeat #14200 (linked=false)
+[02:56:56] [trace] APP: [GAMEPAD] Routine heartbeat #14300 (linked=false)
+[02:56:58] [trace] APP: [GAMEPAD] Routine heartbeat #14400 (linked=false)
+[02:56:59] [trace] APP: [GAMEPAD] Routine heartbeat #14500 (linked=false)
+[02:57:01] [trace] APP: [GAMEPAD] Routine heartbeat #14600 (linked=false)
+[02:57:02] [trace] APP: [GAMEPAD] Routine heartbeat #14700 (linked=false)
+[02:57:04] [trace] APP: [GAMEPAD] Routine heartbeat #14800 (linked=false)
+[02:57:06] [trace] APP: [GAMEPAD] Routine heartbeat #14900 (linked=false)
+[02:57:07] [trace] APP: [GAMEPAD] Routine heartbeat #15000 (linked=false)
+[02:57:09] [trace] APP: [GAMEPAD] Routine heartbeat #15100 (linked=false)
+[02:57:10] [trace] APP: [GAMEPAD] Routine heartbeat #15200 (linked=false)
+[02:57:11] [trace] APP: [GAMEPAD] Routine heartbeat #15300 (linked=false)
+[02:57:12] [info] APP: [APP] Robot UI shutting down...
+[02:57:12] [info] APP: [APP] Kernel saved: C:\Users\29164\Desktop\Robot-UI\bin\Debug-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
+[02:57:12] [info] APP: [GAMEPAD] Gamepad routine stopped
+[02:57:12] [info] APP: [APP] Gamepad thread joined

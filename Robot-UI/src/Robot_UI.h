@@ -17,6 +17,7 @@
 #include "RobotSettingPanel.h"
 #include "RobotStatus.h"
 #include "TerminalPanel.h"
+#include "MonitorWall.h"
 #include "Robot_API/robot_api.h"
 #include "imgui.h"
 #include <atomic>
@@ -44,6 +45,7 @@ public:
     // ---- 窗口状态访问 ----
     bool& GetShowRobotStatus()   { return m_RobotStatusOpen; }
     bool& GetShowTerminal()      { return m_TerminalOpen; }
+    bool& GetShowMonitorWall()   { return m_MonitorWallOpen; }
     TerminalPanel*     GetTerminalPanel()     { return m_TerminalPanel.get(); }
 
     // ---- 文件管理器访问 ----
@@ -67,14 +69,17 @@ private:
     bool m_OptionOpen;
     bool m_RobotSettingOpen;
     bool m_RobotStatusOpen;
-    bool m_ThrustCurveEditorOpen    = false;
-    bool m_TerminalOpen             = false;   // shared: Terminal + Output in one panel
+    bool m_MonitorWallOpen        = false;
+    bool m_ThrustCurveEditorOpen  = false;
+    bool m_TerminalOpen           = false;   // shared: Terminal + Output in one panel
+    bool m_LastLinkState          = false;   // 跟踪 RobotStatus 连接状态变化
 
     // 子系统
     std::unique_ptr<OptionPanel>       m_OptionPanel;
     std::unique_ptr<RobotSettingPanel> m_RobotSettingPanel;
     std::unique_ptr<ThrustCurveEditor> m_ThrustCurveEditor;
     std::unique_ptr<RobotStatus>       m_RobotStatus;
+    std::unique_ptr<MonitorWall>       m_MonitorWall;
     std::unique_ptr<FileManager>       m_FileManager;
     std::unique_ptr<TerminalPanel>     m_TerminalPanel;
 

@@ -25,6 +25,7 @@ struct RobotCommConfig
     int  remote_port       = 8888;
     int  local_port        = 8888;
     int  transport_type    = 0;     // 0=UDP, 1=TCP, 2=Serial
+    int  send_freq_hz      = 100;   // 发送频率（Hz）
 };
 
 // ============================================================================
@@ -43,7 +44,7 @@ public:
     bool IsOpen()    const { return m_Open; }
 
     // ---- UI 绘制 ----
-    void DrawWindow(ProtocolSendConfig& sendCfg, ProtocolReceiveConfig& recvCfg,
+    void DrawWindow(std::vector<ProtocolSendConfig>& sendCfgs, std::vector<ProtocolReceiveConfig>& recvCfgs,
                     ActuatorConfig& actuator, const SensorConfig& sensor);
     void DrawSendFieldConfig(ProtocolSendConfig& cfg, ActuatorConfig& actuator);
     void DrawReceiveFieldConfig(ProtocolReceiveConfig& cfg, const SensorConfig& sensor);
@@ -53,6 +54,10 @@ public:
 private:
     bool m_Open     = false;
     int  m_TabIndex = 0;
+    int  m_ActiveSendCfgIdx = 0;  // 当前编辑的发送帧索引
+    int  m_ActiveRecvCfgIdx = 0;  // 当前编辑的接收帧索引
+    int  m_EditingSendName  = -1; // 正在重命名的发送帧索引（-1=无）
+    int  m_EditingRecvName  = -1; // 正在重命名的接收帧索引（-1=无）
 };
 
 // ============================================================================

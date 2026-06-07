@@ -15,6 +15,7 @@ robot_ui_kernel:
     robot_comm_open: true
     notification_open: true
     terminal_open: true
+    monitor_wall_open: true
     robot_active_mode: 0
     gamepad_active_mode: 0
     node_left_side_width: 180

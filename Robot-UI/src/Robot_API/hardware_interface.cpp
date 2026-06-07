@@ -229,69 +229,80 @@ void HardwareInterface::SendActuatorData(const ActuatorConfig& data) {
 #if defined(_WIN32) || defined(_WIN64)
     if (m_Socket == INVALID_SOCKET) return;
 
-    auto bytes = SerializeActuatorData(m_CurrentActuatorData);
-    if (bytes.empty()) return;
+    auto allFrames = SerializeActuatorData(m_CurrentActuatorData);
+    if (allFrames.empty()) return;
 
-    int sent = SOCKET_ERROR;
-    if (m_TransportType == 1)  // TCP: send()
-    {
-        sent = send(m_Socket, (const char*)bytes.data(), static_cast<int>(bytes.size()), 0);
-        if (sent == SOCKET_ERROR) {
-            int err = WSAGetLastError();
-            if (err != WSAEWOULDBLOCK) {
-                WL_ERROR_TAG("HW", "TCP send() failed: {}", err);
-                // 致命错误：连接已断开，标记并关闭 socket
-                m_IsConnected = false;
-                closesocket(m_Socket);
-                m_Socket = INVALID_SOCKET;
-                WL_ERROR_TAG("HW", "TCP connection lost during send — marked disconnected");
-            }
-        }
-    }
-    else  // UDP: sendto()
-    {
-        if (m_RemoteAddr.sin_family == AF_INET) {
-            sent = sendto(m_Socket, (const char*)bytes.data(), static_cast<int>(bytes.size()), 0,
-                          (sockaddr*)&m_RemoteAddr, sizeof(m_RemoteAddr));
+    // 逐帧发送
+    static int s_SendCount = 0;
+    for (const auto& bytes : allFrames) {
+        if (bytes.empty()) continue;
+
+        int sent = SOCKET_ERROR;
+        if (m_TransportType == 1)  // TCP: send()
+        {
+            sent = send(m_Socket, (const char*)bytes.data(), static_cast<int>(bytes.size()), 0);
             if (sent == SOCKET_ERROR) {
                 int err = WSAGetLastError();
-                if (err != WSAEWOULDBLOCK)
-                    WL_ERROR_TAG("HW", "UDP sendto() failed: {}", err);
+                if (err != WSAEWOULDBLOCK) {
+                    WL_ERROR_TAG("HW", "TCP send() failed: {}", err);
+                    m_IsConnected = false;
+                    closesocket(m_Socket);
+                    m_Socket = INVALID_SOCKET;
+                    WL_ERROR_TAG("HW", "TCP connection lost during send — marked disconnected");
+                }
             }
         }
-    }
+        else  // UDP: sendto()
+        {
+            if (m_RemoteAddr.sin_family == AF_INET) {
+                sent = sendto(m_Socket, (const char*)bytes.data(), static_cast<int>(bytes.size()), 0,
+                              (sockaddr*)&m_RemoteAddr, sizeof(m_RemoteAddr));
+                if (sent == SOCKET_ERROR) {
+                    int err = WSAGetLastError();
+                    if (err != WSAEWOULDBLOCK)
+                        WL_ERROR_TAG("HW", "UDP sendto() failed: {}", err);
+                }
+            }
+        }
 
-    // 每 100 帧打印一次 hex dump（≈每秒1次 @100Hz）
-    static int s_SendCount = 0;
-    if (++s_SendCount % 100 == 0 && sent > 0) {
-        char hexBuf[192] = {0};
-        int off = 0;
-        for (size_t i = 0; i < bytes.size() && i < 64; ++i)
-            off += snprintf(hexBuf + off, sizeof(hexBuf) - off, "%02X ", bytes[i]);
-        WL_INFO_TAG("HW", "send #{} {}B: {}", s_SendCount, bytes.size(), hexBuf);
+        // 每 100 帧打印一次 hex dump（≈每秒1次 @100Hz）
+        if (++s_SendCount % 100 == 0 && sent > 0) {
+            char hexBuf[192] = {0};
+            int off = 0;
+            for (size_t i = 0; i < bytes.size() && i < 64; ++i)
+                off += snprintf(hexBuf + off, sizeof(hexBuf) - off, "%02X ", bytes[i]);
+            WL_INFO_TAG("HW", "send #{} {}B: {}", s_SendCount, bytes.size(), hexBuf);
+        }
     }
 #endif
 }
 
 // ======== 协议配置 ========
-// 序列化：根据用户配置的 ProtocolSendConfig 动态构建帧
-std::vector<uint8_t> HardwareInterface::SerializeActuatorData(const ActuatorConfig& data) {
-    return BuildFrame(data, m_ProtocolCfg);
+// 序列化：根据用户配置的多个 ProtocolSendConfig 动态构建多个帧
+std::vector<std::vector<uint8_t>> HardwareInterface::SerializeActuatorData(const ActuatorConfig& data) {
+    std::vector<std::vector<uint8_t>> frames;
+    for (const auto& cfg : m_ProtocolCfgs) {
+        if (!cfg.enabled) continue;
+        auto frame = BuildFrame(data, cfg);
+        if (!frame.empty())
+            frames.push_back(std::move(frame));
+    }
+    return frames;
 }
 
-void HardwareInterface::SetProtocolConfig(const ProtocolSendConfig& config) {
+void HardwareInterface::SetProtocolConfig(const std::vector<ProtocolSendConfig>& configs) {
     std::lock_guard<std::mutex> lock(m_DataMutex);
-    m_ProtocolCfg = config;
+    m_ProtocolCfgs = configs;
 }
 
-void HardwareInterface::SetProtocolReceiveConfig(const ProtocolReceiveConfig& config) {
+void HardwareInterface::SetProtocolReceiveConfig(const std::vector<ProtocolReceiveConfig>& configs) {
     std::lock_guard<std::mutex> lock(m_DataMutex);
-    m_ReceiveCfg = config;
+    m_ReceiveCfgs = configs;
 }
 
 SensorData HardwareInterface::DeserializeSensorData(const std::vector<uint8_t>& raw_data) {
-    if (m_ReceiveCfg.fields.empty()) {
-        WL_WARN_TAG("HW", "recv {}B but m_ReceiveCfg.fields is EMPTY — configure receive protocol in RobotMode!", raw_data.size());
+    if (m_ReceiveCfgs.empty()) {
+        WL_WARN_TAG("HW", "recv {}B but m_ReceiveCfgs is EMPTY — configure receive protocol in RobotMode!", raw_data.size());
         char hexBuf[192] = {0};
         int off = 0;
         for (size_t i = 0; i < raw_data.size() && i < 64; ++i)
@@ -302,23 +313,32 @@ SensorData HardwareInterface::DeserializeSensorData(const std::vector<uint8_t>& 
         return data;
     }
 
-    SensorData result = ParseSensorFrame(raw_data, m_ReceiveCfg);
-    if (!result.is_valid) {
-        // 解析失败：打印收到的数据 vs 期望的协议配置
-        static int s_FailCount = 0;
-        if (++s_FailCount % 50 == 0) {
-            char hexBuf[192] = {0};
-            int off = 0;
-            for (size_t i = 0; i < raw_data.size() && i < 64; ++i)
-                off += snprintf(hexBuf + off, sizeof(hexBuf) - off, "%02X ", raw_data[i]);
-            WL_WARN_TAG("HW", "ParseSensorFrame FAIL #{} — {}B does NOT match protocol config:", s_FailCount, raw_data.size());
-            WL_WARN_TAG("HW", "  config: header_size={} include_len={} msg_type=0x{:02X} checksum={} tail_size={} fields={}",
-                        m_ReceiveCfg.header.size(), m_ReceiveCfg.include_length ? 1 : 0,
-                        m_ReceiveCfg.msg_type, static_cast<int>(m_ReceiveCfg.checksum),
-                        m_ReceiveCfg.tail.size(), m_ReceiveCfg.fields.size());
-            WL_WARN_TAG("HW", "  received hex: {}", hexBuf);
-        }
+    // 遍历所有接收帧配置，第一个匹配的即成功
+    for (const auto& rc : m_ReceiveCfgs) {
+        SensorData result = ParseSensorFrame(raw_data, rc);
+        if (result.is_valid)
+            return result;
     }
-    return result;
+
+    // 解析失败：打印收到的数据 vs 期望的协议配置
+    static int s_FailCount = 0;
+    if (++s_FailCount % 50 == 0) {
+        char hexBuf[192] = {0};
+        int off = 0;
+        for (size_t i = 0; i < raw_data.size() && i < 64; ++i)
+            off += snprintf(hexBuf + off, sizeof(hexBuf) - off, "%02X ", raw_data[i]);
+        WL_WARN_TAG("HW", "ParseSensorFrame FAIL #{} — {}B matches none of {} receive config(s)", s_FailCount, raw_data.size(), m_ReceiveCfgs.size());
+        for (size_t ci = 0; ci < m_ReceiveCfgs.size(); ++ci) {
+            const auto& rc = m_ReceiveCfgs[ci];
+            WL_WARN_TAG("HW", "  cfg[{}]: header_size={} include_len={} cmd=0x{:02X} checksum={} tail_size={} fields={}",
+                        ci, rc.header.size(), rc.include_length ? 1 : 0,
+                        rc.command_byte, static_cast<int>(rc.checksum),
+                        rc.tail.size(), rc.fields.size());
+        }
+        WL_WARN_TAG("HW", "  received hex: {}", hexBuf);
+    }
+    SensorData data;
+    data.is_valid = false;
+    return data;
 }
 

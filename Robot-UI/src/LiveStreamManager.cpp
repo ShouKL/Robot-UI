@@ -115,3 +115,9 @@ DeviceNode* LiveStreamManager::GetSelectedDevice()
     for (auto& n : m_devices) if (n.isSelected) return &n;
     return nullptr;
 }
+
+DeviceNode* LiveStreamManager::GetDeviceByIndex(int index)
+{
+    if (index < 0 || index >= (int)m_devices.size()) return nullptr;
+    return &m_devices[index];
+}

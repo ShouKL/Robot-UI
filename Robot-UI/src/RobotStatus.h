@@ -48,8 +48,8 @@ public:
 
     // ---- 活跃模式配置快捷访问 ----
     const ActuatorConfig&        GetAppliedActuator()     const;
-    const ProtocolSendConfig&    GetAppliedSendConfig()   const;
-    const ProtocolReceiveConfig& GetAppliedRecvConfig()   const;
+    const std::vector<ProtocolSendConfig>& GetAppliedSendConfig()   const;
+    const std::vector<ProtocolReceiveConfig>& GetAppliedRecvConfig()   const;
     const SensorConfig&          GetSensorConfig()        const;
     bool HasTemperature()  const;
     bool HasHumidity()     const;
@@ -87,7 +87,8 @@ public:
     void RequestNodeGraphSync() { m_NeedsNodeGraphSync = true; }
     void EnableLiveSync(bool enable);
 
-    // ---- 从当前选中的 NodeGraph 推导 ActiveMode / ActiveGamepad / ActiveComm ----
+    // ---- 获取当前活跃 Comm 的发送频率 ----
+    int GetSendFreqHz() const;
     void DeriveActiveFromNodeGraph();
 
 private:
@@ -127,6 +128,9 @@ private:
 
     // 标记：下次 DrawWindow 时需要同步 NodeGraph
     bool m_NeedsNodeGraphSync = true;  // 初始为 true，首次 Draw 时同步
+
+    // 跟踪上次同步协议配置的 item，切换时自动推送
+    const RobotMode* m_LastSyncedProtocolItem = nullptr;
 
     // live sync：RobotSettingPanel 打开时，evaluator 实时跟随 Manager 选中图
     bool m_LiveSyncToManager = false;

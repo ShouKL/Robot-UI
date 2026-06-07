@@ -58,7 +58,8 @@ protected:
 
 private:
     int  m_NextId     = 1;
-    int  m_RenamingId = -1;
+    int  m_RenamingKey = -1;   // 列表中项的 index（唯一），用于防止重名 id 导致多重命名
+    int  m_RenamingItemId = -1; // 重命名项的实际 component id，供 RenameItem 回调
     char m_RenameBuffer[128] = {};
 };
 
@@ -69,7 +70,7 @@ private:
 // ============================================================================
 inline bool ManagerBase::DrawItemLabel(int id, char* nameBuf, size_t nameBufSize, bool isSelected, float height)
 {
-    if (m_RenamingId == id)
+    if (m_RenamingKey == id)
     {
         ImGui::SetNextItemWidth(-1);
         bool confirm = ImGui::InputText("##rename", m_RenameBuffer, sizeof(m_RenameBuffer),
@@ -80,8 +81,9 @@ inline bool ManagerBase::DrawItemLabel(int id, char* nameBuf, size_t nameBufSize
         if (confirm || canceled)
         {
             if (confirm && m_RenameBuffer[0] != '\0')
-                RenameItem(id, m_RenameBuffer);
-            m_RenamingId = -1;
+                RenameItem(m_RenamingItemId, m_RenameBuffer);
+            m_RenamingKey = -1;
+            m_RenamingItemId = -1;
             m_RenameBuffer[0] = '\0';
         }
         return false;
@@ -92,7 +94,8 @@ inline bool ManagerBase::DrawItemLabel(int id, char* nameBuf, size_t nameBufSize
 
     if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
     {
-        m_RenamingId = id;
+        m_RenamingKey = id;
+        m_RenamingItemId = id;  // 默认：key 和 itemId 相同；DrawItemList 会在调用后覆写 m_RenamingItemId
         strncpy_s(m_RenameBuffer, nameBuf, sizeof(m_RenameBuffer) - 1);
     }
 
@@ -114,9 +117,15 @@ inline void ManagerBase::DrawItemList(float width)
     int nodeToDelete = -1;
     for (int i = 0; i < GetItemCount(); ++i) {
         int id = GetItemId(i);
-        ImGui::PushID(id);
-        if (DrawItemLabel(id, GetItemNameBuf(i), GetItemNameBufSize(i), IsItemSelected(i)))
+        // 用 index 而非 id 作为 ImGui 控件 ID，防止用户将两个组件的 id 改成一样后
+        // 两个列表项被 ImGui 当作同一控件（导致选中一个时两个都高亮）
+        ImGui::PushID(i);
+        if (DrawItemLabel(i, GetItemNameBuf(i), GetItemNameBufSize(i), IsItemSelected(i))) {
             SelectItem(i);
+        } else if (m_RenamingKey == i) {
+            // 重命名进行中：确保 RenameItem 回调拿到实际 component id
+            m_RenamingItemId = id;
+        }
         DrawItemExtras(i);
         if (CanDeleteItem(i)) {
             if (ImGui::BeginPopupContextItem()) {

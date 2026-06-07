@@ -19,6 +19,7 @@ public:
     void RenameItem(int id, const char* newName) override;
 
     DeviceNode* GetSelectedDevice();
+    DeviceNode* GetDeviceByIndex(int index);
 
     int    GetItemCount() const override { return (int)m_devices.size(); }
     int    GetItemId(int index) const override { return m_devices[index].id; }

@@ -15,17 +15,19 @@ void RobotComponent::DrawConfigPanel() {
     bool motor_node_open = ImGui::TreeNode("Brushless Motors");
     if (ImGui::BeginPopupContextItem("MotorTreeCtx")) {
         if (ImGui::MenuItem("Add Motor")) {
-            int next_id = actuator_config.brushlessmotor.empty() ? 0 : actuator_config.brushlessmotor.rbegin()->first + 1;
+            int next_id = actuator_config.brushlessmotor.empty() ? 0 : actuator_config.brushlessmotor.back().id + 1;
             BrushlessMotor motor;
             motor.id = next_id;
-            actuator_config.brushlessmotor[next_id] = motor;
+            actuator_config.brushlessmotor.push_back(motor);
         }
         ImGui::EndPopup();
     }
     if (motor_node_open) {
-        for (auto it = actuator_config.brushlessmotor.begin(); it != actuator_config.brushlessmotor.end(); ) {
-            auto& m = it->second;
-            bool m_node_open = ImGui::TreeNode((void*)(intptr_t)m.id, "%s",
+        int motorIdx = 0;
+        for (auto it = actuator_config.brushlessmotor.begin(); it != actuator_config.brushlessmotor.end(); ++motorIdx) {
+            auto& m = *it;
+            ImGui::PushID(motorIdx);
+            bool m_node_open = ImGui::TreeNode((void*)(intptr_t)(motorIdx + 1), "%s",
                 m.name.empty() ? (std::string("Motor") + std::to_string(m.id)).c_str() : m.name.c_str());
             bool delete_motor = false;
             if (ImGui::BeginPopupContextItem()) {
@@ -67,6 +69,7 @@ void RobotComponent::DrawConfigPanel() {
                 ImGui::InputFloat("target_speed", &fv); m.target_speed.value = fv;
                 ImGui::TreePop();
             }
+            ImGui::PopID();
             if (delete_motor) it = actuator_config.brushlessmotor.erase(it);
             else ++it;
         }
@@ -79,17 +82,19 @@ void RobotComponent::DrawConfigPanel() {
     bool servo_node_open = ImGui::TreeNode("Servos");
     if (ImGui::BeginPopupContextItem("ServoTreeCtx")) {
         if (ImGui::MenuItem("Add Servo")) {
-            int next_id = actuator_config.servo.empty() ? 0 : actuator_config.servo.rbegin()->first + 1;
-            Servo servo;
-            servo.id = next_id;
-            actuator_config.servo[next_id] = servo;
+            int next_id = actuator_config.servo.empty() ? 0 : actuator_config.servo.back().id + 1;
+            Servo sv;
+            sv.id = next_id;
+            actuator_config.servo.push_back(sv);
         }
         ImGui::EndPopup();
     }
     if (servo_node_open) {
-        for (auto it = actuator_config.servo.begin(); it != actuator_config.servo.end(); ) {
-            auto& s = it->second;
-            bool s_node_open = ImGui::TreeNode((void*)(intptr_t)s.id, "%s",
+        int servoIdx = 0;
+        for (auto it = actuator_config.servo.begin(); it != actuator_config.servo.end(); ++servoIdx) {
+            auto& s = *it;
+            ImGui::PushID(servoIdx);
+            bool s_node_open = ImGui::TreeNode((void*)(intptr_t)(servoIdx + 1000), "%s",
                 s.name.empty() ? (std::string("Servo #") + std::to_string(s.id)).c_str() : s.name.c_str());
             bool delete_servo = false;
             if (ImGui::BeginPopupContextItem()) {
@@ -106,6 +111,7 @@ void RobotComponent::DrawConfigPanel() {
                 ImGui::InputFloat("Angle", &fv); s.angle.value = fv;
                 ImGui::TreePop();
             }
+            ImGui::PopID();
             if (delete_servo) it = actuator_config.servo.erase(it);
             else ++it;
         }
