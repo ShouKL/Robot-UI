@@ -19,7 +19,7 @@ extern "C" {
 }
 
 // ---  UI  ---
-enum CodecType { H264 = 0, H265 = 1 };
+enum CodecType { H264 = 0, H265 = 1, H265_PLUS = 2 };
 enum StreamType { Main = 0, Sub = 1 }; //
 enum DecoderType {
     SOFTWARE = 0,    // CPU  (libav)
@@ -87,6 +87,7 @@ public:
 private:
     // ======== GStreamer 管线构建 ========
     std::string BuildPipelineString(const StreamConfig& config);
+    std::string BuildCLIReferenceString(const StreamConfig& config);
     static GstFlowReturn OnNewSample(GstAppSink* sink, gpointer user_data);
 
     // ======== UI 子面板 ========

@@ -20,53 +20,78 @@ LiveStream::LiveStream() {
 
 LiveStream::~LiveStream() { Close(); }
 
+// 返回用于 RTSP URL 路径的 codec 字符串
+static std::string GetCodecUrlStr(const StreamConfig& config) {
+    switch (config.codec) {
+        case CodecType::H265:       return "h265";
+        case CodecType::H265_PLUS:  return "h265+";
+        default:                    return "h264";
+    }
+}
+
+// 返回用于 GStreamer 管线元素的 codec 字符串（H.265+ 解码器与 H.265 相同）
+static std::string GetCodecPipelineStr(const StreamConfig& config) {
+    switch (config.codec) {
+        case CodecType::H265:
+        case CodecType::H265_PLUS:  return "h265";
+        default:                    return "h264";
+    }
+}
+
 // ======== GStreamer 管线构建 ========
-std::string LiveStream::BuildPipelineString(const StreamConfig& config) {
-    std::stringstream ss;
-    std::string codecStr = (config.codec == CodecType::H265) ? "h265" : "h264";
-    std::string path;
-    //  RTSP
+
+// 构建 rtspsrc 的 RTSP URL 路径
+static std::string BuildRTSPSrcPath(const StreamConfig& config, const std::string& codecStr) {
     if (config.brand == CameraBrand::HIKVISION) {
-        // : /h264/ch1/main/av_stream
-        path = "/" + codecStr + "/ch" + std::to_string(config.channel) + "/" +
+        return "/" + codecStr + "/ch" + std::to_string(config.channel) + "/" +
             (config.streamType == StreamType::Main ? "main" : "sub") + "/av_stream";
     }
     else if (config.brand == CameraBrand::DAHUA) {
-        // : /cam/realmonitor?channel=1&subtype=0
-        path = "/cam/realmonitor?channel=" + std::to_string(config.channel) +
+        return "/cam/realmonitor?channel=" + std::to_string(config.channel) +
             "&subtype=" + (config.streamType == StreamType::Main ? "0" : "1");
     }
     else {
-        //
-        path = config.customPath;
+        std::string path = config.customPath;
         size_t pos;
         while ((pos = path.find("{codec}")) != std::string::npos) path.replace(pos, 7, codecStr);
         while ((pos = path.find("{channel}")) != std::string::npos) path.replace(pos, 9, std::to_string(config.channel));
         while ((pos = path.find("{streamType}")) != std::string::npos) path.replace(pos, 12, (config.streamType == StreamType::Main ? "main" : "sub"));
+        return path;
     }
+}
 
-    //  (user:pass@ip)
-    std::string creds = "";
-    if (strlen(config.user) > 0) {
-        creds = config.user;
-        if (strlen(config.pass) > 0) creds += ":" + std::string(config.pass);
-        creds += "@";
-    }
-    //  RTSP
-    ss << "rtspsrc location=\"rtsp://" << creds << config.ip << ":" << config.port << path << "\" "
-        << "protocols=" << (config.protocol == TransportProto::TCP ? "tcp" : "udp") << " "
-        << "latency=" << config.latency << " " //
-        << "timeout=" << config.timeout << " "
-        << "udp-buffer-size=" << config.udpBufferSize << " "
-        << "ntp-sync=" << (config.ntpSync ? "true" : "false") << " "
-        << "buffer-mode=" << (int)config.bufferMode << " "
-        << "drop-on-latency=" << (config.dropOnLatency ? "true" : "false") << " ! ";
-    //
-    ss << "rtp" << codecStr << "depay ! " << codecStr << "parse ! ";
+// 构建 rtspsrc 的属性字符串（仅包含非默认值的参数）
+static std::string BuildRTSPSrcProperties(const StreamConfig& config) {
+    std::stringstream ss;
+
+    // 基础属性 — 始终输出
+    ss << "protocols=" << (config.protocol == TransportProto::TCP ? "tcp" : "udp");
+    ss << " latency=" << config.latency;
+
+    // 可选属性 — 仅在非默认值时输出，让 GStreamer 使用自身默认值
+    if (config.bufferMode != BufferMode::AUTO)
+        ss << " buffer-mode=" << (int)config.bufferMode;
+    if (config.dropOnLatency)
+        ss << " drop-on-latency=true";
+    if (config.timeout != 5000000)
+        ss << " timeout=" << config.timeout;
+    if (config.udpBufferSize > 0)
+        ss << " udp-buffer-size=" << config.udpBufferSize;
+    if (config.ntpSync)
+        ss << " ntp-sync=true";
+
+    return ss.str();
+}
+
+// 构建解码+转换管线（appsink 路径）
+static std::string BuildDecoderPipeline(const StreamConfig& config, const std::string& codecStr) {
+    std::stringstream ss;
     std::string renderFormat = config.useBGRA ? "BGRA" : "RGBA";
-    // vs
+
+    ss << "rtp" << codecStr << "depay ! " << codecStr << "parse ! ";
+
     if (config.decoder == DecoderType::D3D11_VA) {
-            ss << "d3d11" << codecStr << "dec ! d3d11convert ! video/x-raw(memory:D3D11Memory),format=" << renderFormat << " ! d3d11download ! video/x-raw,format=" << renderFormat << " ! ";
+        ss << "d3d11" << codecStr << "dec ! d3d11convert ! video/x-raw(memory:D3D11Memory),format=" << renderFormat << " ! d3d11download ! video/x-raw,format=" << renderFormat << " ! ";
     }
     else if (config.decoder == DecoderType::NVIDIA_HW) {
         ss << "nv" << codecStr << "dec ! videoconvert ! video/x-raw,format=" << renderFormat << " ! ";
@@ -75,14 +100,77 @@ std::string LiveStream::BuildPipelineString(const StreamConfig& config) {
         ss << "qsv" << codecStr << "dec ! videoconvert ! video/x-raw,format=" << renderFormat << " ! ";
     }
     else {
-        //  libav (ffmpeg)
         ss << "avdec_" << codecStr << " max-threads=" << config.cpuThreads << " ! videoconvert ! video/x-raw,format=" << renderFormat << " ! ";
     }
-    // (appsink) C++
+
+    // appsink — 将帧传入 CPU 内存供 ImGui 渲染
     ss << "appsink name=mysink emit-signals=true "
-        << "sync=" << (config.syncToClock ? "true" : "false") << " " //  false
+        << "sync=" << (config.syncToClock ? "true" : "false") << " "
         << "max-buffers=" << config.maxBuffers << " "
-        << "drop=true"; //
+        << "drop=true";
+    return ss.str();
+}
+
+// 构建直接 GPU 渲染管线（d3d11videosink，用于 CLI 参考）
+static std::string BuildDirectRenderPipeline(const StreamConfig& config, const std::string& codecStr) {
+    std::stringstream ss;
+    ss << "rtp" << codecStr << "depay ! " << codecStr << "parse ! ";
+
+    if (config.decoder == DecoderType::D3D11_VA) {
+        ss << "d3d11" << codecStr << "dec ! d3d11videosink sync=false";
+    }
+    else if (config.decoder == DecoderType::NVIDIA_HW) {
+        ss << "nv" << codecStr << "dec ! d3d11videosink sync=false";
+    }
+    else if (config.decoder == DecoderType::INTEL_QSV) {
+        ss << "qsv" << codecStr << "dec ! d3d11videosink sync=false";
+    }
+    else {
+        ss << "avdec_" << codecStr << " ! d3d11videosink sync=false";
+    }
+    return ss.str();
+}
+
+std::string LiveStream::BuildPipelineString(const StreamConfig& config) {
+    std::string urlCodecStr    = GetCodecUrlStr(config);
+    std::string pipelineStr    = GetCodecPipelineStr(config);
+    std::string path = BuildRTSPSrcPath(config, urlCodecStr);
+
+    // 认证信息 (user:pass@)
+    std::string creds;
+    if (strlen(config.user) > 0) {
+        creds = config.user;
+        if (strlen(config.pass) > 0) creds += ":" + std::string(config.pass);
+        creds += "@";
+    }
+
+    std::stringstream ss;
+    ss << "rtspsrc location=\"rtsp://" << creds << config.ip << ":" << config.port << path << "\" ";
+    ss << BuildRTSPSrcProperties(config);
+    ss << " ! ";
+    ss << BuildDecoderPipeline(config, pipelineStr);
+    return ss.str();
+}
+
+// 生成 CLI 参考命令（使用 d3d11videosink 直接渲染，最低延迟）
+std::string LiveStream::BuildCLIReferenceString(const StreamConfig& config) {
+    std::string urlCodecStr    = GetCodecUrlStr(config);
+    std::string pipelineStr    = GetCodecPipelineStr(config);
+    std::string path = BuildRTSPSrcPath(config, urlCodecStr);
+
+    // 认证信息
+    std::string creds;
+    if (strlen(config.user) > 0) {
+        creds = config.user;
+        if (strlen(config.pass) > 0) creds += ":" + std::string(config.pass);
+        creds += "@";
+    }
+
+    std::stringstream ss;
+    ss << "gst-launch-1.0.exe -v rtspsrc location=\"rtsp://" << creds << config.ip << ":" << config.port << path << "\" ";
+    ss << BuildRTSPSrcProperties(config);
+    ss << " ! ";
+    ss << BuildDirectRenderPipeline(config, pipelineStr);
     return ss.str();
 }
 
@@ -235,8 +323,8 @@ void LiveStream::DrawProtocolCodecSettings() {
             else {
                 ImGui::InputInt("##Channel", &m_StreamConfig.channel);
             }
-            // ---  (H.264 / H.265) ---
-            const char* codecs[] = { "H264", "H265" };
+            // ---  (H.264 / H.265 / H.265+) ---
+            const char* codecs[] = { "H264", "H265", "H.265+" };
             int current_codec = (int)m_StreamConfig.codec;
             DrawPropertyLabel("Codec");
             if (ImGui::Combo("##Codec", &current_codec, codecs, IM_ARRAYSIZE(codecs)))
@@ -321,18 +409,16 @@ void LiveStream::DrawNoticePanel() {
         ImGui::Separator();
         ImGui::Spacing();
         ImGui::Text("Reference CLI Command (Minimum Latency):");
-        const char* cliCmd = "gst-launch-1.0 -v rtspsrc location=\"rtsp://{user}:{password}@{ip}:554/h264/ch1/main/av_stream\" "
-            "latency=0 buffer-mode=0 drop-on-latency=true protocols=udp ! rtph264depay ! h264parse ! "
-            "d3d11h264dec ! d3d11videosink sync=false";
+        std::string cliCmd = BuildCLIReferenceString(m_StreamConfig);
         ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
-        ImVec2 textSize = ImGui::CalcTextSize(cliCmd, nullptr, false, ImGui::GetContentRegionAvail().x - 20.0f);
+        ImVec2 textSize = ImGui::CalcTextSize(cliCmd.c_str(), nullptr, false, ImGui::GetContentRegionAvail().x - 20.0f);
         float childHeight = textSize.y + ImGui::GetStyle().FramePadding.y * 4.0f + 15.0f;
         if (ImGui::BeginChild("##CLI_Box", ImVec2(-1.0f, childHeight), true, ImGuiWindowFlags_NoScrollbar)) {
             ImGui::PushTextWrapPos(0.0f);
-            ImGui::TextUnformatted(cliCmd);
+            ImGui::TextUnformatted(cliCmd.c_str());
             ImGui::PopTextWrapPos();
             if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(0))
-                ImGui::SetClipboardText(cliCmd);
+                ImGui::SetClipboardText(cliCmd.c_str());
         }
         ImGui::EndChild();
         ImGui::PopStyleColor();

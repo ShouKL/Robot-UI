@@ -485,7 +485,7 @@ robot_ui_config:
         protocol_send:
           - name: Motion
             command_byte: 1
-            enabled: true
+            enabled: false
             include_length: false
             checksum: 2
             big_endian: false
@@ -1234,17 +1234,17 @@ robot_ui_config:
       port: 0
       brand: 0
       channel: 1
-      codec: 0
-      stream_type: 0
+      codec: 1
+      stream_type: 1
       protocol: 1
       custom_path: ""
       latency: 0
       udp_buffer_size: 0
-      timeout: 5000000
+      timeout: 0
       drop_on_latency: true
       ntp_sync: false
       buffer_mode: 0
-      decoder: 0
+      decoder: 2
       cpu_threads: 0
       sync_to_clock: false
       max_buffers: 0

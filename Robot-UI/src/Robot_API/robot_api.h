@@ -643,9 +643,11 @@ inline std::vector<uint8_t> BuildFrame(const ActuatorConfig& data, const Protoco
     // 负载
     frame.insert(frame.end(), payload.begin(), payload.end());
 
-    // 校验（对负载数据计算）
-    if (cfg.checksum != ChecksumType::None && !payload.empty()) {
-        uint16_t cs = ComputeChecksum(cfg.checksum, payload.data(), payload.size());
+    // 校验（对帧头之后、帧尾之前的所有数据计算：cmd_byte + 可选length + payload）
+    if (cfg.checksum != ChecksumType::None) {
+        size_t dataStart = cfg.header.size();
+        size_t dataLen   = frame.size() - dataStart;
+        uint16_t cs = ComputeChecksum(cfg.checksum, frame.data() + dataStart, dataLen);
         if (cfg.checksum == ChecksumType::CRC16) {
             frame.push_back(static_cast<uint8_t>(cs & 0xFF));
             frame.push_back(static_cast<uint8_t>((cs >> 8) & 0xFF));
@@ -790,11 +792,11 @@ inline SensorData ParseSensorFrame(const std::vector<uint8_t>& raw_data, const P
     uint8_t cmdByte = raw_data[offset++];
     if (cmdByte != cfg.command_byte) return data;
 
-    // 校验
+    // 校验（对帧头之后、帧尾之前的所有数据计算：可选length + cmd_byte + payload）
     if (cfg.checksum != ChecksumType::None) {
-        const uint8_t* payloadStart = raw_data.data() + offset;
-        size_t checkLen = payloadLen;
-        uint16_t calc = ComputeChecksum(cfg.checksum, payloadStart, checkLen);
+        size_t checkStart = cfg.header.size();
+        size_t checkLen   = offset - checkStart + payloadLen;
+        uint16_t calc = ComputeChecksum(cfg.checksum, raw_data.data() + checkStart, checkLen);
         size_t csOffset = offset + payloadLen;
         uint16_t expected = static_cast<uint16_t>(raw_data[csOffset]);
         if (cfg.checksum == ChecksumType::CRC16)
