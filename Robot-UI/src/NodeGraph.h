@@ -17,6 +17,7 @@
 #include <memory>
 #include <shared_mutex>
 #include <mutex>
+#include <chrono>
 
 namespace Walnut { class Image; }
 
@@ -181,6 +182,7 @@ private:
 
     mutable std::shared_mutex m_EvalMutex;
     mutable std::mutex        m_KvMutex;
+    std::chrono::steady_clock::time_point m_LastEvalTime = {};
 
     std::map<std::string, float>       m_LastKeyValues;
     std::map<std::string, float>       m_LastOutputs;

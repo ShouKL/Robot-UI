@@ -1,6 +1,32 @@
 #include "LiveStream.h"
+#include "Walnut/Core/Log.h"
 
-// ======== 辅助函数 ========
+// ======== GStreamer 安全初始化（启动时检测，不延迟）========
+static bool s_gst_available = false;
+
+static void EnsureGstInit()
+{
+    static bool s_inited = false;
+    if (s_inited) return;
+    s_inited = true;
+
+    WL_INFO_TAG("GSTREAMER", "Initializing GStreamer...");
+
+    // 防止 gst_init 扫描插件时卡死（Windows 上最常见的卡死根因）
+    _putenv_s("GST_REGISTRY_FORK_DISABLE", "1");
+    _putenv_s("GST_PLUGIN_SCANNER", "gst-plugin-scanner");
+
+    WL_INFO_TAG("GSTREAMER", "Calling gst_init_check...");
+    GError* gstErr = nullptr;
+    if (!gst_init_check(nullptr, nullptr, &gstErr))
+    {
+        WL_ERROR_TAG("GSTREAMER", "gst_init failed: {}", gstErr ? gstErr->message : "unknown");
+        if (gstErr) g_error_free(gstErr);
+        return;
+    }
+    WL_INFO_TAG("GSTREAMER", "GStreamer initialized successfully");
+    s_gst_available = true;
+}
 static void DrawPropertyLabel(const char* label) {
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
@@ -10,12 +36,10 @@ static void DrawPropertyLabel(const char* label) {
     ImGui::SetNextItemWidth(-FLT_MIN);
 }
 
-LiveStream::LiveStream() {
-    static bool inited = false;
-    if (!inited) {
-        gst_init(NULL, NULL);
-        inited = true;
-    }
+LiveStream::LiveStream()
+{
+    // 启动时检测 GStreamer 环境 — 有 env var 防护不会卡死，失败立即打日志
+    EnsureGstInit();
 }
 
 LiveStream::~LiveStream() { Close(); }
@@ -175,6 +199,12 @@ std::string LiveStream::BuildCLIReferenceString(const StreamConfig& config) {
 }
 
 bool LiveStream::Open(const StreamConfig& config) {
+    if (!s_gst_available)
+    {
+        m_lastErrorMsg = "GStreamer not available (init failed at startup)";
+        return false;
+    }
+
     m_lastErrorMsg.clear();
     std::string fullPipeline = BuildPipelineString(config);
     GError* error = nullptr;

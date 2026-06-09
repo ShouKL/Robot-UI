@@ -11,6 +11,7 @@
 #include <queue>
 #include <unordered_map>
 #include <sstream>
+#include <chrono>
 
 namespace ed = ax::NodeEditor;
 
@@ -258,6 +259,15 @@ std::map<std::string, float> NodeGraph::EvaluateCompute(const std::map<std::stri
     std::map<std::string, float> outputs;
     if (m_Nodes.empty()) return outputs;
 
+    // Compute real delta time
+    auto now = std::chrono::steady_clock::now();
+    float dt = 0.0f;
+    if (m_LastEvalTime.time_since_epoch().count() > 0) {
+        dt = std::chrono::duration<float>(now - m_LastEvalTime).count();
+        if (dt > 1.0f) dt = 0.0f;  // clamp large gaps (first frame / resume)
+    }
+    m_LastEvalTime = now;
+
     auto order = TopoSortNodes(m_Nodes, m_Links);
     std::unordered_map<int, float> pinVals;
 
@@ -268,7 +278,7 @@ std::map<std::string, float> NodeGraph::EvaluateCompute(const std::map<std::stri
             if ((int)n.ID.Get() == nid) { node = &n; break; }
         if (!node) continue;
 
-        float out = ComputeNodeOutput(*node, keyValues, pinVals, 0.0f);
+        float out = ComputeNodeOutput(*node, keyValues, pinVals, dt);
 
         if (!node->OutputTarget.empty())
             outputs[node->OutputTarget] = out;
@@ -293,6 +303,15 @@ void NodeGraph::EvaluateForDisplay(const std::map<std::string, float>& keyValues
     m_LastOutputs.clear();
     if (m_Nodes.empty()) return;
 
+    // Compute real delta time
+    auto now = std::chrono::steady_clock::now();
+    float dt = 0.0f;
+    if (m_LastEvalTime.time_since_epoch().count() > 0) {
+        dt = std::chrono::duration<float>(now - m_LastEvalTime).count();
+        if (dt > 1.0f) dt = 0.0f;
+    }
+    m_LastEvalTime = now;
+
     auto order = TopoSortNodes(m_Nodes, m_Links);
     std::unordered_map<int, float> pinVals;
 
@@ -303,7 +322,7 @@ void NodeGraph::EvaluateForDisplay(const std::map<std::string, float>& keyValues
             if ((int)n.ID.Get() == nid) { node = &n; break; }
         if (!node) continue;
 
-        float out = ComputeNodeOutput(*node, keyValues, pinVals, 0.0f);
+        float out = ComputeNodeOutput(*node, keyValues, pinVals, dt);
 
         // Update generic display fields
         for (int i = 0; i < (int)node->Inputs.size() && i < 4; ++i) {
@@ -683,6 +702,7 @@ void NodeGraph::DrawNodeContents(EditorNode& node,
 
     // Special: KeySource
     if (node.Type == NodeType::KeySource) {
+        ImGui::PushID((int)node.ID.Get());
         ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
         std::string btnLabel = node.KeyName.empty() ? "(click to select)" : node.KeyName;
         bool isActive = (m_ActiveKeySourceId == node.ID);
@@ -713,11 +733,13 @@ void NodeGraph::DrawNodeContents(EditorNode& node,
             ImGui::SameLine(); ImGui::TextUnformatted(pin.Name.c_str());
             ed::EndPin();
         }
+        ImGui::PopID();
         return;
     }
 
     // Special: ConstValue (has drag-float on output)
     if (node.Type == NodeType::ConstValue) {
+        ImGui::PushID((int)node.ID.Get());
         for (auto& pin : node.Outputs) {
             ed::BeginPin(pin.ID, ed::PinKind::Output);
             ::DrawPinIcon(pin, IsPinLinked(pin.ID), 255);
@@ -726,11 +748,13 @@ void NodeGraph::DrawNodeContents(EditorNode& node,
                 SetModified(true);
             ed::EndPin();
         }
+        ImGui::PopID();
         return;
     }
 
     // Special: CustomOutput (click to select node, right-click to clear)
     if (node.Type == NodeType::CustomOutput) {
+        ImGui::PushID((int)node.ID.Get());
         for (auto& pin : node.Inputs) {
             ed::BeginPin(pin.ID, ed::PinKind::Input);
             ::DrawPinIcon(pin, IsPinLinked(pin.ID), 255);
@@ -757,6 +781,7 @@ void NodeGraph::DrawNodeContents(EditorNode& node,
             node.OutputTarget.clear();
             SetModified(true);
         }
+        ImGui::PopID();
         return;
     }
 

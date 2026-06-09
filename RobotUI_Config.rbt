@@ -180,46 +180,6 @@ robot_ui_config:
             nodes:
               - id: 1
                 type: 42
-                value: 1.52590219e-05
-                key_name: LSX
-                op_mode: 0
-                output_target: ""
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-              - id: 3
-                type: 42
-                value: 1.52590219e-05
-                key_name: RSX
-                op_mode: 0
-                output_target: ""
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-              - id: 5
-                type: 42
                 value: -1.52590219e-05
                 key_name: LSY
                 op_mode: 0
@@ -238,7 +198,7 @@ robot_ui_config:
                   - 0
                   - 0
                   - 0
-              - id: 7
+              - id: 3
                 type: 42
                 value: -1.52590219e-05
                 key_name: RSY
@@ -258,9 +218,49 @@ robot_ui_config:
                   - 0
                   - 0
                   - 0
+              - id: 5
+                type: 42
+                value: 1.52590219e-05
+                key_name: LSX
+                op_mode: 0
+                output_target: ""
+                param:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                state_f:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+              - id: 7
+                type: 42
+                value: 1.52590219e-05
+                key_name: RSX
+                op_mode: 0
+                output_target: ""
+                param:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                state_f:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
               - id: 9
                 type: 44
-                value: 1.52590219e-05
+                value: -0.0457770675
                 key_name: ""
                 op_mode: 0
                 output_target: motion.x
@@ -280,7 +280,7 @@ robot_ui_config:
                   - 0
               - id: 11
                 type: 44
-                value: -1.52590219e-05
+                value: 0.0762951076
                 key_name: ""
                 op_mode: 0
                 output_target: motion.y
@@ -300,7 +300,7 @@ robot_ui_config:
                   - 0
               - id: 13
                 type: 44
-                value: 1.52590219e-05
+                value: -0.0610360876
                 key_name: ""
                 op_mode: 0
                 output_target: motion.z
@@ -320,7 +320,7 @@ robot_ui_config:
                   - 0
               - id: 15
                 type: 44
-                value: -1.52590219e-05
+                value: 0.00915541314
                 key_name: ""
                 op_mode: 0
                 output_target: motion.rz
@@ -338,14 +338,14 @@ robot_ui_config:
                   - 0
                   - 0
                   - 0
-              - id: 21
-                type: 34
-                value: 8
+              - id: 36
+                type: 1
+                value: -0.0457770675
                 key_name: ""
                 op_mode: 0
                 output_target: ""
                 param:
-                  - 0
+                  - 3000
                   - 0
                   - 0
                   - 0
@@ -354,14 +354,74 @@ robot_ui_config:
                   - 0
                   - 0
                 state_f:
-                  - 8
                   - 0
                   - 0
                   - 0
-              - id: 22
+                  - 0
+              - id: 37
+                type: 1
+                value: 0.0762951076
+                key_name: ""
+                op_mode: 0
+                output_target: ""
+                param:
+                  - 5000
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                state_f:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+              - id: 40
+                type: 1
+                value: -0.0610360876
+                key_name: ""
+                op_mode: 0
+                output_target: ""
+                param:
+                  - 4000
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                state_f:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+              - id: 43
+                type: 1
+                value: 0.00915541314
+                key_name: ""
+                op_mode: 0
+                output_target: ""
+                param:
+                  - 600
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                state_f:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+              - id: 55
                 type: 42
-                value: 0
-                key_name: A
+                value: -1
+                key_name: RT
                 op_mode: 0
                 output_target: ""
                 param:
@@ -378,10 +438,30 @@ robot_ui_config:
                   - 0
                   - 0
                   - 0
-              - id: 25
-                type: 42
+              - id: 79
+                type: 44
                 value: 0
-                key_name: B
+                key_name: ""
+                op_mode: 0
+                output_target: servo.Servo.angle
+                param:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                state_f:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+              - id: 80
+                type: 43
+                value: 1
+                key_name: ""
                 op_mode: 0
                 output_target: ""
                 param:
@@ -398,8 +478,8 @@ robot_ui_config:
                   - 0
                   - 0
                   - 0
-              - id: 26
-                type: 20
+              - id: 82
+                type: 0
                 value: 0
                 key_name: ""
                 op_mode: 0
@@ -418,15 +498,35 @@ robot_ui_config:
                   - 0
                   - 0
                   - 0
-              - id: 29
-                type: 20
+              - id: 86
+                type: 1
                 value: 0
                 key_name: ""
                 op_mode: 0
                 output_target: ""
                 param:
+                  - 0.5
                   - 0
                   - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+                state_f:
+                  - 0
+                  - 0
+                  - 0
+                  - 0
+              - id: 93
+                type: 35
+                value: 0
+                key_name: ""
+                op_mode: 0
+                output_target: ""
+                param:
+                  - 3
+                  - 3
                   - 0
                   - 0
                   - 0
@@ -439,53 +539,78 @@ robot_ui_config:
                   - 0
                   - 0
             links:
-              - id: 17
-                from_node: 7
-                from_pin: 0
-                to_node: 15
-                to_pin: 0
-              - id: 18
-                from_node: 3
-                from_pin: 0
-                to_node: 13
-                to_pin: 0
-              - id: 19
-                from_node: 5
-                from_pin: 0
-                to_node: 11
-                to_pin: 0
-              - id: 20
+              - id: 46
                 from_node: 1
+                from_pin: 0
+                to_node: 36
+                to_pin: 0
+              - id: 47
+                from_node: 36
                 from_pin: 0
                 to_node: 9
                 to_pin: 0
-              - id: 32
-                from_node: 22
+              - id: 48
+                from_node: 5
                 from_pin: 0
-                to_node: 29
+                to_node: 37
                 to_pin: 0
-              - id: 33
-                from_node: 25
+              - id: 49
+                from_node: 37
                 from_pin: 0
-                to_node: 26
+                to_node: 11
                 to_pin: 0
-              - id: 34
-                from_node: 29
+              - id: 50
+                from_node: 3
                 from_pin: 0
-                to_node: 21
+                to_node: 40
                 to_pin: 0
-              - id: 35
-                from_node: 26
+              - id: 51
+                from_node: 40
                 from_pin: 0
-                to_node: 21
+                to_node: 13
+                to_pin: 0
+              - id: 52
+                from_node: 7
+                from_pin: 0
+                to_node: 43
+                to_pin: 0
+              - id: 53
+                from_node: 43
+                from_pin: 0
+                to_node: 15
+                to_pin: 0
+              - id: 89
+                from_node: 55
+                from_pin: 0
+                to_node: 82
+                to_pin: 0
+              - id: 90
+                from_node: 80
+                from_pin: 0
+                to_node: 82
                 to_pin: 1
+              - id: 91
+                from_node: 82
+                from_pin: 0
+                to_node: 86
+                to_pin: 0
+              - id: 94
+                from_node: 86
+                from_pin: 0
+                to_node: 93
+                to_pin: 0
+              - id: 95
+                from_node: 93
+                from_pin: 0
+                to_node: 79
+                to_pin: 0
             active_robot_mode: ROV
             active_gamepad_mode: XBOX
             comm_index: 0
         protocol_send:
           - name: Motion
             command_byte: 1
-            enabled: false
+            enabled: true
             include_length: false
             checksum: 2
             big_endian: false
@@ -547,7 +672,7 @@ robot_ui_config:
                 fix_value: 0
           - name: LeftFront
             command_byte: 2
-            enabled: true
+            enabled: false
             include_length: false
             checksum: 2
             big_endian: false
@@ -623,7 +748,7 @@ robot_ui_config:
                 fix_value: 0
           - name: RightFront
             command_byte: 2
-            enabled: true
+            enabled: false
             include_length: false
             checksum: 2
             big_endian: false
@@ -699,7 +824,7 @@ robot_ui_config:
                 fix_value: 0
           - name: LeftVertical
             command_byte: 2
-            enabled: true
+            enabled: false
             include_length: false
             checksum: 2
             big_endian: false
@@ -775,7 +900,7 @@ robot_ui_config:
                 fix_value: 0
           - name: RightVertical
             command_byte: 2
-            enabled: true
+            enabled: false
             include_length: false
             checksum: 2
             big_endian: false
@@ -851,7 +976,7 @@ robot_ui_config:
                 fix_value: 0
           - name: LeftRear
             command_byte: 2
-            enabled: true
+            enabled: false
             include_length: false
             checksum: 2
             big_endian: false
@@ -927,7 +1052,7 @@ robot_ui_config:
                 fix_value: 0
           - name: RightRear
             command_byte: 2
-            enabled: true
+            enabled: false
             include_length: false
             checksum: 2
             big_endian: false
@@ -1294,7 +1419,7 @@ robot_ui_config:
         remote_port: 2200
         local_port: 1100
         transport_type: 0
-        send_freq_hz: 100
+        send_freq_hz: 500
       - name: Item_2
         host_ip: 192.168.0.10
         remote_port: 8888
@@ -1305,7 +1430,7 @@ robot_ui_config:
     - id: 1
       name: ROV-XBOX
       is_selected: true
-      editor_yaml: "nodes:\n  - id: 1\n    type: 42\n    value: 1.52590219e-05\n    key_name: LSX\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: -20\n  - id: 3\n    type: 42\n    value: 1.52590219e-05\n    key_name: RSX\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: 332\n  - id: 5\n    type: 42\n    value: -1.52590219e-05\n    key_name: LSY\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: 156\n  - id: 7\n    type: 42\n    value: -1.52590219e-05\n    key_name: RSY\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: 508\n  - id: 9\n    type: 44\n    value: 1.52590219e-05\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.x\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 760\n    pos_y: -14\n  - id: 11\n    type: 44\n    value: -1.52590219e-05\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.y\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 760\n    pos_y: 146\n  - id: 13\n    type: 44\n    value: 1.52590219e-05\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.z\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 757\n    pos_y: 322\n  - id: 15\n    type: 44\n    value: -1.52590219e-05\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.rz\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 757\n    pos_y: 498\n  - id: 21\n    type: 34\n    value: 8\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 8\n      - 0\n      - 0\n      - 0\n    pos_x: 765\n    pos_y: -286\n  - id: 22\n    type: 42\n    value: 0\n    key_name: A\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: -340\n  - id: 25\n    type: 42\n    value: 0\n    key_name: B\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 3\n    pos_y: -180\n  - id: 26\n    type: 20\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 369\n    pos_y: -188\n  - id: 29\n    type: 20\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 369\n    pos_y: -364\nlinks:\n  - id: 17\n    from_node: 7\n    from_pin: 0\n    to_node: 15\n    to_pin: 0\n  - id: 18\n    from_node: 3\n    from_pin: 0\n    to_node: 13\n    to_pin: 0\n  - id: 19\n    from_node: 5\n    from_pin: 0\n    to_node: 11\n    to_pin: 0\n  - id: 20\n    from_node: 1\n    from_pin: 0\n    to_node: 9\n    to_pin: 0\n  - id: 32\n    from_node: 22\n    from_pin: 0\n    to_node: 29\n    to_pin: 0\n  - id: 33\n    from_node: 25\n    from_pin: 0\n    to_node: 26\n    to_pin: 0\n  - id: 34\n    from_node: 29\n    from_pin: 0\n    to_node: 21\n    to_pin: 0\n  - id: 35\n    from_node: 26\n    from_pin: 0\n    to_node: 21\n    to_pin: 1\nactive_robot_mode: ROV\nactive_gamepad_mode: XBOX"
+      editor_yaml: "nodes:\n  - id: 1\n    type: 42\n    value: -1.52590219e-05\n    key_name: LSY\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: -12\n    pos_y: -4\n  - id: 3\n    type: 42\n    value: -1.52590219e-05\n    key_name: RSY\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: -12\n    pos_y: 476\n  - id: 5\n    type: 42\n    value: 1.52590219e-05\n    key_name: LSX\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: -12\n    pos_y: 236\n  - id: 7\n    type: 42\n    value: 1.52590219e-05\n    key_name: RSX\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: -12\n    pos_y: 716\n  - id: 9\n    type: 44\n    value: -0.0457770675\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.x\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 760\n    pos_y: -14\n  - id: 11\n    type: 44\n    value: 0.0762951076\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.y\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 757\n    pos_y: 210\n  - id: 13\n    type: 44\n    value: -0.0610360876\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.z\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 757\n    pos_y: 450\n  - id: 15\n    type: 44\n    value: 0.00915541314\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.rz\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 757\n    pos_y: 706\n  - id: 36\n    type: 1\n    value: -0.0457770675\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 3000\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 364\n    pos_y: -30\n  - id: 37\n    type: 1\n    value: 0.0762951076\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 5000\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 364\n    pos_y: 200\n  - id: 40\n    type: 1\n    value: -0.0610360876\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 4000\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 364\n    pos_y: 434\n  - id: 43\n    type: 1\n    value: 0.00915541314\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 600\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 364\n    pos_y: 664\n  - id: 55\n    type: 42\n    value: -1\n    key_name: RT\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: -12\n    pos_y: 972\n  - id: 79\n    type: 44\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: servo.Servo.angle\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 760\n    pos_y: 978\n  - id: 80\n    type: 43\n    value: 1\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 22\n    pos_y: 1150\n  - id: 82\n    type: 0\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 179\n    pos_y: 1022\n  - id: 86\n    type: 1\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 0.5\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 364\n    pos_y: 904\n  - id: 93\n    type: 35\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    param:\n      - 3\n      - 3\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    pos_x: 540\n    pos_y: 936\nlinks:\n  - id: 46\n    from_node: 1\n    from_pin: 0\n    to_node: 36\n    to_pin: 0\n  - id: 47\n    from_node: 36\n    from_pin: 0\n    to_node: 9\n    to_pin: 0\n  - id: 48\n    from_node: 5\n    from_pin: 0\n    to_node: 37\n    to_pin: 0\n  - id: 49\n    from_node: 37\n    from_pin: 0\n    to_node: 11\n    to_pin: 0\n  - id: 50\n    from_node: 3\n    from_pin: 0\n    to_node: 40\n    to_pin: 0\n  - id: 51\n    from_node: 40\n    from_pin: 0\n    to_node: 13\n    to_pin: 0\n  - id: 52\n    from_node: 7\n    from_pin: 0\n    to_node: 43\n    to_pin: 0\n  - id: 53\n    from_node: 43\n    from_pin: 0\n    to_node: 15\n    to_pin: 0\n  - id: 89\n    from_node: 55\n    from_pin: 0\n    to_node: 82\n    to_pin: 0\n  - id: 90\n    from_node: 80\n    from_pin: 0\n    to_node: 82\n    to_pin: 1\n  - id: 91\n    from_node: 82\n    from_pin: 0\n    to_node: 86\n    to_pin: 0\n  - id: 94\n    from_node: 86\n    from_pin: 0\n    to_node: 93\n    to_pin: 0\n  - id: 95\n    from_node: 93\n    from_pin: 0\n    to_node: 79\n    to_pin: 0\nactive_robot_mode: ROV\nactive_gamepad_mode: XBOX"
     - id: 2
       name: Item_2
       is_selected: false

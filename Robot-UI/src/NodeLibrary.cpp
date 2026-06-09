@@ -912,8 +912,14 @@ void DrawGenericNodeBody(EditorNode& node,
     int opCount = GetNodeOpModeCount(node.Type);
     if (opCount > 0) {
         NodeType capturedType = node.Type;
+        ImGui::PushID((int)node.ID.Get());
+
         ImGui::SetNextItemWidth(110);
         std::string preview = GetNodeOpModeLabel(capturedType, node.OpMode);
+        // 修正 imgui-node-editor 内 BeginCombo 弹出窗口定位
+        ImVec2 popupPos = ImGui::GetCursorScreenPos();
+        popupPos.y += ImGui::GetFrameHeightWithSpacing();
+        ImGui::SetNextWindowPos(popupPos);
         if (ImGui::BeginCombo("##OpMode", preview.c_str())) {
             for (int i = 0; i < opCount; ++i) {
                 bool sel = (node.OpMode == i);
@@ -925,6 +931,7 @@ void DrawGenericNodeBody(EditorNode& node,
             }
             ImGui::EndCombo();
         }
+        ImGui::PopID();
     }
 
     // -- Draw input pins --
@@ -934,6 +941,57 @@ void DrawGenericNodeBody(EditorNode& node,
         ImGui::SameLine();
         ImGui::TextUnformatted(pin.Name.c_str());
         ed::EndPin();
+    }
+
+    // -- Draw node-specific Param inputs --
+    {
+        ImGui::PushID((int)node.ID.Get());
+        auto F = [&](int idx, const char* label) {
+            ImGui::SetNextItemWidth(100);
+            if (ImGui::InputFloat(label, &node.Param[idx], 0.0f, 0.0f, "%.4f"))
+                onModified();
+        };
+
+        switch (node.Type) {
+        // --- Math ---
+        case NodeType::ScaleBias:
+            F(0, "Scale"); F(1, "Bias"); break;
+        // --- Shaping ---
+        case NodeType::DeadZone:
+            F(0, "Dead Zone"); break;
+        case NodeType::Quantizer:
+            F(0, "Step"); break;
+        case NodeType::Hysteresis:
+            F(0, "Threshold"); F(1, "Hysteresis"); break;
+        // --- Logic ---
+        case NodeType::Hold:
+        case NodeType::DelayOn:
+        case NodeType::DelayOff:
+            F(0, "Delay (s)"); break;
+        case NodeType::Timer:
+            F(0, "Duration (s)"); break;
+        case NodeType::Pulse:
+            F(0, "Width (s)"); break;
+        // --- Memory ---
+        case NodeType::Integrator:
+            F(0, "Min"); F(1, "Max"); break;
+        case NodeType::RateLimiter:
+            F(0, "Up Rate"); F(1, "Down Rate"); break;
+        case NodeType::LowPass:
+            F(0, "Cutoff (Hz)"); break;
+        case NodeType::MovingAverage:
+            F(0, "Window"); break;
+        // --- Control ---
+        case NodeType::PID:
+            F(0, "Kp"); F(1, "Ki"); F(2, "Kd");
+            F(3, "Out Min"); F(4, "Out Max"); break;
+        case NodeType::Feedforward:
+            F(0, "Gain"); break;
+        case NodeType::DeadbandComparator:
+            F(0, "Band"); break;
+        default: break;
+        }
+        ImGui::PopID();
     }
 
     // -- Draw separator --
