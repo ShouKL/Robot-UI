@@ -10,6 +10,7 @@
 #include <implot.h>
 #include <GLFW/glfw3.h>
 #include <chrono>
+#include <cmath>
 #include <filesystem>
 
 Robot_UI_Layer::Robot_UI_Layer()
@@ -30,7 +31,6 @@ Robot_UI_Layer::Robot_UI_Layer()
     auto* commMgr  = rsp->GetRobotCommManager();
     m_MonitorWall->SetLiveStreamManager(rsp->GetLiveStreamManager());
 
-    // 初始同步：设置 RobotStatus 的活跃模式指针
     if (m_RobotStatus)
     {
         auto& compMgr = rsp->GetRobotComponentManager();
@@ -48,8 +48,6 @@ Robot_UI_Layer::Robot_UI_Layer()
             m_RobotStatus->SetActiveGamepad(gpMapper);
     }
 
-    // NodeGraphManager is owned by RobotSettingPanel, initialized in its constructor
-    // Inject dependencies so NodeGraph can read mode names/output targets directly
     {
         auto& compMgr = rsp->GetRobotComponentManager();
         auto& gpMgr   = rsp->GetGamepadMapperManager();
@@ -58,7 +56,6 @@ Robot_UI_Layer::Robot_UI_Layer()
         rsp->GetNodeGraphManager().SetRobotCommManager(commMgr);
     }
 
-    // 注入 RobotStatus 到 RobotSettingPanel（用于切到 NodeGraph 时同步 gamepad）
     rsp->SetRobotStatus(m_RobotStatus.get());
 
     m_ThrustCurveEditor = std::make_unique<ThrustCurveEditor>();
@@ -71,19 +68,14 @@ Robot_UI_Layer::Robot_UI_Layer()
     m_GamepadThread = std::thread(&Robot_UI_Layer::GamepadRoutine, this);
     WL_INFO_TAG("APP", "Gamepad thread started");
 
-    // ---- 自动加载 .kernel（样式 + UI 状态） ----
     LoadKernelFile(m_FileManager->DeriveKernelPath());
 
-    // ---- 加载上次的 .rbt（机器人参数），找不到则用默认 ----
     std::string robotPath;
     if (m_FileManager->HasRobotPath() && std::filesystem::exists(m_FileManager->GetRobotPath()))
-    {
         robotPath = m_FileManager->GetRobotPath();
-    }
     else
-    {
         robotPath = FileManager::GetExeDir() + "..\\..\\..\\asset\\file\\default.rbt";
-    }
+
     WL_INFO_TAG("APP", "Loading component: {}", robotPath);
     LoadRobotFile(robotPath);
 
@@ -95,7 +87,8 @@ Robot_UI_Layer::~Robot_UI_Layer()
     WL_INFO_TAG("APP", "Robot UI shutting down...");
 
     // ---- 自动保存 .kernel ----
-    SaveKernelFile(m_FileManager->DeriveKernelPath());
+    if (m_FileManager)
+        SaveKernelFile(m_FileManager->DeriveKernelPath());
 
     m_Running = false;
     if (m_GamepadThread.joinable())
@@ -488,6 +481,7 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
     Walnut::ApplicationSpecification spec;
     spec.Name = "Robot UI";
     spec.CustomTitlebar = true;
+    spec.CenterWindow = true;
 
     spec.IconPath = FileManager::GetExeDir() + "..\\..\\..\\asset\\picture\\Kernel.png";
 

@@ -16,6 +16,33 @@ static void EnsureGstInit()
     _putenv_s("GST_REGISTRY_FORK_DISABLE", "1");
     _putenv_s("GST_PLUGIN_SCANNER", "gst-plugin-scanner");
 
+    // 便携式分发：检测 exe 同目录下的 gstreamer-1.0/ 插件目录
+    // 若存在则设置 GST_PLUGIN_PATH + GST_REGISTRY，解决：
+    //  - "no element rtspsrc"（插件找不到）
+    //  - 系统 GStreamer 注册表缓存冲突（registry 路径冲突）
+    {
+        char exePath[MAX_PATH];
+        GetModuleFileNameA(nullptr, exePath, MAX_PATH);
+        std::string exeDir(exePath);
+        size_t pos = exeDir.find_last_of("\\/");
+        if (pos != std::string::npos)
+            exeDir = exeDir.substr(0, pos);
+
+        std::string localPluginPath = exeDir + "\\gstreamer-1.0";
+        DWORD attr = GetFileAttributesA(localPluginPath.c_str());
+        if (attr != INVALID_FILE_ATTRIBUTES && (attr & FILE_ATTRIBUTE_DIRECTORY))
+        {
+            // 使用本地插件目录
+            _putenv_s("GST_PLUGIN_PATH", localPluginPath.c_str());
+            WL_INFO_TAG("GSTREAMER", "Using local plugins: {}", localPluginPath);
+
+            // 使用本地 registry 文件，避免与系统 GStreamer 注册表冲突
+            std::string localRegPath = exeDir + "\\gstreamer-1.0\\registry.x86_64.bin";
+            _putenv_s("GST_REGISTRY", localRegPath.c_str());
+            WL_INFO_TAG("GSTREAMER", "Using local registry: {}", localRegPath);
+        }
+    }
+
     WL_INFO_TAG("GSTREAMER", "Calling gst_init_check...");
     GError* gstErr = nullptr;
     if (!gst_init_check(nullptr, nullptr, &gstErr))
