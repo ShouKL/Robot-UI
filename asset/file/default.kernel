@@ -15,14 +15,12 @@ robot_ui_kernel:
     robot_comm_open: true
     notification_open: true
     terminal_open: true
-    monitor_wall_open: true
+    monitor_wall_open: false
     robot_active_mode: 0
     gamepad_active_mode: 0
     node_left_side_width: 180
     node_right_side_width: 200
-    robot_path: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
+    robot_path: ..\..\..\asset\file\default.rbt
     robot_dirty: false
     recent_files:
-      - C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
-      - C:\Users\29164\Desktop\Robot-UI1\bin\Debug-windows-x86_64\Robot-UI\..\..\..\asset\file\default.rbt
-      - C:\Users\29164\Desktop\Robot-UI\bin\Debug-windows-x86_64\Robot-UI\..\..\..\asset\file\default.rbt
+      - ..\..\..\asset\file\default.rbt

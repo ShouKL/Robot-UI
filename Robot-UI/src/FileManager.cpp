@@ -1,6 +1,7 @@
 #include "FileManager.h"
 
 #include <algorithm>
+#include <filesystem>
 
 FileManager::FileManager()
 {
@@ -105,4 +106,47 @@ std::string FileManager::GetExeDir()
     if (pos != std::string::npos)
         return std::string(exePath).substr(0, pos + 1);
     return "";
+}
+
+// ==================== 路径便携化 ====================
+
+std::string FileManager::ToRelativePath(const std::string& absolutePath)
+{
+    if (absolutePath.empty()) return absolutePath;
+
+    namespace fs = std::filesystem;
+    std::error_code ec;
+    fs::path absPath = fs::absolute(fs::path(absolutePath), ec);
+    if (ec) return absolutePath; // 无法解析，保持原样
+
+    fs::path exeDir = fs::absolute(fs::path(GetExeDir()), ec);
+    if (ec) return absolutePath;
+
+    // 计算相对路径，如果失败（如不同盘符）则保持原样
+    fs::path relPath = fs::relative(absPath, exeDir, ec);
+    if (ec) return absolutePath;
+
+    return relPath.string();
+}
+
+std::string FileManager::ToAbsolutePath(const std::string& path)
+{
+    if (path.empty()) return path;
+
+    namespace fs = std::filesystem;
+    fs::path p(path);
+
+    // 如果已经是绝对路径，直接返回
+    if (p.is_absolute())
+        return path;
+
+    // 相对于 exe 目录解析为绝对路径
+    std::error_code ec;
+    fs::path exeDir = fs::absolute(fs::path(GetExeDir()), ec);
+    if (ec) return path;
+
+    fs::path absPath = fs::absolute(exeDir / p, ec);
+    if (ec) return path;
+
+    return absPath.string();
 }

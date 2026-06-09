@@ -1,54 +1,34 @@
-[20:52:57] [info] APP: [APP] Robot UI application created
-[20:52:57] [info] APP: [APP] Robot UI initializing...
-[20:52:57] [info] APP: [COMP] Item added: Item_1 (id=1)
-[20:52:57] [info] APP: [GAMEPAD] Item added: Item_1 (id=1)
-[20:52:57] [info] APP: [GSTREAMER] Initializing GStreamer...
-[20:52:57] [info] APP: [GSTREAMER] Calling gst_init_check...
-[20:52:57] [info] APP: [GSTREAMER] GStreamer initialized successfully
-[20:52:57] [info] APP: [COMM] component added: Item_1 (id=1)
-[20:52:57] [info] APP: [APP] RobotSettingPanel created
-[20:52:57] [info] APP: [ROBOT_STATUS] RobotStatus created (with headless graph evaluator)
-[20:52:57] [info] APP: [MONITOR_WALL] MonitorWall created
-[20:52:57] [info] APP: [ROBOT_STATUS] Selected item set to: Item_1
-[20:52:57] [info] APP: [ROBOT_STATUS] No graph for item 'Item_1' + gamepad '', cleared
-[20:52:57] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_1
-[20:52:57] [info] APP: [APP] ImPlot context created
-[20:52:57] [info] APP: [APP] Gamepad thread started
-[20:52:57] [info] APP: [GAMEPAD] Gamepad routine started (100Hz)
-[20:52:57] [info] APP: [APP] Kernel loaded: C:\Users\29164\Desktop\Robot-UI\bin\Debug-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
-[20:52:57] [info] APP: [APP] Loading component: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
-[20:52:57] [info] APP: [component] Loading component: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
-[20:52:57] [info] APP: [APP] Robot config loaded: C:\Users\29164\Desktop\Robot-UI\RobotUI_Config.rbt
-[20:52:57] [info] APP: [COMM] Loaded 2 comm configs
-[20:52:57] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[20:52:57] [info] APP: [ROBOT_STATUS] Loaded graph for item 'ROV' + gamepad ''
-[20:52:57] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
-[20:52:57] [info] APP: [APP] Robot UI initialized successfully
-[20:52:58] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #0 (ROV-XBOX)
-[20:52:58] [trace] APP: [GAMEPAD] Routine heartbeat #100 (linked=false)
-[20:52:58] [trace] APP: [GAMEPAD] Routine heartbeat #200 (linked=false)
-[20:52:58] [trace] APP: [GAMEPAD] Routine heartbeat #300 (linked=false)
-[20:52:59] [trace] APP: [GAMEPAD] Routine heartbeat #400 (linked=false)
-[20:52:59] [trace] APP: [GAMEPAD] Routine heartbeat #500 (linked=false)
-[20:52:59] [trace] APP: [GAMEPAD] Routine heartbeat #600 (linked=false)
-[20:52:59] [trace] APP: [GAMEPAD] Routine heartbeat #700 (linked=false)
-[20:53:00] [trace] APP: [GAMEPAD] Routine heartbeat #800 (linked=false)
-[20:53:00] [trace] APP: [GAMEPAD] Routine heartbeat #900 (linked=false)
-[20:53:00] [trace] APP: [GAMEPAD] Routine heartbeat #1000 (linked=false)
-[20:53:01] [trace] APP: [GAMEPAD] Routine heartbeat #1100 (linked=false)
-[20:53:01] [trace] APP: [GAMEPAD] Routine heartbeat #1200 (linked=false)
-[20:53:01] [trace] APP: [GAMEPAD] Routine heartbeat #1300 (linked=false)
-[20:53:01] [trace] APP: [GAMEPAD] Routine heartbeat #1400 (linked=false)
-[20:53:02] [trace] APP: [GAMEPAD] Routine heartbeat #1500 (linked=false)
-[20:53:02] [trace] APP: [GAMEPAD] Routine heartbeat #1600 (linked=false)
-[20:53:02] [trace] APP: [GAMEPAD] Routine heartbeat #1700 (linked=false)
-[20:53:03] [trace] APP: [GAMEPAD] Routine heartbeat #1800 (linked=false)
-[20:53:03] [trace] APP: [GAMEPAD] Routine heartbeat #1900 (linked=false)
-[20:53:03] [trace] APP: [GAMEPAD] Routine heartbeat #2000 (linked=false)
-[20:53:04] [trace] APP: [GAMEPAD] Routine heartbeat #2100 (linked=false)
-[20:53:04] [trace] APP: [GAMEPAD] Routine heartbeat #2200 (linked=false)
-[20:53:04] [trace] APP: [GAMEPAD] Routine heartbeat #2300 (linked=false)
-[20:53:04] [trace] APP: [GAMEPAD] Routine heartbeat #2400 (linked=false)
-[20:53:05] [trace] APP: [GAMEPAD] Routine heartbeat #2500 (linked=false)
-[20:53:05] [trace] APP: [GAMEPAD] Routine heartbeat #2600 (linked=false)
-[20:53:05] [trace] APP: [GAMEPAD] Routine heartbeat #2700 (linked=false)
+[23:12:10] [info] APP: [APP] Robot UI application created
+[23:12:10] [info] APP: [APP] Robot UI initializing...
+[23:12:10] [info] APP: [COMP] Item added: Item_1 (id=1)
+[23:12:10] [info] APP: [GAMEPAD] Item added: Item_1 (id=1)
+[23:12:10] [info] APP: [GSTREAMER] Initializing GStreamer...
+[23:12:10] [info] APP: [GSTREAMER] Calling gst_init_check...
+[23:12:12] [info] APP: [GSTREAMER] GStreamer initialized successfully
+[23:12:12] [info] APP: [COMM] component added: Item_1 (id=1)
+[23:12:12] [info] APP: [APP] RobotSettingPanel created
+[23:12:12] [info] APP: [ROBOT_STATUS] RobotStatus created (with headless graph evaluator)
+[23:12:12] [info] APP: [MONITOR_WALL] MonitorWall created
+[23:12:12] [info] APP: [ROBOT_STATUS] Selected item set to: Item_1
+[23:12:12] [info] APP: [ROBOT_STATUS] No graph for item 'Item_1' + gamepad '', cleared
+[23:12:12] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_1
+[23:12:12] [info] APP: [APP] ImPlot context created
+[23:12:12] [info] APP: [APP] Gamepad thread started
+[23:12:12] [info] APP: [GAMEPAD] Gamepad routine started (100Hz)
+[23:12:12] [info] APP: [APP] Kernel loaded: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\bin\Dist-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
+[23:12:12] [info] APP: [APP] Loading component: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\default.rbt
+[23:12:12] [info] APP: [component] Loading component: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\default.rbt
+[23:12:12] [info] APP: [APP] Robot config loaded: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\default.rbt
+[23:12:12] [info] APP: [COMM] Loaded 1 comm configs
+[23:12:12] [info] APP: [ROBOT_STATUS] Selected item set to: Item_1
+[23:12:12] [info] APP: [ROBOT_STATUS] Loaded graph for item 'Item_1' + gamepad ''
+[23:12:12] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_1
+[23:12:12] [info] APP: [APP] Robot UI initialized successfully
+[23:12:12] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #0 (ROV-XBOX)
+[23:12:13] [trace] APP: [GAMEPAD] Routine heartbeat #100 (linked=false)
+[23:12:14] [trace] APP: [GAMEPAD] Routine heartbeat #200 (linked=false)
+[23:12:15] [trace] APP: [GAMEPAD] Routine heartbeat #300 (linked=false)
+[23:12:16] [info] APP: [APP] Robot UI shutting down...
+[23:12:16] [info] APP: [APP] Kernel saved: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\bin\Dist-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
+[23:12:16] [info] APP: [GAMEPAD] Gamepad routine stopped
+[23:12:16] [info] APP: [APP] Gamepad thread joined

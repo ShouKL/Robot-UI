@@ -240,11 +240,16 @@ void Robot_UI_Layer::LoadKernelFile(const std::string& path)
         return;
     }
 
-    // 恢复 FileManager 状态
+    // 恢复 FileManager 状态 — 将相对路径还原为绝对路径
     if (!uiState.robot_path.empty())
-        m_FileManager->SetRobotPath(uiState.robot_path);
+        m_FileManager->SetRobotPath(FileManager::ToAbsolutePath(uiState.robot_path));
     m_FileManager->SetRobotDirty(uiState.robot_dirty);
-    m_FileManager->SetRecentFiles(uiState.recent_files);
+    {
+        std::vector<std::string> absRecent;
+        for (const auto& f : uiState.recent_files)
+            absRecent.push_back(FileManager::ToAbsolutePath(f));
+        m_FileManager->SetRecentFiles(absRecent);
+    }
 
     m_FileManager->MarkKernelClean();
     ApplyUIState(uiState);
@@ -273,10 +278,12 @@ void Robot_UI_Layer::SaveKernelFile(const std::string& path)
         uiState.node_right_side_width = m_RobotSettingPanel->GetNodeGraph()->GetRightSideWidth();
     }
 
-    // FileManager 状态
-    uiState.robot_path   = m_FileManager->GetRobotPath();
+    // FileManager 状态 — 保存为相对路径（相对于 exe 目录），保证跨电脑可移植
+    uiState.robot_path   = FileManager::ToRelativePath(m_FileManager->GetRobotPath());
     uiState.robot_dirty  = m_FileManager->IsRobotDirty();
-    uiState.recent_files = m_FileManager->GetRecentFiles();
+    uiState.recent_files.clear();
+    for (const auto& f : m_FileManager->GetRecentFiles())
+        uiState.recent_files.push_back(FileManager::ToRelativePath(f));
 
     std::string error;
     if (!ConfigSerializer::SaveKernel(path, m_OptionPanel->GetImGuiStyleManager(), uiState, &error))
@@ -482,7 +489,7 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
     spec.Name = "Robot UI";
     spec.CustomTitlebar = true;
 
-    spec.IconPath = "../asset/picture/Kernel.png";
+    spec.IconPath = FileManager::GetExeDir() + "..\\..\\..\\asset\\picture\\Kernel.png";
 
     Walnut::Application* app = new Walnut::Application(spec);
 

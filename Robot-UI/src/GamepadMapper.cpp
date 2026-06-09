@@ -1,4 +1,5 @@
 #include "GamepadMapper.h"
+#include "FileManager.h"
 #include "Walnut/Core/Log.h"
 #include <cmath>
 
@@ -801,7 +802,7 @@ void GamepadMapper::DrawGamepadMapper()
     if (gamepad_type == GamepadType::Xbox)
     {
         if (!m_GamepadImage)
-            m_GamepadImage = std::make_shared<Walnut::Image>("../asset/picture/gamepadmap.png");
+            m_GamepadImage = std::make_shared<Walnut::Image>(FileManager::GetExeDir() + "..\\..\\..\\asset\\picture\\gamepadmap.png");
 
         if (!m_GamepadImage)
             ImGui::TextColored(ImVec4(1, 0, 0, 1), "Failed to load gamepad image!");

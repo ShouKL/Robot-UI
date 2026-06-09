@@ -63,6 +63,14 @@ public:
     // ---- 工具 ----
     static std::string GetExeDir();
 
+    // ---- 路径便携化：绝对 <-> 相对（相对于 exe 目录）----
+    // 将绝对路径转为相对于 exe 目录的路径（仅当路径在 exe 目录子树下时）；
+    // 如果路径不在 exe 目录下（如用户从桌面打开），则保持原样。
+    static std::string ToRelativePath(const std::string& absolutePath);
+    // 将相对路径还原为绝对路径（基于当前 exe 目录）。
+    // 如果路径已经是绝对路径，则直接返回。
+    static std::string ToAbsolutePath(const std::string& path);
+
 private:
     std::string m_RobotPath;
     bool m_RobotDirty  = false;

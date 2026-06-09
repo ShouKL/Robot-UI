@@ -1,5 +1,6 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "NodeGraph.h"
+#include "FileManager.h"
 #include "RobotComponentManager.h"
 #include "GamepadMapperManager.h"
 #include "RobotCommManager.h"
@@ -945,8 +946,8 @@ void NodeGraph::Draw(ax::NodeEditor::EditorContext* editorCtx)
 
     // -------- Play/Stop toolbar (image button, outside ed::) --------
     {
-        if (!m_PlayIcon)  m_PlayIcon  = std::make_shared<Walnut::Image>("../asset/picture/PlayButton.png");
-        if (!m_StopIcon)  m_StopIcon  = std::make_shared<Walnut::Image>("../asset/picture/StopButton.png");
+        if (!m_PlayIcon)  m_PlayIcon  = std::make_shared<Walnut::Image>(FileManager::GetExeDir() + "..\\..\\..\\asset\\picture\\PlayButton.png");
+        if (!m_StopIcon)  m_StopIcon  = std::make_shared<Walnut::Image>(FileManager::GetExeDir() + "..\\..\\..\\asset\\picture\\StopButton.png");
 
         auto icon = m_IsRunning ? m_StopIcon : m_PlayIcon;
         ImVec2 iconSize(32, 32);
