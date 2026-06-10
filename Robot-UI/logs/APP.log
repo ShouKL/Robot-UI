@@ -1,34 +1,168 @@
-[20:41:26] [info] APP: [APP] Robot UI application created
-[20:41:26] [info] APP: [APP] Robot UI initializing...
-[20:41:26] [info] APP: [COMP] Item added: Item_1 (id=1)
-[20:41:26] [info] APP: [GAMEPAD] Item added: Item_1 (id=1)
-[20:41:26] [info] APP: [GSTREAMER] Initializing GStreamer...
-[20:41:26] [info] APP: [GSTREAMER] Calling gst_init_check...
-[20:41:26] [info] APP: [GSTREAMER] GStreamer initialized successfully
-[20:41:26] [info] APP: [COMM] component added: Item_1 (id=1)
-[20:41:26] [info] APP: [APP] RobotSettingPanel created
-[20:41:26] [info] APP: [ROBOT_STATUS] RobotStatus created (with headless graph evaluator)
-[20:41:26] [info] APP: [MONITOR_WALL] MonitorWall created
-[20:41:26] [info] APP: [ROBOT_STATUS] Selected item set to: Item_1
-[20:41:26] [info] APP: [ROBOT_STATUS] No graph for item 'Item_1' + gamepad '', cleared
-[20:41:26] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_1
-[20:41:26] [info] APP: [APP] ImPlot context created
-[20:41:26] [info] APP: [APP] Gamepad thread started
-[20:41:26] [info] APP: [GAMEPAD] Gamepad routine started (100Hz)
-[20:41:26] [info] APP: [APP] Kernel loaded: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\bin\Dist-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
-[20:41:26] [info] APP: [APP] Loading component: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\default.rbt
-[20:41:26] [info] APP: [component] Loading component: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\default.rbt
-[20:41:26] [info] APP: [APP] Robot config loaded: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\default.rbt
-[20:41:26] [info] APP: [COMM] Loaded 1 comm configs
-[20:41:26] [info] APP: [ROBOT_STATUS] Selected item set to: Item_1
-[20:41:26] [info] APP: [ROBOT_STATUS] Loaded graph for item 'Item_1' + gamepad ''
-[20:41:26] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_1
-[20:41:26] [info] APP: [APP] Robot UI initialized successfully
-[20:41:26] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #0 (ROV-XBOX)
-[20:41:27] [trace] APP: [GAMEPAD] Routine heartbeat #100 (linked=false)
-[20:41:28] [trace] APP: [GAMEPAD] Routine heartbeat #200 (linked=false)
-[20:41:29] [trace] APP: [GAMEPAD] Routine heartbeat #300 (linked=false)
-[20:41:29] [info] APP: [APP] Robot UI shutting down...
-[20:41:29] [info] APP: [APP] Kernel saved: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\bin\Dist-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
-[20:41:29] [info] APP: [GAMEPAD] Gamepad routine stopped
-[20:41:29] [info] APP: [APP] Gamepad thread joined
+[21:49:42] [info] APP: [APP] Robot UI application created
+[21:49:42] [info] APP: [APP] Robot UI initializing...
+[21:49:42] [info] APP: [COMP] Item added: Item_1 (id=1)
+[21:49:42] [info] APP: [GAMEPAD] Item added: Item_1 (id=1)
+[21:49:42] [info] APP: [GSTREAMER] Initializing GStreamer...
+[21:49:42] [info] APP: [GSTREAMER] Calling gst_init_check...
+[21:49:42] [info] APP: [GSTREAMER] GStreamer initialized successfully
+[21:49:42] [info] APP: [COMM] component added: Item_1 (id=1)
+[21:49:42] [info] APP: [APP] RobotSettingPanel created
+[21:49:42] [info] APP: [ROBOT_STATUS] RobotStatus created (with headless graph evaluator)
+[21:49:42] [info] APP: [MONITOR_WALL] MonitorWall created
+[21:49:42] [info] APP: [ROBOT_STATUS] Selected item set to: Item_1
+[21:49:42] [info] APP: [ROBOT_STATUS] No graph for item 'Item_1' + gamepad '', cleared
+[21:49:42] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_1
+[21:49:42] [info] APP: [APP] ImPlot context created
+[21:49:42] [info] APP: [APP] Gamepad thread started
+[21:49:42] [info] APP: [GAMEPAD] Gamepad routine started (100Hz)
+[21:49:42] [info] APP: [APP] Kernel loaded: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\bin\Dist-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
+[21:49:42] [info] APP: [APP] Loading component: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\default.rbt
+[21:49:42] [info] APP: [component] Loading component: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\default.rbt
+[21:49:42] [info] APP: [APP] Robot config loaded: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\default.rbt
+[21:49:42] [info] APP: [COMM] Loaded 1 comm configs
+[21:49:42] [info] APP: [ROBOT_STATUS] Selected item set to: Item_1
+[21:49:42] [info] APP: [ROBOT_STATUS] Loaded graph for item 'Item_1' + gamepad ''
+[21:49:42] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_1
+[21:49:42] [info] APP: [APP] Robot UI initialized successfully
+[21:49:42] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #0 (ROV-XBOX)
+[21:49:43] [trace] APP: [GAMEPAD] Routine heartbeat #100 (linked=false)
+[21:49:44] [trace] APP: [GAMEPAD] Routine heartbeat #200 (linked=false)
+[21:49:45] [trace] APP: [GAMEPAD] Routine heartbeat #300 (linked=false)
+[21:49:46] [trace] APP: [GAMEPAD] Routine heartbeat #400 (linked=false)
+[21:49:47] [trace] APP: [GAMEPAD] Routine heartbeat #500 (linked=false)
+[21:49:48] [trace] APP: [GAMEPAD] Routine heartbeat #600 (linked=false)
+[21:49:49] [trace] APP: [GAMEPAD] Routine heartbeat #700 (linked=false)
+[21:49:51] [trace] APP: [GAMEPAD] Routine heartbeat #800 (linked=false)
+[21:49:52] [trace] APP: [GAMEPAD] Routine heartbeat #900 (linked=false)
+[21:49:53] [trace] APP: [GAMEPAD] Routine heartbeat #1000 (linked=false)
+[21:49:54] [trace] APP: [GAMEPAD] Routine heartbeat #1100 (linked=false)
+[21:49:55] [trace] APP: [GAMEPAD] Routine heartbeat #1200 (linked=false)
+[21:49:56] [trace] APP: [GAMEPAD] Routine heartbeat #1300 (linked=false)
+[21:49:57] [trace] APP: [GAMEPAD] Routine heartbeat #1400 (linked=false)
+[21:49:58] [trace] APP: [GAMEPAD] Routine heartbeat #1500 (linked=false)
+[21:49:59] [trace] APP: [GAMEPAD] Routine heartbeat #1600 (linked=false)
+[21:50:00] [trace] APP: [GAMEPAD] Routine heartbeat #1700 (linked=false)
+[21:50:01] [trace] APP: [GAMEPAD] Routine heartbeat #1800 (linked=false)
+[21:50:02] [trace] APP: [GAMEPAD] Routine heartbeat #1900 (linked=false)
+[21:50:03] [trace] APP: [GAMEPAD] Routine heartbeat #2000 (linked=false)
+[21:50:04] [trace] APP: [GAMEPAD] Routine heartbeat #2100 (linked=false)
+[21:50:05] [trace] APP: [GAMEPAD] Routine heartbeat #2200 (linked=false)
+[21:50:06] [trace] APP: [GAMEPAD] Routine heartbeat #2300 (linked=false)
+[21:50:07] [trace] APP: [GAMEPAD] Routine heartbeat #2400 (linked=false)
+[21:50:09] [trace] APP: [GAMEPAD] Routine heartbeat #2500 (linked=false)
+[21:50:10] [trace] APP: [GAMEPAD] Routine heartbeat #2600 (linked=false)
+[21:50:11] [trace] APP: [GAMEPAD] Routine heartbeat #2700 (linked=false)
+[21:50:12] [trace] APP: [GAMEPAD] Routine heartbeat #2800 (linked=false)
+[21:50:13] [trace] APP: [GAMEPAD] Routine heartbeat #2900 (linked=false)
+[21:50:14] [trace] APP: [GAMEPAD] Routine heartbeat #3000 (linked=false)
+[21:50:15] [trace] APP: [GAMEPAD] Routine heartbeat #3100 (linked=false)
+[21:50:16] [trace] APP: [GAMEPAD] Routine heartbeat #3200 (linked=false)
+[21:50:17] [trace] APP: [GAMEPAD] Routine heartbeat #3300 (linked=false)
+[21:50:18] [trace] APP: [GAMEPAD] Routine heartbeat #3400 (linked=false)
+[21:50:19] [info] APP: [component] Loading component: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\default.rbt
+[21:50:19] [info] APP: [APP] Robot config loaded: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\default.rbt
+[21:50:19] [info] APP: [COMM] Loaded 1 comm configs
+[21:50:19] [info] APP: [ROBOT_STATUS] Selected item set to: Item_1
+[21:50:19] [info] APP: [ROBOT_STATUS] Loaded graph for item 'Item_1' + gamepad ''
+[21:50:19] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_1
+[21:50:19] [trace] APP: [GAMEPAD] Routine heartbeat #3500 (linked=false)
+[21:50:20] [trace] APP: [GAMEPAD] Routine heartbeat #3600 (linked=false)
+[21:50:21] [trace] APP: [GAMEPAD] Routine heartbeat #3700 (linked=false)
+[21:50:22] [trace] APP: [GAMEPAD] Routine heartbeat #3800 (linked=false)
+[21:50:23] [trace] APP: [GAMEPAD] Routine heartbeat #3900 (linked=false)
+[21:50:24] [trace] APP: [GAMEPAD] Routine heartbeat #4000 (linked=false)
+[21:50:25] [trace] APP: [GAMEPAD] Routine heartbeat #4100 (linked=false)
+[21:50:27] [trace] APP: [GAMEPAD] Routine heartbeat #4200 (linked=false)
+[21:50:28] [trace] APP: [GAMEPAD] Routine heartbeat #4300 (linked=false)
+[21:50:29] [trace] APP: [GAMEPAD] Routine heartbeat #4400 (linked=false)
+[21:50:30] [trace] APP: [GAMEPAD] Routine heartbeat #4500 (linked=false)
+[21:50:31] [trace] APP: [GAMEPAD] Routine heartbeat #4600 (linked=false)
+[21:50:32] [trace] APP: [GAMEPAD] Routine heartbeat #4700 (linked=false)
+[21:50:33] [trace] APP: [GAMEPAD] Routine heartbeat #4800 (linked=false)
+[21:50:34] [trace] APP: [GAMEPAD] Routine heartbeat #4900 (linked=false)
+[21:50:35] [trace] APP: [GAMEPAD] Routine heartbeat #5000 (linked=false)
+[21:50:36] [trace] APP: [GAMEPAD] Routine heartbeat #5100 (linked=false)
+[21:50:37] [trace] APP: [GAMEPAD] Routine heartbeat #5200 (linked=false)
+[21:50:38] [trace] APP: [GAMEPAD] Routine heartbeat #5300 (linked=false)
+[21:50:39] [trace] APP: [GAMEPAD] Routine heartbeat #5400 (linked=false)
+[21:50:40] [trace] APP: [GAMEPAD] Routine heartbeat #5500 (linked=false)
+[21:50:41] [trace] APP: [GAMEPAD] Routine heartbeat #5600 (linked=false)
+[21:50:42] [trace] APP: [GAMEPAD] Routine heartbeat #5700 (linked=false)
+[21:50:43] [trace] APP: [GAMEPAD] Routine heartbeat #5800 (linked=false)
+[21:50:45] [trace] APP: [GAMEPAD] Routine heartbeat #5900 (linked=false)
+[21:50:46] [trace] APP: [GAMEPAD] Routine heartbeat #6000 (linked=false)
+[21:50:47] [trace] APP: [GAMEPAD] Routine heartbeat #6100 (linked=false)
+[21:50:48] [trace] APP: [GAMEPAD] Routine heartbeat #6200 (linked=false)
+[21:50:49] [trace] APP: [GAMEPAD] Routine heartbeat #6300 (linked=false)
+[21:50:50] [trace] APP: [GAMEPAD] Routine heartbeat #6400 (linked=false)
+[21:50:51] [trace] APP: [GAMEPAD] Routine heartbeat #6500 (linked=false)
+[21:50:52] [trace] APP: [GAMEPAD] Routine heartbeat #6600 (linked=false)
+[21:50:53] [trace] APP: [GAMEPAD] Routine heartbeat #6700 (linked=false)
+[21:50:54] [trace] APP: [GAMEPAD] Routine heartbeat #6800 (linked=false)
+[21:50:55] [trace] APP: [GAMEPAD] Routine heartbeat #6900 (linked=false)
+[21:50:56] [info] APP: [component] Loading component: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\demo.rbt
+[21:50:56] [info] APP: [APP] Robot config loaded: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\demo.rbt
+[21:50:56] [info] APP: [COMM] Loaded 2 comm configs
+[21:50:56] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[21:50:56] [info] APP: [ROBOT_STATUS] Loaded graph for item 'ROV' + gamepad ''
+[21:50:56] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[21:50:56] [trace] APP: [GAMEPAD] Routine heartbeat #7000 (linked=false)
+[21:50:56] [trace] APP: [GAMEPAD] Routine heartbeat #7100 (linked=false)
+[21:50:57] [trace] APP: [GAMEPAD] Routine heartbeat #7200 (linked=false)
+[21:50:57] [trace] APP: [GAMEPAD] Routine heartbeat #7300 (linked=false)
+[21:50:57] [trace] APP: [GAMEPAD] Routine heartbeat #7400 (linked=false)
+[21:50:57] [trace] APP: [GAMEPAD] Routine heartbeat #7500 (linked=false)
+[21:50:58] [trace] APP: [GAMEPAD] Routine heartbeat #7600 (linked=false)
+[21:50:58] [trace] APP: [GAMEPAD] Routine heartbeat #7700 (linked=false)
+[21:50:58] [trace] APP: [GAMEPAD] Routine heartbeat #7800 (linked=false)
+[21:50:59] [trace] APP: [GAMEPAD] Routine heartbeat #7900 (linked=false)
+[21:50:59] [trace] APP: [GAMEPAD] Routine heartbeat #8000 (linked=false)
+[21:50:59] [trace] APP: [GAMEPAD] Routine heartbeat #8100 (linked=false)
+[21:50:59] [trace] APP: [GAMEPAD] Routine heartbeat #8200 (linked=false)
+[21:51:00] [trace] APP: [GAMEPAD] Routine heartbeat #8300 (linked=false)
+[21:51:00] [trace] APP: [GAMEPAD] Routine heartbeat #8400 (linked=false)
+[21:51:00] [trace] APP: [GAMEPAD] Routine heartbeat #8500 (linked=false)
+[21:51:01] [trace] APP: [GAMEPAD] Routine heartbeat #8600 (linked=false)
+[21:51:01] [trace] APP: [GAMEPAD] Routine heartbeat #8700 (linked=false)
+[21:51:01] [trace] APP: [GAMEPAD] Routine heartbeat #8800 (linked=false)
+[21:51:01] [trace] APP: [GAMEPAD] Routine heartbeat #8900 (linked=false)
+[21:51:02] [trace] APP: [GAMEPAD] Routine heartbeat #9000 (linked=false)
+[21:51:02] [trace] APP: [GAMEPAD] Routine heartbeat #9100 (linked=false)
+[21:51:02] [trace] APP: [GAMEPAD] Routine heartbeat #9200 (linked=false)
+[21:51:02] [trace] APP: [GAMEPAD] Routine heartbeat #9300 (linked=false)
+[21:51:03] [trace] APP: [GAMEPAD] Routine heartbeat #9400 (linked=false)
+[21:51:03] [trace] APP: [GAMEPAD] Routine heartbeat #9500 (linked=false)
+[21:51:03] [trace] APP: [GAMEPAD] Routine heartbeat #9600 (linked=false)
+[21:51:04] [trace] APP: [GAMEPAD] Routine heartbeat #9700 (linked=false)
+[21:51:04] [trace] APP: [GAMEPAD] Routine heartbeat #9800 (linked=false)
+[21:51:04] [trace] APP: [GAMEPAD] Routine heartbeat #9900 (linked=false)
+[21:51:04] [trace] APP: [GAMEPAD] Routine heartbeat #10000 (linked=false)
+[21:51:05] [trace] APP: [GAMEPAD] Routine heartbeat #10100 (linked=false)
+[21:51:05] [trace] APP: [GAMEPAD] Routine heartbeat #10200 (linked=false)
+[21:51:05] [trace] APP: [GAMEPAD] Routine heartbeat #10300 (linked=false)
+[21:51:06] [trace] APP: [GAMEPAD] Routine heartbeat #10400 (linked=false)
+[21:51:06] [trace] APP: [GAMEPAD] Routine heartbeat #10500 (linked=false)
+[21:51:06] [trace] APP: [GAMEPAD] Routine heartbeat #10600 (linked=false)
+[21:51:06] [trace] APP: [GAMEPAD] Routine heartbeat #10700 (linked=false)
+[21:51:07] [trace] APP: [GAMEPAD] Routine heartbeat #10800 (linked=false)
+[21:51:07] [trace] APP: [GAMEPAD] Routine heartbeat #10900 (linked=false)
+[21:51:07] [trace] APP: [GAMEPAD] Routine heartbeat #11000 (linked=false)
+[21:51:08] [trace] APP: [GAMEPAD] Routine heartbeat #11100 (linked=false)
+[21:51:08] [trace] APP: [GAMEPAD] Routine heartbeat #11200 (linked=false)
+[21:51:08] [trace] APP: [GAMEPAD] Routine heartbeat #11300 (linked=false)
+[21:51:08] [trace] APP: [GAMEPAD] Routine heartbeat #11400 (linked=false)
+[21:51:09] [trace] APP: [GAMEPAD] Routine heartbeat #11500 (linked=false)
+[21:51:09] [trace] APP: [GAMEPAD] Routine heartbeat #11600 (linked=false)
+[21:51:09] [info] APP: [component] Saving component: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\demo.rbt
+[21:51:09] [info] APP: [APP] Robot config saved: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\demo.rbt
+[21:51:09] [trace] APP: [GAMEPAD] Routine heartbeat #11700 (linked=false)
+[21:51:10] [trace] APP: [GAMEPAD] Routine heartbeat #11800 (linked=false)
+[21:51:10] [trace] APP: [GAMEPAD] Routine heartbeat #11900 (linked=false)
+[21:51:10] [trace] APP: [GAMEPAD] Routine heartbeat #12000 (linked=false)
+[21:51:10] [trace] APP: [GAMEPAD] Routine heartbeat #12100 (linked=false)
+[21:51:11] [trace] APP: [GAMEPAD] Routine heartbeat #12200 (linked=false)
+[21:51:11] [trace] APP: [GAMEPAD] Routine heartbeat #12300 (linked=false)
+[21:51:11] [info] APP: [APP] Robot UI shutting down...
+[21:51:11] [info] APP: [APP] Kernel saved: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\bin\Dist-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
+[21:51:11] [info] APP: [GAMEPAD] Gamepad routine stopped
+[21:51:11] [info] APP: [APP] Gamepad thread joined

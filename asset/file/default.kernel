@@ -20,7 +20,8 @@ robot_ui_kernel:
     gamepad_active_mode: 0
     node_left_side_width: 180
     node_right_side_width: 200
-    robot_path: ..\..\..\asset\file\default.rbt
+    robot_path: ..\..\..\asset\file\demo.rbt
     robot_dirty: false
     recent_files:
+      - ..\..\..\asset\file\demo.rbt
       - ..\..\..\asset\file\default.rbt

@@ -16,48 +16,27 @@ robot_ui_config:
           []
         servos:
           []
-        node_graph: |
-          nodes:
-            []
-          links:
-            []
-          active_robot_mode: Item_1
-          active_gamepad_mode: ""
-          comm_index: 0
-        node_graph_pairs:
-          "": |
-            nodes:
-              []
-            links:
-              []
-            active_robot_mode: Item_1
-            active_gamepad_mode: ""
-            comm_index: 0
         protocol_send:
-          - name: Send
-            command_byte: 0
-            enabled: false
-            include_length: true
-            checksum: 1
-            big_endian: false
-            header:
-              []
-            tail:
-              []
-            fields:
-              []
+          include_length: true
+          checksum: 1
+          big_endian: false
+          header:
+            []
+          tail:
+            []
+          fields:
+            []
         protocol_receive:
-          - name: Receive
-            command_byte: 0
-            include_length: true
-            checksum: 1
-            big_endian: false
-            header:
-              []
-            tail:
-              []
-            fields:
-              []
+          include_length: true
+          checksum: 1
+          big_endian: false
+          msg_type: 0
+          header:
+            []
+          tail:
+            []
+          fields:
+            []
     active_mode: 0
   gamepad:
     items:
@@ -112,13 +91,8 @@ robot_ui_config:
         remote_port: 8888
         local_port: 8888
         transport_type: 0
-        send_freq_hz: 100
   graph_items:
     - id: 1
-      name: ROV-XBOX
+      name: Item_1
       is_selected: true
-      editor_yaml: "nodes:\n  []\nlinks:\n  []\nactive_robot_mode: Item_1\nactive_gamepad_mode: \"\""
-    - id: 2
-      name: Item_2
-      is_selected: false
-      editor_yaml: "nodes:\n  []\nlinks:\n  []\nactive_robot_mode: Item_2\nactive_gamepad_mode: Item_2"
+      editor_yaml: "nodes:\n  []\nlinks:\n  []\nactive_robot_mode: \"\"\nactive_gamepad_mode: \"\""
