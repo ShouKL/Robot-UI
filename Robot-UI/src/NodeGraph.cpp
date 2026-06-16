@@ -9,12 +9,28 @@
 #include <imgui_internal.h>
 #include "Walnut/Image.h"
 #include <algorithm>
+#include <cmath>
 #include <queue>
 #include <unordered_map>
 #include <sstream>
 #include <chrono>
 
 namespace ed = ax::NodeEditor;
+
+// ============================================================================
+// Helper: get delta time from atomic timestamp
+// ============================================================================
+static float GetEvalDeltaTime(std::atomic<int64_t>& lastTimeNs)
+{
+    auto now = std::chrono::steady_clock::now();
+    int64_t nowNs = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        now.time_since_epoch()).count();
+    int64_t prevNs = lastTimeNs.exchange(nowNs, std::memory_order_relaxed);
+    if (prevNs == 0) return 0.0f;
+    float dt = (float)(nowNs - prevNs) * 1e-9f;
+    if (dt > 1.0f) dt = 0.0f;
+    return dt;
+}
 
 // ============================================================================
 // Local helpers
@@ -105,7 +121,53 @@ void NodeGraph::Clear()
 {
     std::unique_lock<std::shared_mutex> lock(m_EvalMutex);
     Clear_NoLock();
+    m_GlobalVars.clear();
+    m_GlobalTempVals.clear();
 }
+
+// ============================================================================
+// Global variables helpers
+// ============================================================================
+int NodeGraph::FindGlobalIndex(int id) const
+{
+    for (size_t i = 0; i < m_GlobalVars.size(); ++i)
+        if (m_GlobalVars[i].id == id) return (int)i;
+    return -1;
+}
+
+int NodeGraph::FindGlobalByName(const std::string& name) const
+{
+    for (size_t i = 0; i < m_GlobalVars.size(); ++i)
+        if (m_GlobalVars[i].name == name) return (int)i;
+    return -1;
+}
+
+void NodeGraph::AddGlobal(const std::string& name, float val, PinType type)
+{
+    int nextId = 0;
+    for (const auto& gv : m_GlobalVars)
+        if (gv.id >= nextId) nextId = gv.id + 1;
+
+    GlobalVar gv;
+    gv.id    = nextId;
+    gv.name  = name;
+    gv.value = val;
+    gv.type  = type;
+    m_GlobalVars.push_back(gv);
+}
+
+void NodeGraph::RemoveGlobal(int id)
+{
+    int idx = FindGlobalIndex(id);
+    if (idx >= 0)
+        m_GlobalVars.erase(m_GlobalVars.begin() + idx);
+}
+
+int NodeGraph::GlobalCount() const { return (int)m_GlobalVars.size(); }
+float NodeGraph::GetGlobal(int idx) const { return (idx >= 0 && idx < (int)m_GlobalVars.size()) ? m_GlobalVars[idx].value : 0.0f; }
+void NodeGraph::SetGlobal(int idx, float v) { if (idx >= 0 && idx < (int)m_GlobalVars.size()) m_GlobalVars[idx].value = v; }
+PinType NodeGraph::GetGlobalType(int idx) const { return (idx >= 0 && idx < (int)m_GlobalVars.size()) ? m_GlobalVars[idx].type : PinType::Float; }
+void    NodeGraph::SetGlobalType(int idx, PinType t) { if (idx >= 0 && idx < (int)m_GlobalVars.size()) m_GlobalVars[idx].type = t; }
 
 // ============================================================================
 // NavigateToOrigin — reset view to show graph content.
@@ -174,11 +236,15 @@ void NodeGraph::SwitchGraph(const std::string& robotMode, const std::string& gam
 
     std::string key = MakeGraphKey(robotMode, gamepadMode);
     auto it = m_GraphMap.find(key);
+    // Save current globals before clear
+    auto savedVars = std::move(m_GlobalVars);
     if (it != m_GraphMap.end()) {
         LoadGraphData(it->second);
     } else {
         Clear();
     }
+    // Restore globals (persist across graph switches for same session)
+    m_GlobalVars = std::move(savedVars);
     m_Modified = false;
 }
 
@@ -260,17 +326,21 @@ std::map<std::string, float> NodeGraph::EvaluateCompute(const std::map<std::stri
     std::map<std::string, float> outputs;
     if (m_Nodes.empty()) return outputs;
 
-    // Compute real delta time
-    auto now = std::chrono::steady_clock::now();
-    float dt = 0.0f;
-    if (m_LastEvalTime.time_since_epoch().count() > 0) {
-        dt = std::chrono::duration<float>(now - m_LastEvalTime).count();
-        if (dt > 1.0f) dt = 0.0f;  // clamp large gaps (first frame / resume)
-    }
-    m_LastEvalTime = now;
+    // Compute real delta time (thread-safe via atomic)
+    float dt = GetEvalDeltaTime(m_LastEvalTimeNs);
 
     auto order = TopoSortNodes(m_Nodes, m_Links);
     std::unordered_map<int, float> pinVals;
+
+    // Build temp float array indexed by GlobalVarId for O(1) evaluation lookup
+    {
+        int maxId = -1;
+        for (const auto& gv : m_GlobalVars)
+            if (gv.id > maxId) maxId = gv.id;
+        m_GlobalTempVals.assign(maxId + 1, 0.0f);
+        for (const auto& gv : m_GlobalVars)
+            m_GlobalTempVals[gv.id] = gv.value;
+    }
 
     for (int nid : order)
     {
@@ -279,7 +349,14 @@ std::map<std::string, float> NodeGraph::EvaluateCompute(const std::map<std::stri
             if ((int)n.ID.Get() == nid) { node = &n; break; }
         if (!node) continue;
 
-        float out = ComputeNodeOutput(*node, keyValues, pinVals, dt);
+        float out = ComputeNodeOutput(*node, keyValues, pinVals, dt, m_GlobalTempVals.data(), (int)m_GlobalTempVals.size());
+
+        // Cast output to match output pin type
+        if (!node->Outputs.empty()) {
+            auto otype = node->Outputs[0].Type;
+            if (otype == PinType::Bool)      out = (out >= 0.5f) ? 1.0f : 0.0f;
+            else if (otype == PinType::Int)  out = std::round(out);
+        }
 
         if (!node->OutputTarget.empty())
             outputs[node->OutputTarget] = out;
@@ -292,6 +369,12 @@ std::map<std::string, float> NodeGraph::EvaluateCompute(const std::map<std::stri
                     pinVals[(int)link.EndPinID.Get()] = out;
         }
     }
+
+    // Write back modified globals from evaluation (indexed by GlobalVarId)
+    for (auto& gv : m_GlobalVars)
+        if (gv.id < (int)m_GlobalTempVals.size())
+            gv.value = m_GlobalTempVals[gv.id];
+
     return outputs;
 }
 
@@ -304,17 +387,20 @@ void NodeGraph::EvaluateForDisplay(const std::map<std::string, float>& keyValues
     m_LastOutputs.clear();
     if (m_Nodes.empty()) return;
 
-    // Compute real delta time
-    auto now = std::chrono::steady_clock::now();
-    float dt = 0.0f;
-    if (m_LastEvalTime.time_since_epoch().count() > 0) {
-        dt = std::chrono::duration<float>(now - m_LastEvalTime).count();
-        if (dt > 1.0f) dt = 0.0f;
-    }
-    m_LastEvalTime = now;
+    float dt = GetEvalDeltaTime(m_LastEvalTimeNs);
 
     auto order = TopoSortNodes(m_Nodes, m_Links);
     std::unordered_map<int, float> pinVals;
+
+    // Build temp float array indexed by GlobalVarId for O(1) evaluation lookup
+    {
+        int maxId = -1;
+        for (const auto& gv : m_GlobalVars)
+            if (gv.id > maxId) maxId = gv.id;
+        m_GlobalTempVals.assign(maxId + 1, 0.0f);
+        for (const auto& gv : m_GlobalVars)
+            m_GlobalTempVals[gv.id] = gv.value;
+    }
 
     for (int nid : order)
     {
@@ -323,7 +409,14 @@ void NodeGraph::EvaluateForDisplay(const std::map<std::string, float>& keyValues
             if ((int)n.ID.Get() == nid) { node = &n; break; }
         if (!node) continue;
 
-        float out = ComputeNodeOutput(*node, keyValues, pinVals, dt);
+        float out = ComputeNodeOutput(*node, keyValues, pinVals, dt, m_GlobalTempVals.data(), (int)m_GlobalTempVals.size());
+
+        // Cast output to match output pin type
+        if (!node->Outputs.empty()) {
+            auto otype = node->Outputs[0].Type;
+            if (otype == PinType::Bool)      out = (out >= 0.5f) ? 1.0f : 0.0f;
+            else if (otype == PinType::Int)  out = std::round(out);
+        }
 
         // Update generic display fields
         for (int i = 0; i < (int)node->Inputs.size() && i < 4; ++i) {
@@ -344,14 +437,19 @@ void NodeGraph::EvaluateForDisplay(const std::map<std::string, float>& keyValues
                     pinVals[(int)link.EndPinID.Get()] = out;
         }
     }
+
+    // Write back modified globals from evaluation (indexed by GlobalVarId)
+    for (auto& gv : m_GlobalVars)
+        if (gv.id < (int)m_GlobalTempVals.size())
+            gv.value = m_GlobalTempVals[gv.id];
 }
 
 // ============================================================================
-// Evaluate — thread-safe read-only evaluation
+// Evaluate — thread-safe stateful evaluation (acquires write lock)
 // ============================================================================
 std::map<std::string, float> NodeGraph::Evaluate(const std::map<std::string, float>& keyValues)
 {
-    std::shared_lock<std::shared_mutex> lock(m_EvalMutex);
+    std::unique_lock<std::shared_mutex> lock(m_EvalMutex);
     return EvaluateCompute(keyValues);
 }
 
@@ -360,7 +458,7 @@ std::map<std::string, float> NodeGraph::Evaluate(const std::map<std::string, flo
 // ============================================================================
 void NodeGraph::EvaluateIntoActuator(const std::map<std::string, float>& keyValues, ActuatorConfig& data)
 {
-    std::shared_lock<std::shared_mutex> lock(m_EvalMutex);
+    std::unique_lock<std::shared_mutex> lock(m_EvalMutex);
     auto outputs = EvaluateCompute(keyValues);
     for (const auto& [target, val] : outputs)
         WriteOutputToActuator(target, val, data);
@@ -385,11 +483,22 @@ std::string NodeGraph::GetGraphDataYaml() const
         out << YAML::Key << "key_name"      << YAML::Value << n.KeyName;
         out << YAML::Key << "op_mode"       << YAML::Value << n.OpMode;
         out << YAML::Key << "output_target" << YAML::Value << n.OutputTarget;
+        out << YAML::Key << "global_var_id" << YAML::Value << n.GlobalVarId;
         out << YAML::Key << "param"         << YAML::Value << YAML::BeginSeq;
         for (int i = 0; i < 8; ++i) out << n.Param[i];
         out << YAML::EndSeq;
+        out << YAML::Key << "mode_labels"   << YAML::Value << YAML::BeginSeq;
+        for (auto& s : n.ModeLabels) out << s;
+        out << YAML::EndSeq;
         out << YAML::Key << "state_f" << YAML::Value << YAML::BeginSeq;
         for (int i = 0; i < 4; ++i) out << n.StateF[i];
+        out << YAML::EndSeq;
+        // Pin types
+        out << YAML::Key << "input_types" << YAML::Value << YAML::BeginSeq;
+        for (auto& p : n.Inputs)  out << (int)p.Type;
+        out << YAML::EndSeq;
+        out << YAML::Key << "output_types" << YAML::Value << YAML::BeginSeq;
+        for (auto& p : n.Outputs) out << (int)p.Type;
         out << YAML::EndSeq;
         // No pos_x / pos_y — this is data-only
         out << YAML::EndMap;
@@ -413,6 +522,17 @@ std::string NodeGraph::GetGraphDataYaml() const
         out << YAML::Key << "from_pin"  << YAML::Value << fromPinIdx;
         out << YAML::Key << "to_node"   << YAML::Value << toNodeId;
         out << YAML::Key << "to_pin"    << YAML::Value << toPinIdx;
+        out << YAML::EndMap;
+    }
+    out << YAML::EndSeq;
+
+    out << YAML::Key << "globals" << YAML::Value << YAML::BeginSeq;
+    for (const auto& gv : m_GlobalVars) {
+        out << YAML::BeginMap;
+        out << YAML::Key << "id"    << YAML::Value << gv.id;
+        out << YAML::Key << "name"  << YAML::Value << gv.name;
+        out << YAML::Key << "value" << YAML::Value << gv.value;
+        out << YAML::Key << "type"  << YAML::Value << (int)gv.type;
         out << YAML::EndMap;
     }
     out << YAML::EndSeq;
@@ -443,7 +563,17 @@ bool NodeGraph::LoadGraphData(const std::string& yamlStr)
         {
             for (auto yn : root["nodes"])
             {
-                NodeType nt = (NodeType)yn["type"].as<int>();
+                int rawType = yn["type"].as<int>();
+                // Backward compat: remap removed/merged node types
+                switch (rawType) {
+                case 10: case 11: rawType = (int)NodeType::MathFunc; break;
+                case 17: case 18: case 19: rawType = (int)NodeType::LogicOp; break;
+                case 21: rawType = (int)NodeType::RisingEdge; break;
+                case 24: rawType = (int)NodeType::DelayOn; break;
+                case 40: rawType = (int)NodeType::AddSubMulDiv; break;
+                case 42: rawType = (int)NodeType::ScaleBias; break;
+                }
+                NodeType nt = (NodeType)rawType;
                 EditorNode* node = SpawnNode(nt);
                 if (!node) continue;
 
@@ -454,6 +584,7 @@ bool NodeGraph::LoadGraphData(const std::string& yamlStr)
                 node->KeyName      = yn["key_name"]     ? yn["key_name"].as<std::string>() : "";
                 node->OpMode       = yn["op_mode"]      ? yn["op_mode"].as<int>()        : 0;
                 node->OutputTarget = yn["output_target"]? yn["output_target"].as<std::string>() : "";
+                node->GlobalVarId  = yn["global_var_id"]? yn["global_var_id"].as<int>()  : -1;
 
                 // Load Param array (new format) or fall back to legacy fields
                 if (yn["param"] && yn["param"].IsSequence()) {
@@ -468,6 +599,26 @@ bool NodeGraph::LoadGraphData(const std::string& yamlStr)
                 if (yn["state_f"] && yn["state_f"].IsSequence()) {
                     int i = 0;
                     for (auto s : yn["state_f"]) { if (i < 4) node->StateF[i++] = s.as<float>(); }
+                }
+                if (yn["mode_labels"] && yn["mode_labels"].IsSequence()) {
+                    node->ModeLabels.clear();
+                    for (auto s : yn["mode_labels"])
+                        node->ModeLabels.push_back(s.as<std::string>());
+                }
+                // Restore pin types
+                if (yn["input_types"] && yn["input_types"].IsSequence()) {
+                    int i = 0;
+                    for (auto t : yn["input_types"]) {
+                        if (i < (int)node->Inputs.size()) node->Inputs[i].Type = (PinType)t.as<int>();
+                        ++i;
+                    }
+                }
+                if (yn["output_types"] && yn["output_types"].IsSequence()) {
+                    int i = 0;
+                    for (auto t : yn["output_types"]) {
+                        if (i < (int)node->Outputs.size()) node->Outputs[i].Type = (PinType)t.as<int>();
+                        ++i;
+                    }
                 }
 
                 int maxUsed = savedId;
@@ -518,6 +669,29 @@ bool NodeGraph::LoadGraphData(const std::string& yamlStr)
             }
         }
 
+        // Load globals (auto-assign IDs for old saves without 'id' field)
+        m_GlobalVars.clear();
+        if (root["globals"] && root["globals"].IsSequence()) {
+            int autoId = 0;
+            for (auto g : root["globals"]) {
+                if (g.IsMap() && g["name"]) {
+                    GlobalVar gv;
+                    gv.name  = g["name"].as<std::string>();
+                    gv.value = g["value"] ? g["value"].as<float>() : 0.0f;
+                    gv.type  = g["type"]  ? (PinType)g["type"].as<int>() : PinType::Float;
+                    if (g["id"] && g["id"].as<int>() >= 0)
+                        gv.id = g["id"].as<int>();
+                    else
+                        gv.id = autoId++;  // assign unique ID for old-format globals
+                    m_GlobalVars.push_back(gv);
+                }
+            }
+        }
+
+        if (root["active_robot_mode"])   m_ActiveRobotModeName   = root["active_robot_mode"].as<std::string>();
+        if (root["active_gamepad_mode"]) m_ActiveGamepadModeName = root["active_gamepad_mode"].as<std::string>();
+        if (root["comm_index"])          m_CommIndex             = root["comm_index"].as<int>();
+
         m_Modified = false;
         return true;
     }
@@ -544,11 +718,22 @@ std::string NodeGraph::GetGraphYaml() const
         out << YAML::Key << "key_name"      << YAML::Value << n.KeyName;
         out << YAML::Key << "op_mode"       << YAML::Value << n.OpMode;
         out << YAML::Key << "output_target" << YAML::Value << n.OutputTarget;
+        out << YAML::Key << "global_var_id" << YAML::Value << n.GlobalVarId;
         out << YAML::Key << "param"         << YAML::Value << YAML::BeginSeq;
         for (int i = 0; i < 8; ++i) out << n.Param[i];
         out << YAML::EndSeq;
+        out << YAML::Key << "mode_labels"   << YAML::Value << YAML::BeginSeq;
+        for (auto& s : n.ModeLabels) out << s;
+        out << YAML::EndSeq;
         out << YAML::Key << "state_f" << YAML::Value << YAML::BeginSeq;
         for (int i = 0; i < 4; ++i) out << n.StateF[i];
+        out << YAML::EndSeq;
+        // Pin types
+        out << YAML::Key << "input_types" << YAML::Value << YAML::BeginSeq;
+        for (auto& p : n.Inputs)  out << (int)p.Type;
+        out << YAML::EndSeq;
+        out << YAML::Key << "output_types" << YAML::Value << YAML::BeginSeq;
+        for (auto& p : n.Outputs) out << (int)p.Type;
         out << YAML::EndSeq;
 
         ImVec2 pos = ed::GetNodePosition(n.ID);
@@ -579,6 +764,17 @@ std::string NodeGraph::GetGraphYaml() const
     }
     out << YAML::EndSeq;
 
+    out << YAML::Key << "globals" << YAML::Value << YAML::BeginSeq;
+    for (const auto& gv : m_GlobalVars) {
+        out << YAML::BeginMap;
+        out << YAML::Key << "id"    << YAML::Value << gv.id;
+        out << YAML::Key << "name"  << YAML::Value << gv.name;
+        out << YAML::Key << "value" << YAML::Value << gv.value;
+        out << YAML::Key << "type"  << YAML::Value << (int)gv.type;
+        out << YAML::EndMap;
+    }
+    out << YAML::EndSeq;
+
     out << YAML::Key << "active_robot_mode"   << YAML::Value << m_ActiveRobotModeName;
     out << YAML::Key << "active_gamepad_mode" << YAML::Value << m_ActiveGamepadModeName;
 
@@ -605,7 +801,16 @@ bool NodeGraph::LoadGraphYaml(const std::string& yamlStr)
         {
             for (auto yn : root["nodes"])
             {
-                NodeType nt = (NodeType)yn["type"].as<int>();
+                int rawType = yn["type"].as<int>();
+                switch (rawType) {
+                case 10: case 11: rawType = (int)NodeType::MathFunc; break;
+                case 17: case 18: case 19: rawType = (int)NodeType::LogicOp; break;
+                case 21: rawType = (int)NodeType::RisingEdge; break;
+                case 24: rawType = (int)NodeType::DelayOn; break;
+                case 40: rawType = (int)NodeType::AddSubMulDiv; break;
+                case 42: rawType = (int)NodeType::ScaleBias; break;
+                }
+                NodeType nt = (NodeType)rawType;
                 EditorNode* node = SpawnNode(nt);
                 if (!node) continue;
 
@@ -616,6 +821,7 @@ bool NodeGraph::LoadGraphYaml(const std::string& yamlStr)
                 node->KeyName      = yn["key_name"]     ? yn["key_name"].as<std::string>() : "";
                 node->OpMode       = yn["op_mode"]      ? yn["op_mode"].as<int>()        : 0;
                 node->OutputTarget = yn["output_target"]? yn["output_target"].as<std::string>() : "";
+                node->GlobalVarId  = yn["global_var_id"]? yn["global_var_id"].as<int>()  : -1;
 
                 // Load Param array (new format) or fall back to legacy fields
                 if (yn["param"] && yn["param"].IsSequence()) {
@@ -630,6 +836,26 @@ bool NodeGraph::LoadGraphYaml(const std::string& yamlStr)
                 if (yn["state_f"] && yn["state_f"].IsSequence()) {
                     int i = 0;
                     for (auto s : yn["state_f"]) { if (i < 4) node->StateF[i++] = s.as<float>(); }
+                }
+                if (yn["mode_labels"] && yn["mode_labels"].IsSequence()) {
+                    node->ModeLabels.clear();
+                    for (auto s : yn["mode_labels"])
+                        node->ModeLabels.push_back(s.as<std::string>());
+                }
+                // Restore pin types
+                if (yn["input_types"] && yn["input_types"].IsSequence()) {
+                    int i = 0;
+                    for (auto t : yn["input_types"]) {
+                        if (i < (int)node->Inputs.size()) node->Inputs[i].Type = (PinType)t.as<int>();
+                        ++i;
+                    }
+                }
+                if (yn["output_types"] && yn["output_types"].IsSequence()) {
+                    int i = 0;
+                    for (auto t : yn["output_types"]) {
+                        if (i < (int)node->Outputs.size()) node->Outputs[i].Type = (PinType)t.as<int>();
+                        ++i;
+                    }
                 }
 
                 if (yn["pos_x"] && yn["pos_y"])
@@ -682,6 +908,25 @@ bool NodeGraph::LoadGraphYaml(const std::string& yamlStr)
             }
         }
 
+        // 恢复 globals (auto-assign IDs for old saves)
+        m_GlobalVars.clear();
+        if (root["globals"] && root["globals"].IsSequence()) {
+            int autoId = 0;
+            for (auto g : root["globals"]) {
+                if (g.IsMap() && g["name"]) {
+                    GlobalVar gv;
+                    gv.name  = g["name"].as<std::string>();
+                    gv.value = g["value"] ? g["value"].as<float>() : 0.0f;
+                    gv.type  = g["type"]  ? (PinType)g["type"].as<int>() : PinType::Float;
+                    if (g["id"] && g["id"].as<int>() >= 0)
+                        gv.id = g["id"].as<int>();
+                    else
+                        gv.id = autoId++;
+                    m_GlobalVars.push_back(gv);
+                }
+            }
+        }
+
         // 恢复 mode 名
         if (root["active_robot_mode"])
             m_ActiveRobotModeName = root["active_robot_mode"].as<std::string>();
@@ -700,6 +945,19 @@ void NodeGraph::DrawNodeContents(EditorNode& node,
 {
     auto isLinked = [this](int pid) { return IsPinLinked(ax::NodeEditor::PinId(pid)); };
     auto onMod = [this]() { SetModified(true); };
+    auto showBool = [](float v) {
+        if (v >= 0.5f) ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "True");
+        else           ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "False");
+    };
+
+    // Helper to display a pin value according to its type
+    auto ShowPinValue = [&](PinType type, float v) {
+        switch (type) {
+        case PinType::Bool: showBool(v); break;
+        case PinType::Int:  ImGui::TextDisabled("%d", (int)std::round(v)); break;
+        default:            ImGui::TextDisabled("%.3f", v); break;
+        }
+    };
 
     // Special: KeySource
     if (node.Type == NodeType::KeySource) {
@@ -733,6 +991,10 @@ void NodeGraph::DrawNodeContents(EditorNode& node,
             ::DrawPinIcon(pin, IsPinLinked(pin.ID), 255);
             ImGui::SameLine(); ImGui::TextUnformatted(pin.Name.c_str());
             ed::EndPin();
+            ImGui::SameLine(0, 6);
+            DrawPinTypeSelector(&pin, onMod);
+            ImGui::SameLine(0, 8);
+            ShowPinValue(pin.Type, node.Value);
         }
         ImGui::PopID();
         return;
@@ -748,6 +1010,10 @@ void NodeGraph::DrawNodeContents(EditorNode& node,
             if (ImGui::DragFloat("##Val", &node.Value, 0.01f, -100.0f, 100.0f, "%.3f"))
                 SetModified(true);
             ed::EndPin();
+            ImGui::SameLine(0, 6);
+            DrawPinTypeSelector(&pin, onMod);
+            ImGui::SameLine(0, 8);
+            ShowPinValue(pin.Type, node.Value);
         }
         ImGui::PopID();
         return;
@@ -760,8 +1026,11 @@ void NodeGraph::DrawNodeContents(EditorNode& node,
             ed::BeginPin(pin.ID, ed::PinKind::Input);
             ::DrawPinIcon(pin, IsPinLinked(pin.ID), 255);
             ImGui::SameLine(); ImGui::TextUnformatted("Value");
-            ImGui::SameLine(0, 12); ImGui::TextDisabled("%.3f", node.Value);
             ed::EndPin();
+            ImGui::SameLine(0, 6);
+            DrawPinTypeSelector(&pin, onMod);
+            ImGui::SameLine(0, 8);
+            ShowPinValue(pin.Type, node.Value);
         }
         ImVec2 btnSize(150, 0);
         std::string btnLabel = node.OutputTarget;
@@ -781,6 +1050,63 @@ void NodeGraph::DrawNodeContents(EditorNode& node,
         if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
             node.OutputTarget.clear();
             SetModified(true);
+        }
+        ImGui::PopID();
+        return;
+    }
+
+    // Special: GlobalRead / GlobalWrite (click to select variable)
+    if (node.Type == NodeType::GlobalRead || node.Type == NodeType::GlobalWrite) {
+        ImGui::PushID((int)node.ID.Get());
+
+        // Draw input pins (if any) — same as generic
+        for (size_t i = 0; i < node.Inputs.size(); ++i) {
+            auto& pin = node.Inputs[i];
+            ed::BeginPin(pin.ID, ed::PinKind::Input);
+            ::DrawPinIcon(pin, IsPinLinked(pin.ID), 255);
+            ImGui::SameLine();
+            ImGui::TextUnformatted(pin.Name.c_str());
+            ed::EndPin();
+            ImGui::SameLine(0, 6);
+            DrawPinTypeSelector(&pin, onMod);
+            ImGui::SameLine(0, 8);
+            float v = (i < 4) ? node.InputValues[i] : 0.0f;
+            if (pin.Type == PinType::Bool) showBool(v);
+            else ImGui::TextDisabled("%.3f", v);
+        }
+
+        // Variable selector button (like KeySource, uses GlobalVarId)
+        ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
+        std::string btnLabel = "(click to select)";
+        if (node.GlobalVarId >= 0) {
+            int gidx = FindGlobalIndex(node.GlobalVarId);
+            if (gidx >= 0 && gidx < (int)m_GlobalVars.size())
+                btnLabel = m_GlobalVars[gidx].name;
+        }
+        bool isActive = (m_ActiveGlobalReadId == node.ID);
+        ImVec4 btnCol = isActive ? ImVec4(0.3f, 0.7f, 0.3f, 1.0f) : ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
+        ImGui::PushStyleColor(ImGuiCol_Button, btnCol);
+        if (ImGui::Button(btnLabel.c_str(), ImVec2(105, 0))) {
+            m_ActiveGlobalReadId = (m_ActiveGlobalReadId == node.ID) ? ax::NodeEditor::NodeId(0) : node.ID;
+        }
+        ImGui::PopStyleColor();
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+            node.GlobalVarId = -1;
+            SetModified(true);
+        }
+        ImGui::PopStyleVar();
+
+        // Output pin
+        for (auto& pin : node.Outputs) {
+            ed::BeginPin(pin.ID, ed::PinKind::Output);
+            ::DrawPinIcon(pin, IsPinLinked(pin.ID), 255);
+            ImGui::SameLine(); ImGui::TextUnformatted(pin.Name.c_str());
+            ed::EndPin();
+            ImGui::SameLine(0, 6);
+            DrawPinTypeSelector(&pin, onMod);
+            ImGui::SameLine(0, 8);
+            if (pin.Type == PinType::Bool) showBool(node.Value);
+            else ImGui::TextDisabled("%.3f", node.Value);
         }
         ImGui::PopID();
         return;
@@ -812,7 +1138,10 @@ std::unique_ptr<NodeGraph> NodeGraph::Clone() const
 // ============================================================================
 void NodeGraph::AddNode(NodeType type)
 {
-    AddNodeAt(type, ImVec2(0, 0), false);
+    // Place new node at current mouse position in canvas space
+    ImVec2 mousePos = ImGui::GetMousePos();
+    // If we're inside an ed:: context, convert screen→canvas
+    AddNodeAt(type, ed::ScreenToCanvas(mousePos), false);
 }
 
 bool NodeGraph::AddNodeAt(NodeType type, const ImVec2& pos, bool fromScreen)
@@ -933,8 +1262,14 @@ void NodeGraph::DrawKeyValuesSidebar(float sideWidth, const std::set<std::string
             }
         }
     }
+
     ImGui::EndChild();
 }
+
+// ============================================================================
+// DrawGlobalsSidebar — DEPRECATED, merged into DrawKeyValuesSidebar
+// ============================================================================
+void NodeGraph::DrawGlobalsSidebar(float) {}
 
 // ============================================================================
 // Draw — full editor render (called from Manager)
@@ -1123,7 +1458,6 @@ void NodeGraph::Draw(ax::NodeEditor::EditorContext* editorCtx)
         ed::BeginNode(node.ID);
         {
             float nodeWidth = 140.0f;
-            // Adjust width by category / pin count
             int totalPins = (int)node.Inputs.size() + (int)node.Outputs.size();
             if (totalPins >= 5) nodeWidth = 180.0f;
             else if (node.Type == NodeType::CustomOutput) nodeWidth = 190.0f;
@@ -1156,97 +1490,57 @@ void NodeGraph::Draw(ax::NodeEditor::EditorContext* editorCtx)
         ed::Link(link.ID, link.StartPinID, link.EndPinID, link.Color, 2.0f);
     } // end shared_lock
 
-    if (ed::BeginCreate(ImColor(255, 255, 255), 2.0f))
+    // --- Click-to-connect ---
+    // Left-click a pin to start, left-click another to connect, right-click to cancel.
+    if (!m_IsRunning)
     {
-        if (!m_IsRunning)
-        {
-        auto showLabel = [](const char* label, ImColor color)
-        {
-            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - ImGui::GetTextLineHeight());
-            auto size    = ImGui::CalcTextSize(label);
-            auto padding = ImGui::GetStyle().FramePadding;
-            auto spacing = ImGui::GetStyle().ItemSpacing;
-            ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2(spacing.x, -spacing.y));
-            auto rectMin = ImGui::GetCursorScreenPos() - padding;
-            auto rectMax = ImGui::GetCursorScreenPos() + size + padding;
-            auto drawList = ImGui::GetWindowDrawList();
-            drawList->AddRectFilled(rectMin, rectMax, color, size.y * 0.15f);
-            ImGui::TextUnformatted(label);
-        };
+        auto* drawList = ImGui::GetWindowDrawList();
+        ed::PinId hoveredId = ed::GetHoveredPin();
+        bool leftReleased = ImGui::IsMouseReleased(ImGuiMouseButton_Left);
+        bool rightClicked = ImGui::IsMouseClicked(ImGuiMouseButton_Right);
 
-        ed::PinId startPinId = 0, endPinId = 0;
-        if (ed::QueryNewLink(&startPinId, &endPinId))
+        if (m_LinkSourcePin.Get())
         {
-            auto startPin = FindPin(startPinId);
-            auto endPin   = FindPin(endPinId);
-
-            if (startPin && endPin)
+            auto* srcPin = FindPin(m_LinkSourcePin);
+            if (srcPin)
             {
-                if (startPin == endPin)
-                {
-                    showLabel("x Cannot connect to self", ImColor(45, 32, 32, 180));
-                    ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
-                }
-                else if (startPin->Node == endPin->Node)
-                {
-                    showLabel("x Same node", ImColor(45, 32, 32, 180));
-                    ed::RejectNewItem(ImColor(255, 0, 0), 2.0f);
-                }
-                else if (startPin->Type != endPin->Type)
-                {
-                    showLabel("x Incompatible Type", ImColor(45, 32, 32, 180));
-                    ed::RejectNewItem(ImColor(255, 128, 128), 1.0f);
-                }
-                else
-                {
-                    auto* outPin = startPin;
-                    auto* inPin  = endPin;
+                ImVec2 mouse = ImGui::GetMousePos();
+                drawList->AddLine(m_LinkSourceMouse, mouse, IM_COL32(255,255,128,200), 2.0f);
+                drawList->AddCircleFilled(m_LinkSourceMouse, 4.0f, IM_COL32(255,255,128,255));
 
-                    bool startIsInput  = false;
-                    bool endIsInput    = false;
-                    for (auto& n : m_Nodes)
+                if (leftReleased)
+                {
+                    if (hoveredId.Get())
                     {
-                        for (auto& p : n.Inputs)  { if (p.ID == startPinId) startIsInput = true; if (p.ID == endPinId) endIsInput = true; }
-                        for (auto& p : n.Outputs) { if (p.ID == startPinId) startIsInput = false; if (p.ID == endPinId) endIsInput = false; }
+                        auto* tgt = FindPin(hoveredId);
+                        if (tgt && tgt != srcPin && tgt->Node != srcPin->Node
+                            && PinTypesCompatible(srcPin->Type, tgt->Type))
+                        {
+                            ed::PinId outId = m_LinkSourcePin, inId = hoveredId;
+                            bool si=false, ti=false;
+                            for (auto& n : m_Nodes) {
+                                for (auto& p : n.Inputs) { if(p.ID==outId)si=true; if(p.ID==inId)ti=true; }
+                            }
+                            if (si && !ti) std::swap(outId, inId);
+                            else if (si == ti) { m_LinkSourcePin = ed::PinId(0); goto cc_end; }
+                            m_Links.emplace_back(GetNextId(), outId, inId);
+                            m_Links.back().Color = GetIconColor(srcPin->Type);
+                            SetModified(true);
+                        }
                     }
-
-                    if (startIsInput && !endIsInput)
-                    {
-                        std::swap(startPin, endPin);
-                        std::swap(startPinId, endPinId);
-                    }
-                    else if (startIsInput == endIsInput)
-                    {
-                        showLabel("x Must connect Output → Input", ImColor(45, 32, 32, 180));
-                        ed::RejectNewItem(ImColor(255, 128, 128), 1.0f);
-                        goto end_link_query;
-                    }
-
-                    showLabel("+ Create Link", ImColor(32, 45, 32, 180));
-                    if (ed::AcceptNewItem(ImColor(128, 255, 128), 4.0f))
-                    {
-                        m_Links.emplace_back(GetNextId(), startPinId, endPinId);
-                        m_Links.back().Color = GetIconColor(startPin->Type);
-                        SetModified(true);
-                    }
+                    m_LinkSourcePin = ed::PinId(0);
                 }
+                else if (rightClicked) { m_LinkSourcePin = ed::PinId(0); }
+                cc_end:;
             }
-            end_link_query:;
+            else { m_LinkSourcePin = ed::PinId(0); }
         }
-
-        ed::PinId pinId = 0;
-        if (ed::QueryNewNode(&pinId))
+        else if (hoveredId.Get() && leftReleased)
         {
-            if (ed::AcceptNewItem())
-            {
-                ed::Suspend();
-                ImGui::OpenPopup("Create New Node");
-                ed::Resume();
-            }
+            m_LinkSourcePin = hoveredId;
+            m_LinkSourceMouse = ImGui::GetMousePos();
         }
-        } // if (!m_IsRunning)
     }
-    ed::EndCreate();
 
     if (ed::BeginDelete())
     {
@@ -1387,9 +1681,13 @@ void NodeGraph::Draw(ax::NodeEditor::EditorContext* editorCtx)
         else
         {
             std::map<std::string, float> kvSnapshot = GetKeyValuesSnapshot();
+            // Reuse the outputs already computed by EvaluateForDisplay()
+            // to avoid double-evaluating stateful nodes (Counter, etc.).
             std::map<std::string, float> outputs;
-            if (m_IsRunning)
-                outputs = Evaluate(kvSnapshot);
+            {
+                std::shared_lock<std::shared_mutex> lock(GetEvalMutex());
+                outputs = m_LastOutputs;
+            }
 
             for (const auto& target : m_OutputTargets)
             {
@@ -1443,6 +1741,107 @@ void NodeGraph::Draw(ax::NodeEditor::EditorContext* editorCtx)
                 }
             }
         }
+
+        // ---- Global variables table ----
+        ImGui::Separator();
+        ImGui::Text("Variables    (%d)", (int)m_GlobalVars.size());
+
+        int delIdx = -1, renameIdx = -1, addVar = 0;
+        if (ImGui::BeginPopupContextWindow("##VarCtx", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
+            ImGui::TextUnformatted("Variables");
+            ImGui::Separator();
+            if (ImGui::MenuItem("New Variable")) addVar = 1;
+            ImGui::EndPopup();
+        }
+
+        if (addVar) {
+            int n = 0; std::string dn;
+            do { dn = "var" + std::to_string(n++); }
+            while (FindGlobalByName(dn) >= 0);
+            AddGlobal(dn, 0.0f, PinType::Float);
+        }
+
+        const int nvars = (int)m_GlobalVars.size();
+        for (int i = 0; i < nvars; ++i) {
+            ImGui::PushID(i + 10000);
+
+            // Click to select variable for active GlobalRead/Write node
+            EditorNode* activeGR = FindNode(m_ActiveGlobalReadId);
+            bool isGR = (activeGR && (activeGR->Type == NodeType::GlobalRead || activeGR->Type == NodeType::GlobalWrite));
+            bool isSelected = isGR && activeGR->GlobalVarId == m_GlobalVars[i].id;
+
+            bool renaming = (m_RenamingGlobalIdx == i);
+            if (renaming) {
+                static char renameBuf[64];
+                if (m_RenamingGlobalIdx != m_LastRenamingIdx) {
+                    strncpy(renameBuf, m_GlobalVars[i].name.c_str(), sizeof(renameBuf)-1); renameBuf[sizeof(renameBuf)-1]=0;
+                    m_LastRenamingIdx = i;
+                }
+                ImGui::SetNextItemWidth(m_RightSideWidth * 0.4f);
+                if (ImGui::InputText("##Rn", renameBuf, sizeof(renameBuf), ImGuiInputTextFlags_EnterReturnsTrue)) {
+                    if (renameBuf[0]) m_GlobalVars[i].name = renameBuf;
+                    m_RenamingGlobalIdx = -1;
+                    SetModified(true);
+                }
+            } else {
+                // Compact type indicator (F/I/B) — click to cycle
+                static const char* typeLabels[] = {"F", "I", "B"};
+                static const ImVec4 typeCols[] = {
+                    ImVec4(0.4f, 0.8f, 0.4f, 1.0f),
+                    ImVec4(0.4f, 0.6f, 1.0f, 1.0f),
+                    ImVec4(0.9f, 0.6f, 0.3f, 1.0f)
+                };
+                int curT = (int)m_GlobalVars[i].type;
+                if (curT < 0 || curT > 2) curT = 0;
+
+                ImGui::PushStyleColor(ImGuiCol_Text, typeCols[curT]);
+                if (ImGui::Button(typeLabels[curT], ImVec2(20, 0))) {
+                    m_GlobalVars[i].type = (PinType)((curT + 1) % 3);
+                    SetModified(true);
+                }
+                ImGui::PopStyleColor();
+                ImGui::SameLine();
+
+                if (ImGui::Selectable(m_GlobalVars[i].name.c_str(), isSelected, ImGuiSelectableFlags_AllowDoubleClick)) {
+                    if (isGR) {
+                        activeGR->GlobalVarId = m_GlobalVars[i].id;
+                        SetModified(true);
+                        m_ActiveGlobalReadId = 0;
+                    }
+                    if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+                        renameIdx = i;
+                }
+                if (ImGui::BeginPopupContextItem()) {
+                    if (ImGui::MenuItem("Rename")) renameIdx = i;
+                    if (ImGui::MenuItem("Delete")) delIdx = i;
+                    ImGui::EndPopup();
+                }
+            }
+
+            ImGui::SameLine(m_RightSideWidth - 45);
+            float v = m_GlobalVars[i].value;
+            PinType vt = m_GlobalVars[i].type;
+            if (vt == PinType::Bool) {
+                if (v >= 0.5f)
+                    ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "True");
+                else
+                    ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "False");
+            } else if (vt == PinType::Int) {
+                ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "%d", (int)v);
+            } else {
+                if (v >= 0.5f || v <= -0.5f) ImGui::TextColored(ImVec4(0.4f,1,0.4f,1), "%.2f", v);
+                else ImGui::TextDisabled("%.2f", v);
+            }
+
+            ImGui::PopID();
+        }
+        if (delIdx >= 0) {
+            if (delIdx < (int)m_GlobalVars.size())
+                RemoveGlobal(m_GlobalVars[delIdx].id);
+            if (m_RenamingGlobalIdx == delIdx) m_RenamingGlobalIdx = -1;
+        }
+        if (renameIdx >= 0) m_RenamingGlobalIdx = renameIdx;
+
         ImGui::EndChild();
     }
 

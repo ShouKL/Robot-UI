@@ -14,6 +14,8 @@ ImColor GetIconColor(PinType type)
     {
     default:
     case PinType::Float: return ImColor(147, 226,  74);
+    case PinType::Bool:  return ImColor(226, 147,  74);
+    case PinType::Int:   return ImColor( 74, 180, 226);
     }
 }
 
@@ -47,9 +49,7 @@ NodeCategory GetNodeCategory(NodeType type)
     case NodeType::InRange:
     case NodeType::Select:
     case NodeType::BoolSelect:
-    case NodeType::Atan2:
-    case NodeType::Sin:
-    case NodeType::Cos:
+    case NodeType::MathFunc:
         return NodeCategory::Math;
 
     // Shaping
@@ -60,15 +60,10 @@ NodeCategory GetNodeCategory(NodeType type)
         return NodeCategory::Shaping;
 
     // Logic
-    case NodeType::And:
-    case NodeType::Or:
-    case NodeType::Xor:
-    case NodeType::Not:
+    case NodeType::LogicOp:
     case NodeType::RisingEdge:
-    case NodeType::FallingEdge:
     case NodeType::Toggle:
     case NodeType::SRLatch:
-    case NodeType::Hold:
     case NodeType::DelayOn:
     case NodeType::DelayOff:
     case NodeType::Timer:
@@ -86,17 +81,19 @@ NodeCategory GetNodeCategory(NodeType type)
     case NodeType::LowPass:
     case NodeType::MovingAverage:
         return NodeCategory::Memory;
+    case NodeType::GlobalRead:
+    case NodeType::GlobalWrite:
+        return NodeCategory::Memory;
 
     // Control
-    case NodeType::ErrorCalculator:
     case NodeType::PID:
-    case NodeType::Feedforward:
     case NodeType::DeadbandComparator:
         return NodeCategory::Control;
 
     // Legacy / special
     case NodeType::KeySource:    return NodeCategory::Math;
     case NodeType::ConstValue:   return NodeCategory::Math;
+    case NodeType::LookupTable:  return NodeCategory::Math;
     case NodeType::CustomOutput: return NodeCategory::Control;
     }
     return NodeCategory::Math;
@@ -135,18 +132,16 @@ const char* GetNodeTitle(NodeType type)
     switch (type)
     {
     // Math
-    case NodeType::AddSubMulDiv:  return "Arith";
-    case NodeType::ScaleBias:     return "Scale&Bias";
+    case NodeType::AddSubMulDiv:  return "Arithmetic";
+    case NodeType::ScaleBias:     return "Scale & Bias";
     case NodeType::Lerp:          return "Lerp";
     case NodeType::Clamp:         return "Clamp";
     case NodeType::Remap:         return "Remap";
     case NodeType::Compare:       return "Compare";
     case NodeType::InRange:       return "In Range";
     case NodeType::Select:        return "Select";
-    case NodeType::BoolSelect:    return "Bool Select";
-    case NodeType::Atan2:         return "Atan2";
-    case NodeType::Sin:           return "Sin";
-    case NodeType::Cos:           return "Cos";
+    case NodeType::BoolSelect:    return "Select";
+    case NodeType::MathFunc:      return "Math Func";
 
     // Shaping
     case NodeType::DeadZone:      return "Dead Zone";
@@ -155,40 +150,36 @@ const char* GetNodeTitle(NodeType type)
     case NodeType::Hysteresis:    return "Hysteresis";
 
     // Logic
-    case NodeType::And:           return "AND";
-    case NodeType::Or:            return "OR";
-    case NodeType::Xor:           return "XOR";
-    case NodeType::Not:           return "NOT";
-    case NodeType::RisingEdge:    return "Rising Edge";
-    case NodeType::FallingEdge:   return "Falling Edge";
+    case NodeType::LogicOp:       return "Logic Op";
+    case NodeType::RisingEdge:    return "Edge Detect";
     case NodeType::Toggle:        return "Toggle";
     case NodeType::SRLatch:       return "SR Latch";
-    case NodeType::Hold:          return "Hold";
-    case NodeType::DelayOn:       return "Delay On";
+    case NodeType::DelayOn:       return "Delay";
     case NodeType::DelayOff:      return "Delay Off";
     case NodeType::Timer:         return "Timer";
     case NodeType::Pulse:         return "Pulse";
 
     // Memory
     case NodeType::UnitDelay:     return "Unit Delay";
-    case NodeType::SampleHold:    return "S & H";
-    case NodeType::Accumulator:   return "Accum";
+    case NodeType::SampleHold:    return "Sample Hold";
+    case NodeType::Accumulator:   return "Accumulator";
     case NodeType::Integrator:    return "Integrator";
-    case NodeType::Differentiator:return "Derivative";
+    case NodeType::Differentiator:return "Differentiator";
     case NodeType::Counter:       return "Counter";
     case NodeType::RateLimiter:   return "Rate Limiter";
     case NodeType::LowPass:       return "Low Pass";
-    case NodeType::MovingAverage: return "Mov Avg";
+    case NodeType::MovingAverage: return "Moving Average";
+    case NodeType::GlobalRead:   return "Global Read";
+    case NodeType::GlobalWrite:  return "Global Write";
 
     // Control
-    case NodeType::ErrorCalculator:    return "Error";
     case NodeType::PID:                return "PID";
-    case NodeType::Feedforward:        return "Feedfwd";
-    case NodeType::DeadbandComparator: return "Deadband";
+    case NodeType::DeadbandComparator: return "Deadband Comparator";
 
     // Legacy / special
     case NodeType::KeySource:    return "Key Source";
-    case NodeType::ConstValue:   return "Const";
+    case NodeType::ConstValue:   return "Const Value";
+    case NodeType::LookupTable:  return "Lookup Table";
     case NodeType::CustomOutput: return "Output";
 
     default: return "???";
@@ -198,6 +189,15 @@ const char* GetNodeTitle(NodeType type)
 // ============================================================================
 // DrawPinIcon
 // ============================================================================
+#include <unordered_map>
+
+// Thread-local pin screen rect map for click-to-connect hit-testing.
+// Written by DrawPinIcon, read by NodeGraph::Draw.
+static std::unordered_map<int, ImRect> s_PinScreenRects;
+
+const std::unordered_map<int, ImRect>& GetPinScreenRects() { return s_PinScreenRects; }
+void ClearPinScreenRects() { s_PinScreenRects.clear(); }
+
 void DrawPinIcon(const EditorPin& pin, bool connected, int alpha)
 {
     ImColor color = GetIconColor(pin.Type);
@@ -208,6 +208,9 @@ void DrawPinIcon(const EditorPin& pin, bool connected, int alpha)
     float iconSize = 24.0f;
     float half = iconSize * 0.5f;
     ImVec2 center(pos.x + half, pos.y + half);
+
+    // Record screen rect for hit-test
+    s_PinScreenRects[(int)pin.ID.Get()] = ImRect(pos.x, pos.y, pos.x + iconSize, pos.y + iconSize);
 
     ImU32 col = ImColor(color);
     ImU32 bg  = ImColor(32, 32, 32, alpha);
@@ -243,7 +246,9 @@ static float FromBool(bool b) { return b ? 1.0f : 0.0f; }
 float ComputeNodeOutput(EditorNode& node,
     const std::map<std::string, float>& keyValues,
     const std::unordered_map<int, float>& pinVals,
-    float dt)
+    float dt,
+    float* globals,
+    int globalsCount)
 {
     switch (node.Type)
     {
@@ -324,28 +329,16 @@ float ComputeNodeOutput(EditorNode& node,
         float b    = GetPinByIndex(node, pinVals, 2);
         return AsBool(cond) ? a : b;
     }
-    case NodeType::BoolSelect:
+    case NodeType::MathFunc:
     {
-        bool cond = AsBool(GetPinByIndex(node, pinVals, 0));
-        bool a    = AsBool(GetPinByIndex(node, pinVals, 1));
-        bool b    = AsBool(GetPinByIndex(node, pinVals, 2));
-        return FromBool(cond ? a : b);
-    }
-    case NodeType::Atan2:
-    {
-        float y = GetPinByIndex(node, pinVals, 0);
-        float x = GetPinByIndex(node, pinVals, 1);
-        return std::atan2(y, x);
-    }
-    case NodeType::Sin:
-    {
-        float rad = GetPinByIndex(node, pinVals, 0);
-        return std::sin(rad);
-    }
-    case NodeType::Cos:
-    {
-        float rad = GetPinByIndex(node, pinVals, 0);
-        return std::cos(rad);
+        float a = GetPinByIndex(node, pinVals, 0);
+        float b = GetPinByIndex(node, pinVals, 1);
+        switch (node.OpMode) {
+        case 0: return std::sin(a);
+        case 1: return std::cos(a);
+        case 2: return std::atan2(a, b);
+        default: return std::sin(a);
+        }
     }
 
     // ==================== SHAPING ====================
@@ -361,9 +354,42 @@ float ComputeNodeOutput(EditorNode& node,
     case NodeType::Curve:
     {
         float in = GetPinByIndex(node, pinVals, 0);
-        // Param[0..7] = 4 control point pairs (x,y) for piecewise-linear
-        // Simple: treat as raw passthrough for now; curve data stored in Param
-        return in; // TODO: implement piecewise-linear evaluation from Param
+        // Param[0..7] = 4 control point pairs (x0,y0, x1,y1, x2,y2, x3,y3) for piecewise-linear
+        // Build sorted control points (skip duplicates with same x)
+        struct Pt { float x, y; };
+        Pt pts[4] = {};
+        int nPts = 0;
+        for (int i = 0; i < 4; ++i) {
+            float x = node.Param[i * 2];
+            float y = node.Param[i * 2 + 1];
+            if (x == 0.0f && y == 0.0f && i > 0) continue; // skip unset points beyond first
+            bool duplicate = false;
+            for (int j = 0; j < nPts; ++j)
+                if (pts[j].x == x) { duplicate = true; break; }
+            if (!duplicate) pts[nPts++] = {x, y};
+        }
+        // Sort by x
+        for (int i = 0; i < nPts - 1; ++i)
+            for (int j = i + 1; j < nPts; ++j)
+                if (pts[j].x < pts[i].x)
+                    std::swap(pts[i], pts[j]);
+
+        if (nPts == 0) return in;
+        if (nPts == 1) return pts[0].y;
+
+        // Clamp / extrapolate
+        if (in <= pts[0].x) return pts[0].y;
+        if (in >= pts[nPts - 1].x) return pts[nPts - 1].y;
+
+        // Linear interpolation between nearest points
+        for (int i = 0; i < nPts - 1; ++i) {
+            if (in >= pts[i].x && in <= pts[i + 1].x) {
+                float t = (pts[i + 1].x - pts[i].x != 0.0f)
+                    ? (in - pts[i].x) / (pts[i + 1].x - pts[i].x) : 0.0f;
+                return pts[i].y + t * (pts[i + 1].y - pts[i].y);
+            }
+        }
+        return in;
     }
     case NodeType::Quantizer:
     {
@@ -383,42 +409,25 @@ float ComputeNodeOutput(EditorNode& node,
     }
 
     // ==================== LOGIC ====================
-    case NodeType::And:
+    case NodeType::LogicOp:
     {
         bool a = AsBool(GetPinByIndex(node, pinVals, 0));
         bool b = AsBool(GetPinByIndex(node, pinVals, 1));
-        return FromBool(a && b);
-    }
-    case NodeType::Or:
-    {
-        bool a = AsBool(GetPinByIndex(node, pinVals, 0));
-        bool b = AsBool(GetPinByIndex(node, pinVals, 1));
-        return FromBool(a || b);
-    }
-    case NodeType::Xor:
-    {
-        bool a = AsBool(GetPinByIndex(node, pinVals, 0));
-        bool b = AsBool(GetPinByIndex(node, pinVals, 1));
-        return FromBool(a != b);
-    }
-    case NodeType::Not:
-    {
-        bool a = AsBool(GetPinByIndex(node, pinVals, 0));
-        return FromBool(!a);
+        switch (node.OpMode) {
+        case 0: return FromBool(a && b);
+        case 1: return FromBool(a || b);
+        case 2: return FromBool(a != b);
+        case 3: return FromBool(!a);
+        default: return FromBool(a && b);
+        }
     }
     case NodeType::RisingEdge:
     {
         bool cur = AsBool(GetPinByIndex(node, pinVals, 0));
         bool prev = node.StateB[0];
         node.StateB[0] = cur;
-        return FromBool(cur && !prev);
-    }
-    case NodeType::FallingEdge:
-    {
-        bool cur  = AsBool(GetPinByIndex(node, pinVals, 0));
-        bool prev = node.StateB[0];
-        node.StateB[0] = cur;
-        return FromBool(!cur && prev);
+        if (node.OpMode == 1) return FromBool(!cur && prev);  // Falling
+        return FromBool(cur && !prev);                           // Rising
     }
     case NodeType::Toggle:
     {
@@ -432,17 +441,15 @@ float ComputeNodeOutput(EditorNode& node,
     {
         bool s = AsBool(GetPinByIndex(node, pinVals, 0));
         bool r = AsBool(GetPinByIndex(node, pinVals, 1));
-        if (s)       node.StateB[0] = true;
-        else if (r)  node.StateB[0] = false;
-        return FromBool(node.StateB[0]);
-    }
-    case NodeType::Hold:
-    {
-        bool cur = AsBool(GetPinByIndex(node, pinVals, 0));
-        float holdTime = node.Param[0] != 0.0f ? node.Param[0] : 0.5f;
-        if (cur) node.StateDt += dt;
-        else     node.StateDt = 0.0f;
-        return FromBool(cur && node.StateDt >= holdTime);
+        bool prevS = (node.StateF[1] >= 0.5f);
+        bool prevR = (node.StateF[2] >= 0.5f);
+        // S 0→1: set latch
+        if (s && !prevS) node.StateF[0] = 1.0f;
+        // R 0→1: reset latch (S wins if both fire same frame)
+        if (r && !prevR) node.StateF[0] = 0.0f;
+        node.StateF[1] = s ? 1.0f : 0.0f;
+        node.StateF[2] = r ? 1.0f : 0.0f;
+        return node.StateF[0];
     }
     case NodeType::DelayOn:
     {
@@ -504,9 +511,40 @@ float ComputeNodeOutput(EditorNode& node,
     }
     case NodeType::SampleHold:
     {
-        float in  = GetPinByIndex(node, pinVals, 0);
-        bool trig = AsBool(GetPinByIndex(node, pinVals, 1));
-        if (trig) node.StateF[0] = in;
+        float in   = GetPinByIndex(node, pinVals, 0);
+        bool trig  = AsBool(GetPinByIndex(node, pinVals, 1));
+        bool reset = AsBool(GetPinByIndex(node, pinVals, 2));
+
+        bool latchMode = (node.Param[1] != 0.0f);  // Param[1] != 0 → latch enabled
+
+        // Reset clears the latch flag
+        if (reset)
+            node.StateB[0] = false;
+
+        // Param[0] = 0 → manual (Trig pin controls sampling)
+        // Param[0] != 0 → auto: sample whenever input changes
+        if (node.Param[0] != 0.0f) {
+            // Auto mode
+            if (std::abs(in - node.StateF[1]) > 1e-6f) {
+                if (!latchMode || !node.StateB[0]) {
+                    node.StateF[0] = in;
+                    node.StateF[1] = in;
+                    if (latchMode) node.StateB[0] = true;  // lock
+                }
+            }
+        } else if (trig) {
+            // Manual mode: Trig rising edge
+            bool prevTrig = node.StateB[1];
+            node.StateB[1] = trig;
+            if (trig && !prevTrig) {
+                if (!latchMode || !node.StateB[0]) {
+                    node.StateF[0] = in;
+                    if (latchMode) node.StateB[0] = true;  // lock
+                }
+            }
+        } else {
+            node.StateB[1] = false;
+        }
         return node.StateF[0];
     }
     case NodeType::Accumulator:
@@ -539,16 +577,23 @@ float ComputeNodeOutput(EditorNode& node,
     }
     case NodeType::Counter:
     {
-        bool inc   = AsBool(GetPinByIndex(node, pinVals, 0));
+        float rawInc = GetPinByIndex(node, pinVals, 0);
+        float prevRaw = node.StateF[1];
+        bool inc = (prevRaw < 0.5f && rawInc >= 0.5f);
+        node.StateF[1] = rawInc;
+
         bool reset = AsBool(GetPinByIndex(node, pinVals, 1));
-        // StateB[1] = previous increment
-        if (reset) { node.StateF[0] = 0; }
-        else if (inc && !node.StateB[1]) {
-            int limit = (int)node.ModeLabels.size();
-            if (limit <= 0) limit = 10;
-            node.StateF[0] = std::fmod(node.StateF[0] + 1.0f, (float)limit);
+        if (reset && !node.StateB[2]) {
+            node.StateF[0] = node.Param[0];  // Reset Value
+        } else if (inc)
+        {
+            int limit = (int)node.Param[1];
+            if (limit <= 0) limit = 5;
+            float startVal = node.Param[2];  // Start Value (wrap target)
+            node.StateF[0] += 1.0f;
+            if (node.StateF[0] > (float)limit) node.StateF[0] = startVal;
         }
-        node.StateB[1] = inc;
+        node.StateB[2] = reset;
         return node.StateF[0];
     }
     case NodeType::RateLimiter:
@@ -591,14 +636,38 @@ float ComputeNodeOutput(EditorNode& node,
         }
         return node.StateF[0] / node.StateF[1];
     }
+    case NodeType::GlobalRead:
+    {
+        int idx = node.GlobalVarId;
+        if (idx >= 0 && globals && idx < globalsCount) return globals[idx];
+        return 0.0f;
+    }
+    case NodeType::GlobalWrite:
+    {
+        float in  = GetPinByIndex(node, pinVals, 0);
+        bool trig = AsBool(GetPinByIndex(node, pinVals, 1));
+        int idx = node.GlobalVarId;
+        bool prevTrig = (node.StateF[1] >= 0.5f);
+        if (trig && !prevTrig && idx >= 0 && globals && idx < globalsCount)
+            globals[idx] = in;
+        node.StateF[1] = trig ? 1.0f : 0.0f;
+        if (idx >= 0 && globals && idx < globalsCount) return globals[idx];
+        return 0.0f;
+    }
+
+    // ==================== LOOKUP ====================
+    case NodeType::LookupTable:
+    {
+        float idx = GetPinByIndex(node, pinVals, 0);
+        int cnt = (int)node.ModeLabels.size();
+        if (cnt <= 0) return 0.0f;
+        int i = std::max(0, std::min(cnt - 1, (int)std::floor(idx)));
+        float v = 0.0f;
+        try { v = std::stof(node.ModeLabels[i]); } catch (...) {}
+        return v;
+    }
 
     // ==================== CONTROL ====================
-    case NodeType::ErrorCalculator:
-    {
-        float sp = GetPinByIndex(node, pinVals, 0);
-        float actual = GetPinByIndex(node, pinVals, 1);
-        return sp - actual;
-    }
     case NodeType::PID:
     {
         float sp = GetPinByIndex(node, pinVals, 0);
@@ -609,7 +678,7 @@ float ComputeNodeOutput(EditorNode& node,
         float error = sp - pv;
         // Proportional
         float P = kp * error;
-        // Integral (StateF[0])
+        // Integral (StateF[0]) with clamping anti-windup
         node.StateF[0] += error * dt;
         float I = ki * node.StateF[0];
         // Derivative (StateF[1] = prev error)
@@ -620,19 +689,22 @@ float ComputeNodeOutput(EditorNode& node,
             node.StateF[0] = 0.0f;
             node.StateF[1] = 0.0f;
         }
-        // Output limit
+        // Output limit with anti-windup (clamping integrator)
         float out = P + I + D;
-        if (node.Param[3] != 0.0f || node.Param[4] != 0.0f) {
+        bool hasLimit = (node.Param[3] != 0.0f || node.Param[4] != 0.0f);
+        if (hasLimit) {
             float lo = node.Param[3], hi = node.Param[4];
-            if (hi > lo) out = std::clamp(out, lo, hi);
+            if (hi > lo) {
+                float clamped = std::clamp(out, lo, hi);
+                // Anti-windup: if output saturated, prevent integrator from winding up further
+                if (clamped != out && ki != 0.0f) {
+                    // Back-calculate integral term to match clamped output
+                    node.StateF[0] = (clamped - P - D) / ki;
+                }
+                out = clamped;
+            }
         }
         return out;
-    }
-    case NodeType::Feedforward:
-    {
-        float sp = GetPinByIndex(node, pinVals, 0);
-        float gain = node.Param[0] != 0.0f ? node.Param[0] : 1.0f;
-        return sp * gain;
     }
     case NodeType::DeadbandComparator:
     {
@@ -665,14 +737,16 @@ EditorNode CreateEditorNodeByType(NodeType type, std::function<int()> nextId)
     auto N = [&](const char* name) { return EditorNode(nextId(), name, type, GetNodeHeaderColor(type)); };
     auto I = [&](const char* label) { return EditorPin(nextId(), label, PinType::Float); };
     auto O = [&](const char* label) { return EditorPin(nextId(), label, PinType::Float); };
+    auto OB = [&](const char* label) { return EditorPin(nextId(), label, PinType::Bool); };
+    auto OI = [&](const char* label) { return EditorPin(nextId(), label, PinType::Int); };
 
     switch (type)
     {
     // ==================== MATH ====================
     case NodeType::AddSubMulDiv: {
-        auto n = N("Arith"); n.Inputs = {I("A"), I("B")}; n.Outputs = {O("Out")}; return n; }
+        auto n = N("Arithmetic"); n.Inputs = {I("A"), I("B")}; n.Outputs = {O("Out")}; return n; }
     case NodeType::ScaleBias: {
-        auto n = N("Scale&Bias"); n.Inputs = {I("In")}; n.Outputs = {O("Out")};
+        auto n = N("Scale & Bias"); n.Inputs = {I("In")}; n.Outputs = {O("Out")};
         n.Param[0] = 1.0f; return n; }
     case NodeType::Lerp: {
         auto n = N("Lerp"); n.Inputs = {I("A"), I("B"), I("T")}; n.Outputs = {O("Out")}; return n; }
@@ -681,22 +755,17 @@ EditorNode CreateEditorNodeByType(NodeType type, std::function<int()> nextId)
         n.Param[2] = 1.0f; return n; }
     case NodeType::Remap: {
         auto n = N("Remap"); n.Inputs = {I("Value"), I("InMin"), I("InMax"), I("OutMin"), I("OutMax")};
-        n.Outputs = {O("Out")}; n.Param[5] = 1.0f; return n; }
+        n.Outputs = {O("Out")}; n.Param[1] = 1.0f; return n; }
     case NodeType::Compare: {
-        auto n = N("Compare"); n.Inputs = {I("A"), I("B")}; n.Outputs = {O("Bool")}; return n; }
+        auto n = N("Compare"); n.Inputs = {I("A"), I("B")}; n.Outputs = {OB("Bool")}; return n; }
     case NodeType::InRange: {
-        auto n = N("In Range"); n.Inputs = {I("Value"), I("Min"), I("Max")}; n.Outputs = {O("Bool")};
+        auto n = N("In Range"); n.Inputs = {I("Value"), I("Min"), I("Max")}; n.Outputs = {OB("Bool")};
         n.Param[2] = 1.0f; return n; }
-    case NodeType::Select: {
+    case NodeType::Select:
+    case NodeType::BoolSelect: {  // deprecated, loads as Select
         auto n = N("Select"); n.Inputs = {I("Cond"), I("A"), I("B")}; n.Outputs = {O("Out")}; return n; }
-    case NodeType::BoolSelect: {
-        auto n = N("Bool Select"); n.Inputs = {I("Cond"), I("A"), I("B")}; n.Outputs = {O("Out")}; return n; }
-    case NodeType::Atan2: {
-        auto n = N("Atan2"); n.Inputs = {I("Y"), I("X")}; n.Outputs = {O("θ")}; return n; }
-    case NodeType::Sin: {
-        auto n = N("Sin"); n.Inputs = {I("rad")}; n.Outputs = {O("Out")}; return n; }
-    case NodeType::Cos: {
-        auto n = N("Cos"); n.Inputs = {I("rad")}; n.Outputs = {O("Out")}; return n; }
+    case NodeType::MathFunc: {
+        auto n = N("Math Func"); n.Inputs = {I("A"), I("B")}; n.Outputs = {O("Out")}; return n; }
 
     // ==================== SHAPING ====================
     case NodeType::DeadZone: {
@@ -708,44 +777,32 @@ EditorNode CreateEditorNodeByType(NodeType type, std::function<int()> nextId)
         auto n = N("Quantizer"); n.Inputs = {I("In")}; n.Outputs = {O("Out")};
         n.Param[0] = 1.0f; return n; }
     case NodeType::Hysteresis: {
-        auto n = N("Hysteresis"); n.Inputs = {I("In")}; n.Outputs = {O("Out")};
+        auto n = N("Hysteresis"); n.Inputs = {I("In")}; n.Outputs = {OB("Out")};
         n.Param[0] = 0.5f; n.Param[1] = 0.1f; return n; }
 
     // ==================== LOGIC ====================
-    case NodeType::And: {
-        auto n = N("AND"); n.Inputs = {I("A"), I("B")}; n.Outputs = {O("A&B")}; return n; }
-    case NodeType::Or: {
-        auto n = N("OR"); n.Inputs = {I("A"), I("B")}; n.Outputs = {O("A|B")}; return n; }
-    case NodeType::Xor: {
-        auto n = N("XOR"); n.Inputs = {I("A"), I("B")}; n.Outputs = {O("A^B")}; return n; }
-    case NodeType::Not: {
-        auto n = N("NOT"); n.Inputs = {I("A")}; n.Outputs = {O("!A")}; return n; }
+    case NodeType::LogicOp: {
+        auto n = N("Logic Op"); n.Inputs = {I("A"), I("B")}; n.Outputs = {OB("Out")}; return n; }
     case NodeType::RisingEdge: {
-        auto n = N("Rising Edge"); n.Inputs = {I("In")}; n.Outputs = {O("Out")};
-        n.StateB[0] = false; return n; }
-    case NodeType::FallingEdge: {
-        auto n = N("Falling Edge"); n.Inputs = {I("In")}; n.Outputs = {O("Out")};
+        auto n = N("Edge Detect"); n.Inputs = {I("In")}; n.Outputs = {OB("Out")};
         n.StateB[0] = false; return n; }
     case NodeType::Toggle: {
-        auto n = N("Toggle"); n.Inputs = {I("Clk")}; n.Outputs = {O("Q")};
+        auto n = N("Toggle"); n.Inputs = {I("Clk")}; n.Outputs = {OB("Q")};
         n.StateB[0] = false; return n; }
     case NodeType::SRLatch: {
-        auto n = N("SR Latch"); n.Inputs = {I("S"), I("R")}; n.Outputs = {O("Q")};
+        auto n = N("SR Latch"); n.Inputs = {I("S"), I("R")}; n.Outputs = {OB("Q")};
         n.StateB[0] = false; return n; }
-    case NodeType::Hold: {
-        auto n = N("Hold"); n.Inputs = {I("In")}; n.Outputs = {O("Out")};
-        n.Param[0] = 0.5f; return n; }
     case NodeType::DelayOn: {
-        auto n = N("Delay On"); n.Inputs = {I("In")}; n.Outputs = {O("Out")};
+        auto n = N("Delay"); n.Inputs = {I("In")}; n.Outputs = {OB("Out")};
         n.Param[0] = 0.5f; return n; }
     case NodeType::DelayOff: {
-        auto n = N("Delay Off"); n.Inputs = {I("In")}; n.Outputs = {O("Out")};
+        auto n = N("Delay Off"); n.Inputs = {I("In")}; n.Outputs = {OB("Out")};
         n.Param[0] = 0.5f; return n; }
     case NodeType::Timer: {
-        auto n = N("Timer"); n.Inputs = {I("Trig")}; n.Outputs = {O("Out")};
+        auto n = N("Timer"); n.Inputs = {I("Trig")}; n.Outputs = {OB("Out")};
         n.Param[0] = 0.5f; n.StateB[0] = false; return n; }
     case NodeType::Pulse: {
-        auto n = N("Pulse"); n.Inputs = {I("In")}; n.Outputs = {O("Out")};
+        auto n = N("Pulse"); n.Inputs = {I("In")}; n.Outputs = {OB("Out")};
         n.Param[0] = 0.1f; n.StateB[0] = false; return n; }
 
     // ==================== MEMORY ====================
@@ -753,20 +810,21 @@ EditorNode CreateEditorNodeByType(NodeType type, std::function<int()> nextId)
         auto n = N("Unit Delay"); n.Inputs = {I("In")}; n.Outputs = {O("Out")};
         n.StateF[0] = 0.0f; return n; }
     case NodeType::SampleHold: {
-        auto n = N("S & H"); n.Inputs = {I("Value"), I("Trig")}; n.Outputs = {O("Out")};
-        n.StateF[0] = 0.0f; return n; }
+        auto n = N("Sample Hold"); n.Inputs = {I("Value"), I("Trig"), I("Reset")}; n.Outputs = {O("Out")};
+        n.StateF[0] = 0.0f; n.StateF[1] = 0.0f; n.StateB[0] = false; n.Param[1] = 0.0f; return n; }
     case NodeType::Accumulator: {
-        auto n = N("Accum"); n.Inputs = {I("In"), I("Reset")}; n.Outputs = {O("Sum")};
+        auto n = N("Accumulator"); n.Inputs = {I("In"), I("Reset")}; n.Outputs = {O("Sum")};
         n.StateF[0] = 0.0f; return n; }
     case NodeType::Integrator: {
         auto n = N("Integrator"); n.Inputs = {I("In"), I("Reset")}; n.Outputs = {O("Out")};
-        n.StateF[0] = 0.0f; return n; }
+        n.StateF[0] = 0.0f; n.Param[2] = 0.0f; return n; }
     case NodeType::Differentiator: {
-        auto n = N("Derivative"); n.Inputs = {I("In")}; n.Outputs = {O("d/dt")};
+        auto n = N("Differentiator"); n.Inputs = {I("In")}; n.Outputs = {O("d/dt")};
         n.StateF[1] = 0.0f; return n; }
     case NodeType::Counter: {
-        auto n = N("Counter"); n.Inputs = {I("Inc"), I("Reset")}; n.Outputs = {O("Count")};
-        n.StateF[0] = 0; return n; }
+        auto n = N("Counter"); n.Inputs = {I("Inc"), I("Reset")}; n.Outputs = {OI("Count")};
+        // Param[0]=Reset Value, Param[1]=Cycle Limit, Param[2]=Start Value
+        n.Param[0] = 0.0f; n.Param[1] = 5.0f; n.Param[2] = 0.0f; n.StateF[0] = 0.0f; return n; }
     case NodeType::RateLimiter: {
         auto n = N("Rate Limiter"); n.Inputs = {I("In")}; n.Outputs = {O("Out")};
         n.Param[0] = 10.0f; n.Param[1] = 10.0f; n.StateF[0] = 0.0f; return n; }
@@ -774,29 +832,34 @@ EditorNode CreateEditorNodeByType(NodeType type, std::function<int()> nextId)
         auto n = N("Low Pass"); n.Inputs = {I("In")}; n.Outputs = {O("Out")};
         n.Param[0] = 10.0f; n.StateF[0] = 0.0f; return n; }
     case NodeType::MovingAverage: {
-        auto n = N("Mov Avg"); n.Inputs = {I("In")}; n.Outputs = {O("Avg")};
+        auto n = N("Moving Average"); n.Inputs = {I("In")}; n.Outputs = {O("Avg")};
         n.Param[0] = 5.0f; return n; }
+    case NodeType::GlobalRead: {
+        auto n = N("Global Read"); n.Outputs = {O("Value")};
+        return n; }
+    case NodeType::GlobalWrite: {
+        auto n = N("Global Write"); n.Inputs = {I("Value"), I("Trig")}; n.Outputs = {O("Out")};
+        return n; }
 
     // ==================== CONTROL ====================
-    case NodeType::ErrorCalculator: {
-        auto n = N("Error"); n.Inputs = {I("Setpoint"), I("Actual")}; n.Outputs = {O("Error")}; return n; }
     case NodeType::PID: {
         auto n = N("PID"); n.Inputs = {I("Setpoint"), I("PV"), I("Reset")}; n.Outputs = {O("Out")};
         n.Param[0] = 1.0f; n.StateF[0] = 0.0f; n.StateF[1] = 0.0f; return n; }
-    case NodeType::Feedforward: {
-        auto n = N("Feedfwd"); n.Inputs = {I("Setpoint")}; n.Outputs = {O("Out")};
-        n.Param[0] = 1.0f; return n; }
     case NodeType::DeadbandComparator: {
-        auto n = N("Deadband"); n.Inputs = {I("Error")}; n.Outputs = {O("OnTarget")};
+        auto n = N("Deadband Comparator"); n.Inputs = {I("Error")}; n.Outputs = {OB("OnTarget")};
         n.Param[0] = 0.01f; return n; }
 
     // ==================== LEGACY/SPECIAL ====================
     case NodeType::KeySource: {
         auto n = N("Key Source"); n.Outputs = {O("Value")}; return n; }
     case NodeType::ConstValue: {
-        auto n = N("Const"); n.Outputs = {O("Value")}; n.Value = 0.0f; return n; }
+        auto n = N("Const Value"); n.Outputs = {O("Value")}; n.Value = 0.0f; return n; }
     case NodeType::CustomOutput: {
         auto n = N("Output"); n.Inputs = {I("Value")}; return n; }
+    case NodeType::LookupTable: {
+        auto n = N("Lookup Table"); n.Inputs = {OI("Index")}; n.Outputs = {O("Value")};
+        n.ModeLabels = {"0", "1", "2", "3", "4", "5", "6", "7"};
+        return n; }
     }
     return EditorNode(0, "???", type);
 }
@@ -807,17 +870,17 @@ EditorNode CreateEditorNodeByType(NodeType type, std::function<int()> nextId)
 const NodeType AllNodeTypes[] = {
     NodeType::AddSubMulDiv, NodeType::ScaleBias, NodeType::Lerp,
     NodeType::Clamp, NodeType::Remap, NodeType::Compare, NodeType::InRange,
-    NodeType::Select, NodeType::BoolSelect, NodeType::Atan2, NodeType::Sin, NodeType::Cos,
+    NodeType::Select, NodeType::MathFunc,
     NodeType::DeadZone, NodeType::Curve, NodeType::Quantizer, NodeType::Hysteresis,
-    NodeType::And, NodeType::Or, NodeType::Xor, NodeType::Not,
-    NodeType::RisingEdge, NodeType::FallingEdge, NodeType::Toggle,
-    NodeType::SRLatch, NodeType::Hold, NodeType::DelayOn, NodeType::DelayOff,
+    NodeType::LogicOp, NodeType::RisingEdge, NodeType::Toggle,
+    NodeType::SRLatch, NodeType::DelayOn, NodeType::DelayOff,
     NodeType::Timer, NodeType::Pulse,
     NodeType::UnitDelay, NodeType::SampleHold, NodeType::Accumulator,
     NodeType::Integrator, NodeType::Differentiator, NodeType::Counter,
     NodeType::RateLimiter, NodeType::LowPass, NodeType::MovingAverage,
-    NodeType::ErrorCalculator, NodeType::PID, NodeType::Feedforward, NodeType::DeadbandComparator,
-    NodeType::KeySource, NodeType::ConstValue, NodeType::CustomOutput,
+    NodeType::GlobalRead, NodeType::GlobalWrite,
+    NodeType::PID, NodeType::DeadbandComparator,
+    NodeType::KeySource, NodeType::ConstValue, NodeType::LookupTable, NodeType::CustomOutput,
 };
 const int AllNodeTypeCount = sizeof(AllNodeTypes) / sizeof(AllNodeTypes[0]);
 
@@ -850,6 +913,9 @@ int GetNodeOpModeCount(NodeType type)
     {
     case NodeType::AddSubMulDiv: return 4;
     case NodeType::Compare:      return 6;
+    case NodeType::LogicOp:      return 4;
+    case NodeType::RisingEdge:   return 2;
+    case NodeType::MathFunc:     return 3;
     default: return 0;
     }
 }
@@ -864,7 +930,50 @@ const char* GetNodeOpModeLabel(NodeType type, int mode)
         static const char* labels[] = {"A>B", "A>=B", "A<=B", "A<B", "A==B", "A!=B"};
         return (mode >= 0 && mode < 6) ? labels[mode] : "?";
     }
+    if (type == NodeType::LogicOp) {
+        static const char* labels[] = {"AND", "OR", "XOR", "NOT"};
+        return (mode >= 0 && mode < 4) ? labels[mode] : "?";
+    }
+    if (type == NodeType::RisingEdge) {
+        static const char* labels[] = {"Rising", "Falling"};
+        return (mode >= 0 && mode < 2) ? labels[mode] : "?";
+    }
+    if (type == NodeType::MathFunc) {
+        static const char* labels[] = {"Sin", "Cos", "Atan2"};
+        return (mode >= 0 && mode < 3) ? labels[mode] : "?";
+    }
     return nullptr;
+}
+
+// ============================================================================
+// DrawPinTypeSelector — single button that cycles Float → Bool → Int → Float.
+// Uses a regular Button (not ArrowButton) because ArrowButton behaves
+// unreliably inside imgui-node-editor canvas.
+// When insidePin=true (called inside BeginPin/EndPin), uses a non-Button
+// (Text + IsItemClicked) so that clicks on the type area still belong
+// to the pin for link-dragging purposes.
+// ============================================================================
+void DrawPinTypeSelector(EditorPin* pin, std::function<void()> onModified)
+{
+    static const char* labels[] = {"Float", "Bool", "Int"};
+    static const PinType types[] = {PinType::Float, PinType::Bool, PinType::Int};
+    static const ImU32 colors[] = {IM_COL32(147,226,74,255), IM_COL32(226,147,74,255), IM_COL32(74,180,226,255)};
+    int cur = 0;
+    for (int i = 0; i < 3; ++i) if (pin->Type == types[i]) { cur = i; break; }
+
+    ImGui::PushID((int)pin->ID.Get());
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 0));
+    ImVec4 col = ImGui::ColorConvertU32ToFloat4(colors[cur]);
+    ImGui::PushStyleColor(ImGuiCol_Text, col);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+    if (ImGui::Button(labels[cur], ImVec2(54, 0)))
+    {
+        pin->Type = types[(cur + 1) % 3];
+        if (onModified) onModified();
+    }
+    ImGui::PopStyleColor(2);
+    ImGui::PopStyleVar();
+    ImGui::PopID();
 }
 
 // ============================================================================
@@ -890,57 +999,53 @@ void DrawGenericNodeBody(EditorNode& node,
                           std::function<void()> onModified)
 {
     namespace ed = ax::NodeEditor;
-    bool showBoolOutput = false;
 
-    // Determine if outputs should show as bool
-    switch (node.Type) {
-    case NodeType::Compare: case NodeType::InRange:
-    case NodeType::BoolSelect:
-    case NodeType::And: case NodeType::Or: case NodeType::Xor: case NodeType::Not:
-    case NodeType::RisingEdge: case NodeType::FallingEdge:
-    case NodeType::Toggle: case NodeType::SRLatch:
-    case NodeType::Hold: case NodeType::DelayOn: case NodeType::DelayOff:
-    case NodeType::Timer: case NodeType::Pulse:
-    case NodeType::Hysteresis:
-    case NodeType::DeadbandComparator:
-        showBoolOutput = true;
-        break;
-    default: break;
-    }
+    // Helper to display a pin value according to its type
+    auto ShowPinValue = [](PinType type, float v) {
+        switch (type) {
+        case PinType::Bool: ShowBool(v); break;
+        case PinType::Int:  ImGui::TextDisabled("%d", (int)std::round(v)); break;
+        default:            ImGui::TextDisabled("%.3f", v); break;
+        }
+    };
 
-    // -- Draw OpMode combo if applicable --
+    // -- Draw OpMode combo as a cycle button (no popup, avoids
+    //    positioning issues inside imgui-node-editor canvas) --
     int opCount = GetNodeOpModeCount(node.Type);
     if (opCount > 0) {
         NodeType capturedType = node.Type;
         ImGui::PushID((int)node.ID.Get());
 
         ImGui::SetNextItemWidth(110);
-        std::string preview = GetNodeOpModeLabel(capturedType, node.OpMode);
-        // 修正 imgui-node-editor 内 BeginCombo 弹出窗口定位
-        ImVec2 popupPos = ImGui::GetCursorScreenPos();
-        popupPos.y += ImGui::GetFrameHeightWithSpacing();
-        ImGui::SetNextWindowPos(popupPos);
-        if (ImGui::BeginCombo("##OpMode", preview.c_str())) {
-            for (int i = 0; i < opCount; ++i) {
-                bool sel = (node.OpMode == i);
-                if (ImGui::Selectable(GetNodeOpModeLabel(capturedType, i), sel)) {
-                    node.OpMode = i;
-                    onModified();
-                }
-                if (sel) ImGui::SetItemDefaultFocus();
-            }
-            ImGui::EndCombo();
+        if (ImGui::ArrowButton("##Prev", ImGuiDir_Left)) {
+            node.OpMode = (node.OpMode - 1 + opCount) % opCount;
+            onModified();
+        }
+        ImGui::SameLine(0, 2);
+        ImGui::Text("%s", GetNodeOpModeLabel(capturedType, node.OpMode));
+        ImGui::SameLine(0, 2);
+        if (ImGui::ArrowButton("##Next", ImGuiDir_Right)) {
+            node.OpMode = (node.OpMode + 1) % opCount;
+            onModified();
         }
         ImGui::PopID();
     }
 
     // -- Draw input pins --
-    for (auto& pin : node.Inputs) {
+    // Keep only icon+name inside BeginPin/EndPin so the editor's link-creation
+    // zone doesn't intercept clicks on the type button and value display.
+    for (size_t i = 0; i < node.Inputs.size(); ++i) {
+        auto& pin = node.Inputs[i];
         ed::BeginPin(pin.ID, ed::PinKind::Input);
         DrawPinIcon(pin, isPinLinked((int)pin.ID.Get()), 255);
         ImGui::SameLine();
         ImGui::TextUnformatted(pin.Name.c_str());
         ed::EndPin();
+        ImGui::SameLine(0, 6);
+        DrawPinTypeSelector(&pin, onModified);
+        ImGui::SameLine(0, 8);
+        float v = (i < 4) ? node.InputValues[i] : 0.0f;
+        ShowPinValue(pin.Type, v);
     }
 
     // -- Draw node-specific Param inputs --
@@ -964,7 +1069,6 @@ void DrawGenericNodeBody(EditorNode& node,
         case NodeType::Hysteresis:
             F(0, "Threshold"); F(1, "Hysteresis"); break;
         // --- Logic ---
-        case NodeType::Hold:
         case NodeType::DelayOn:
         case NodeType::DelayOff:
             F(0, "Delay (s)"); break;
@@ -973,6 +1077,24 @@ void DrawGenericNodeBody(EditorNode& node,
         case NodeType::Pulse:
             F(0, "Width (s)"); break;
         // --- Memory ---
+        case NodeType::SampleHold: {
+            bool autoTrig = (node.Param[0] != 0.0f);
+            if (ImGui::Checkbox("Auto", &autoTrig)) {
+                node.Param[0] = autoTrig ? 1.0f : 0.0f;
+                onModified();
+            }
+            bool latch = (node.Param[1] != 0.0f);
+            if (ImGui::Checkbox("Latch", &latch)) {
+                node.Param[1] = latch ? 1.0f : 0.0f;
+                if (!latch) node.StateB[0] = false;  // clear latch flag when disabled
+                onModified();
+            }
+            break;
+        }
+        case NodeType::Counter:
+            F(0, "Reset Value");
+            F(1, "Cycle Limit");
+            F(2, "Start Value"); break;
         case NodeType::Integrator:
             F(0, "Min"); F(1, "Max"); break;
         case NodeType::RateLimiter:
@@ -981,14 +1103,66 @@ void DrawGenericNodeBody(EditorNode& node,
             F(0, "Cutoff (Hz)"); break;
         case NodeType::MovingAverage:
             F(0, "Window"); break;
+        case NodeType::GlobalRead:
+        case NodeType::GlobalWrite:
+            // Variable name is shown in DrawNodeContents (like KeySource)
+            break;
         // --- Control ---
         case NodeType::PID:
             F(0, "Kp"); F(1, "Ki"); F(2, "Kd");
             F(3, "Out Min"); F(4, "Out Max"); break;
-        case NodeType::Feedforward:
-            F(0, "Gain"); break;
         case NodeType::DeadbandComparator:
             F(0, "Band"); break;
+        // --- Lookup Table ---
+        case NodeType::LookupTable: {
+            auto& labels = node.ModeLabels;
+            if (labels.empty()) labels.push_back("0");
+            int count = (int)labels.size();
+
+            if (ImGui::Button("+ Slot")) {
+                labels.push_back("0");
+                onModified();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("- Slot") && count > 1) {
+                labels.pop_back();
+                onModified();
+            }
+
+            for (int i = 0; i < (int)labels.size(); ++i) {
+                ImGui::PushID(i);
+
+                // Move up / down buttons
+                if (i > 0 && ImGui::ArrowButton("##up", ImGuiDir_Up)) {
+                    std::swap(labels[i], labels[i - 1]);
+                    onModified();
+                }
+                ImGui::SameLine();
+                if (i < (int)labels.size() - 1 && ImGui::ArrowButton("##dn", ImGuiDir_Down)) {
+                    std::swap(labels[i], labels[i + 1]);
+                    onModified();
+                }
+                ImGui::SameLine();
+
+                // Index label
+                char idxLabel[16];
+                snprintf(idxLabel, sizeof(idxLabel), "[%d]", i);
+                ImGui::TextUnformatted(idxLabel);
+                ImGui::SameLine();
+
+                // Value — use InputText with char buffer for reliable editing
+                char buf[32];
+                snprintf(buf, sizeof(buf), "%s", labels[i].c_str());
+                ImGui::SetNextItemWidth(100);
+                if (ImGui::InputText("##val", buf, sizeof(buf), ImGuiInputTextFlags_CharsDecimal)) {
+                    labels[i] = buf;
+                    onModified();
+                }
+
+                ImGui::PopID();
+            }
+            break;
+        }
         default: break;
         }
         ImGui::PopID();
@@ -997,11 +1171,12 @@ void DrawGenericNodeBody(EditorNode& node,
     // -- Draw separator --
     if (!node.Inputs.empty() && !node.Outputs.empty()) {
         float sepWidth = 140.0f;
+        float padX = ImGui::GetStyle().FramePadding.x;
         ImGui::Dummy(ImVec2(sepWidth, 2));
         auto* dl = ImGui::GetWindowDrawList();
         ImVec2 cursor = ImGui::GetCursorScreenPos();
-        dl->AddLine(ImVec2(cursor.x, cursor.y),
-                    ImVec2(cursor.x + sepWidth, cursor.y),
+        dl->AddLine(ImVec2(cursor.x - padX, cursor.y),
+                    ImVec2(cursor.x + sepWidth + padX, cursor.y),
                     IM_COL32(100, 100, 100, 255), 1.0f);
         ImGui::Dummy(ImVec2(sepWidth, 2));
     }
@@ -1012,9 +1187,10 @@ void DrawGenericNodeBody(EditorNode& node,
         DrawPinIcon(pin, isPinLinked((int)pin.ID.Get()), 255);
         ImGui::SameLine();
         ImGui::TextUnformatted(pin.Name.c_str());
-        ImGui::SameLine(0, 20);
-        if (showBoolOutput) ShowBool(node.Value);
-        else                ImGui::TextDisabled("%.3f", node.Value);
         ed::EndPin();
+        ImGui::SameLine(0, 6);
+        DrawPinTypeSelector(&pin, onModified);
+        ImGui::SameLine(0, 8);
+        ShowPinValue(pin.Type, node.Value);
     }
 }

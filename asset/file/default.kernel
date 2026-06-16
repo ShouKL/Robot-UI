@@ -10,12 +10,12 @@ robot_ui_kernel:
     simulation_open: false
     live_streamer_open: false
     robot_status_open: true
-    node_editor_open: false
+    node_editor_open: true
     thrust_curve_editor_open: false
     robot_comm_open: true
     notification_open: true
     terminal_open: true
-    monitor_wall_open: false
+    monitor_wall_open: true
     robot_active_mode: 0
     gamepad_active_mode: 0
     node_left_side_width: 180

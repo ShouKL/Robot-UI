@@ -9,9 +9,11 @@
 #include <imgui_node_editor.h>
 #include <implot.h>
 #include <GLFW/glfw3.h>
+#include <vulkan/vulkan.h>
 #include <chrono>
 #include <cmath>
 #include <filesystem>
+#include <shellapi.h>
 
 Robot_UI_Layer::Robot_UI_Layer()
     : m_AboutOpen(false), m_OptionOpen(false),
@@ -412,13 +414,115 @@ void Robot_UI_Layer::OnUIRender()
 
     if (m_AboutOpen)
     {
-        if (ImGui::Begin("About", nullptr, ImGuiWindowFlags_AlwaysVerticalScrollbar))
+        ImGui::SetNextWindowSize(ImVec2(420, 420), ImGuiCond_FirstUseEver);
+        if (ImGui::Begin("About", &m_AboutOpen,
+            ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
         {
-            ImGui::Text("Robot UI v1.0");
-            if (ImGui::Button("Close##1", ImVec2(-1, 0)))
+            ImVec2 windowSize = ImGui::GetWindowSize();
+            float buttonHeight = 30.0f;
+            float padding = 10.0f;
+
+            // ---- 内容区域（可滚动子区域）----
+            ImGui::BeginChild("AboutContent", ImVec2(0, windowSize.y - buttonHeight - padding * 3), false, ImGuiWindowFlags_AlwaysVerticalScrollbar);
             {
-                m_AboutOpen = false;
+            // ---- 标题 & 版本 ----
+            ImGui::PushFont(ImGui::GetIO().Fonts->Fonts[0]);
+            ImGui::TextColored(ImVec4(0.3f, 0.7f, 1.0f, 1.0f), "Robot UI");
+            ImGui::PopFont();
+            ImGui::SameLine();
+            ImGui::TextDisabled("v1.0.0");
+            ImGui::Spacing();
+            ImGui::Separator();
+            ImGui::Spacing();
+
+            // ---- 构建信息 ----
+            if (ImGui::CollapsingHeader("Build", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                ImGui::Text("Version:    v1.0.0");
+#if defined(WL_DEBUG)
+                ImGui::Text("Config:     Debug");
+#elif defined(WL_RELEASE)
+                ImGui::Text("Config:     Release");
+#elif defined(WL_DIST)
+                ImGui::Text("Config:     Distribution");
+#else
+                ImGui::Text("Config:     Unknown");
+#endif
+                ImGui::Text("Built:      %s %s", __DATE__, __TIME__);
+#ifdef _MSC_VER
+                ImGui::Text("Compiler:   MSVC %d.%02d", _MSC_VER / 100, _MSC_VER % 100);
+#elif defined(__GNUC__)
+                ImGui::Text("Compiler:   GCC %d.%d.%d", __GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
+#elif defined(__clang__)
+                ImGui::Text("Compiler:   Clang %d.%d.%d", __clang_major__, __clang_minor__, __clang_patchlevel__);
+#endif
+                ImGui::Text("Platform:   Windows x64");
             }
+
+            ImGui::Spacing();
+
+            // ---- 图形后端 ----
+            if (ImGui::CollapsingHeader("Graphics"))
+            {
+                ImGui::Text("Backend:    Vulkan");
+                VkPhysicalDeviceProperties props = {};
+                vkGetPhysicalDeviceProperties(Walnut::Application::GetPhysicalDevice(), &props);
+                ImGui::Text("GPU:        %s", props.deviceName);
+                ImGui::Text("Vulkan:     %d.%d.%d",
+                    VK_API_VERSION_MAJOR(props.apiVersion),
+                    VK_API_VERSION_MINOR(props.apiVersion),
+                    VK_API_VERSION_PATCH(props.apiVersion));
+                ImGui::Text("Driver:     %d.%d.%d",
+                    VK_API_VERSION_MAJOR(props.driverVersion),
+                    VK_API_VERSION_MINOR(props.driverVersion),
+                    VK_API_VERSION_PATCH(props.driverVersion));
+            }
+
+            ImGui::Spacing();
+
+            // ---- 依赖与致谢 ----
+            if (ImGui::CollapsingHeader("Third-Party"))
+            {
+                ImGui::BulletText("Dear ImGui (docking branch)");
+                ImGui::BulletText("ImPlot v0.16");
+                ImGui::BulletText("imgui-node-editor");
+                ImGui::BulletText("GLFW 3.x");
+                ImGui::BulletText("Vulkan SDK");
+                ImGui::BulletText("yaml-cpp");
+                ImGui::BulletText("spdlog");
+                ImGui::BulletText("glm");
+                ImGui::BulletText("stb_image");
+                ImGui::BulletText("Walnut (application framework)");
+                ImGui::BulletText("ImTerm (terminal emulator)");
+            }
+
+            ImGui::Spacing();
+
+            // ---- 资源链接 ----
+            if (ImGui::CollapsingHeader("Resources"))
+            {
+                ImGui::Text("Wiki: ");
+                ImGui::SameLine();
+                ImGui::TextColored(ImVec4(0.3f, 0.7f, 1.0f, 1.0f), "github.com/ShouKL/Robot-UI/wiki");
+                if (ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("Click to open in browser");
+                    if (ImGui::IsMouseClicked(0))
+                        ShellExecuteA(nullptr, "open", "https://github.com/ShouKL/Robot-UI/wiki/README.md", nullptr, nullptr, SW_SHOWNORMAL);
+                }
+            }
+
+            ImGui::Spacing();
+            ImGui::Separator();
+
+            ImGui::TextDisabled("(c) 2025-2026  Robot UI Team");
+            }
+            ImGui::EndChild();
+
+            // ---- 底部固定 Close 按钮 ----
+            ImGui::SetCursorPosY(windowSize.y - buttonHeight - padding);
+            if (ImGui::Button("Close", ImVec2(-1, buttonHeight)))
+                m_AboutOpen = false;
         }
         ImGui::End();
     }
@@ -488,9 +592,6 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
     Walnut::Application* app = new Walnut::Application(spec);
 
     WL_INFO_TAG("APP", "Robot UI application created");
-
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags &= ~ImGuiConfigFlags_ViewportsEnable;
 
     std::shared_ptr<Robot_UI_Layer> uiLayer = std::make_shared<Robot_UI_Layer>();
     app->PushLayer(uiLayer);

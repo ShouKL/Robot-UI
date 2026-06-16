@@ -22,6 +22,8 @@
 enum class PinType
 {
     Float,
+    Bool,
+    Int,
 };
 
 // ============================================================================
@@ -61,61 +63,71 @@ enum class NodeCategory
 enum class NodeType
 {
     // -- 1. Math（数学运算） --
-    AddSubMulDiv,   // 四则运算（OpMode 切换）
-    ScaleBias,      // Scale & Bias: Out = In * a + b
-    Lerp,           // 线性插值: A + (B-A)*T
-    Clamp,          // 钳制: clamp(Value, Min, Max)
-    Remap,          // 区间映射
-    Compare,        // 比较: A op B → bool
-    InRange,        // 区间判断: Value ∈ [Min,Max]
-    Select,         // 选择: Cond ? A : B（浮点）
-    BoolSelect,     // 布尔选择: Cond ? A : B（布尔）
-    Atan2,          // atan2(Y, X)
-    Sin,            // sin(rad)
-    Cos,            // cos(rad)
+    AddSubMulDiv = 0,   // 四则运算（OpMode 切换）
+    ScaleBias = 1,      // Scale & Bias: Out = In * a + b
+    Lerp = 2,           // 线性插值: A + (B-A)*T
+    Clamp = 3,          // 钳制: clamp(Value, Min, Max)
+    Remap = 4,          // 区间映射
+    Compare = 5,        // 比较: A op B → bool
+    InRange = 6,        // 区间判断: Value ∈ [Min,Max]
+    Select = 7,         // 选择: Cond ? A : B
+    BoolSelect = 8,     // [已废弃] 被 Select 取代
+    MathFunc = 9,       // 数学函数: 0=Sin,1=Cos,2=Atan2 (复用旧Atan2=9)
+
+    // slots 10,11 were Sin,Cos — see LoadGraphData compat
 
     // -- 2. Shaping（信号塑形） --
-    DeadZone,       // 死区
-    Curve,          // 曲线映射（分段线性）
-    Quantizer,      // 量化器
-    Hysteresis,     // 滞回比较
+    DeadZone = 12,
+    Curve = 13,
+    Quantizer = 14,
+    Hysteresis = 15,
 
     // -- 3. Logic（逻辑与时序） --
-    And,            // AND
-    Or,             // OR
-    Xor,            // XOR
-    Not,            // NOT
-    RisingEdge,     // 上升沿检测
-    FallingEdge,    // 下降沿检测
-    Toggle,         // 翻转锁存
-    SRLatch,        // SR 锁存器
-    Hold,           // 长按检测
-    DelayOn,        // 接通延时
-    DelayOff,       // 关断延时
-    Timer,          // 可重触发单稳态
-    Pulse,          // 边沿脉冲
+    LogicOp = 16,       // 逻辑运算: 0=AND,1=OR,2=XOR,3=NOT (复用旧And=16)
+
+    // slots 17,18,19 were Or,Xor,Not — see LoadGraphData compat
+
+    RisingEdge = 20,    // 边缘检测: 0=上升沿, 1=下降沿
+
+    // slot 21 was FallingEdge — see LoadGraphData compat
+
+    Toggle = 22,
+    SRLatch = 23,
+
+    // slot 24 was Hold — see LoadGraphData compat
+
+    DelayOn = 25,       // 延时（Hold 已合并至此）
+    DelayOff = 26,
+    Timer = 27,
+    Pulse = 28,
 
     // -- 4. Memory（状态与记忆） --
-    UnitDelay,      // 单位延迟 z⁻¹
-    SampleHold,     // 采样保持
-    Accumulator,    // 累加器
-    Integrator,     // 积分器
-    Differentiator, // 微分器
-    Counter,        // 循环计数器
-    RateLimiter,    // 速率限制
-    LowPass,        // 低通滤波
-    MovingAverage,  // 滑动平均
+    UnitDelay = 29,
+    SampleHold = 30,
+    Accumulator = 31,
+    Integrator = 32,
+    Differentiator = 33,
+    Counter = 34,
+    RateLimiter = 35,
+    LowPass = 36,
+    MovingAverage = 37,
+    GlobalRead = 38,
+    GlobalWrite = 39,
+
+    // slot 40 was ErrorCalculator — see LoadGraphData compat
 
     // -- 5. Control（反馈与控制） --
-    ErrorCalculator,    // 误差计算
-    PID,                // PID 控制器
-    Feedforward,        // 前馈
-    DeadbandComparator, // 死区比较器
+    PID = 41,
+
+    // slot 42 was Feedforward — see LoadGraphData compat
+
+    DeadbandComparator = 43,
 
     // -- Legacy / special --
-    KeySource,      // 按键源（游戏手柄输入）
-    ConstValue,     // 常量值
-    CustomOutput,   // 输出到执行器
+    KeySource = 44,
+    ConstValue = 45,
+    CustomOutput = 46,
+    LookupTable = 47,  // Mode → Value mapping
 };
 
 // ============================================================================
@@ -143,6 +155,7 @@ struct EditorNode
     // ---- Identifier ----
     std::string              KeyName;       // KeySource: bound gamepad key
     std::string              OutputTarget;  // CustomOutput: actuator field path
+    int                      GlobalVarId = -1; // GlobalRead/Write: stable variable ID
     std::vector<std::string> ModeLabels;    // Counter: mode label list
 
     // ---- Internal runtime state (for memory/logic nodes) ----
@@ -168,6 +181,14 @@ ImColor     GetNodeHeaderColor(NodeType type);
 ImColor     GetCategoryColor(NodeCategory cat);
 ImColor     GetIconColor(PinType type);
 void        DrawPinIcon(const EditorPin& pin, bool connected, int alpha);
+void        DrawPinTypeSelector(EditorPin* pin, std::function<void()> onModified);
+
+// -- Pin type compatibility (Float ↔ Bool ↔ Int are interchangeable) --
+inline bool PinTypesCompatible(PinType a, PinType b) {
+    if (a == b) return true;
+    // All pin types are internally float, cross-type connections allowed
+    return true;
+}
 
 // -- Node type iteration (for building menus dynamically) --
 extern const NodeType AllNodeTypes[];
@@ -198,7 +219,9 @@ void DrawGenericNodeBody(EditorNode& node,
 float ComputeNodeOutput(EditorNode& node,
                         const std::map<std::string, float>& keyValues,
                         const std::unordered_map<int, float>& pinVals,
-                        float dt = 0.0f);
+                        float dt = 0.0f,
+                        float* globals = nullptr,
+                        int globalsCount = 0);
 
 // -- Factory --
 // Create a fully configured EditorNode with proper pins for the given NodeType.

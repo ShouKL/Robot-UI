@@ -55,6 +55,16 @@ struct OutputTargetInfo {
 using KeyNameList = std::vector<std::string>;
 
 // ============================================================================
+// GlobalVar — a typed, ID-stable graph variable (persisted with the graph)
+// ============================================================================
+struct GlobalVar {
+    int      id    = 0;
+    std::string name;
+    float    value = 0.0f;
+    PinType  type  = PinType::Float;
+};
+
+// ============================================================================
 // NodeGraph
 // ============================================================================
 class NodeGraph
@@ -130,9 +140,12 @@ public:
     std::unique_ptr<NodeGraph> Clone() const;
 
     // ---- Evaluation ----
-    // Pure compute — thread-safe, no member mutation
+    // Compute output map from keyValues.
+    // NOTE: Stateful nodes (Memory/Logic/Control) modify their internal state during
+    // evaluation, so callers MUST hold a unique_lock (write lock) on m_EvalMutex.
+    // Internal use only — use Evaluate() or EvaluateIntoActuator() for public API.
     std::map<std::string, float> EvaluateCompute(const std::map<std::string, float>& keyValues);
-    // Thread-safe read-only evaluation
+    // Thread-safe evaluation (acquires unique_lock — serializes concurrent evals)
     std::map<std::string, float> Evaluate(const std::map<std::string, float>& keyValues);
     // Evaluate and write outputs into ActuatorConfig
     void EvaluateIntoActuator(const std::map<std::string, float>& keyValues, ActuatorConfig& data);
@@ -152,6 +165,7 @@ public:
                           const std::vector<OutputTargetInfo>& outputTargets);
     void DrawMenuBar();
     void DrawKeyValuesSidebar(float sideWidth, const std::set<std::string>& analogKeys);
+    void DrawGlobalsSidebar(float sideWidth);
 
     // ---- Node creation (editor-side) ----
     void AddNode(NodeType type);
@@ -171,6 +185,18 @@ public:
     void SetActiveRobotModeName(const std::string& n)   { m_ActiveRobotModeName = n; }
     void SetActiveGamepadModeName(const std::string& n) { m_ActiveGamepadModeName = n; }
 
+    // ---- Global variables (persisted with graph) ----
+    int  FindGlobalIndex(int id) const;
+    int  FindGlobalByName(const std::string& name) const;
+    void AddGlobal(const std::string& name, float val, PinType type = PinType::Float);
+    void RemoveGlobal(int id);
+    int  GlobalCount() const;
+    float GetGlobal(int idx) const;
+    void  SetGlobal(int idx, float v);
+    PinType GetGlobalType(int idx) const;
+    void    SetGlobalType(int idx, PinType t);
+    const std::vector<GlobalVar>& GetGlobals() const { return m_GlobalVars; }
+
     // ---- Thread-safe mutex access (private — only NodeGraphManager may lock directly) ----
 private:
     friend class NodeGraphManager;
@@ -182,7 +208,8 @@ private:
 
     mutable std::shared_mutex m_EvalMutex;
     mutable std::mutex        m_KvMutex;
-    std::chrono::steady_clock::time_point m_LastEvalTime = {};
+    // Atomic for thread-safe time tracking across concurrent evals
+    mutable std::atomic<int64_t> m_LastEvalTimeNs{0};
 
     std::map<std::string, float>       m_LastKeyValues;
     std::map<std::string, float>       m_LastOutputs;
@@ -195,8 +222,10 @@ private:
     bool m_IsRunning = false;
     std::shared_ptr<Walnut::Image> m_PlayIcon;
     std::shared_ptr<Walnut::Image> m_StopIcon;
-    ax::NodeEditor::NodeId m_ActiveKeySourceId = 0;  // last-clicked KeySource node
-    ax::NodeEditor::NodeId m_ActiveOutputId    = 0;  // last-clicked CustomOutput node
+    ax::NodeEditor::NodeId m_ActiveKeySourceId = 0;
+    ax::NodeEditor::NodeId m_ActiveOutputId    = 0;
+    ax::NodeEditor::PinId  m_LinkSourcePin     = 0;   // pending link source (click-to-connect)
+    ImVec2                 m_LinkSourceMouse   = ImVec2(0,0);
     RobotComponentManager* m_RobotMgr = nullptr;
     GamepadMapperManager*  m_GamepadMgr = nullptr;
     RobotCommManager*      m_CommMgr = nullptr;
@@ -209,8 +238,15 @@ private:
     std::map<std::string, double>      m_FieldValues;
     std::set<std::string>              m_AnalogKeys;
 
+    std::vector<GlobalVar>   m_GlobalVars;
+    std::vector<float>       m_GlobalTempVals;  // temporary float array for evaluation
+
     float m_LeftSideWidth  = 180.0f;
     float m_RightSideWidth = 200.0f;
+
+    ax::NodeEditor::NodeId m_ActiveGlobalReadId = 0;
+    int m_RenamingGlobalIdx = -1;
+    int m_LastRenamingIdx   = -2;
 };
 
 // ============================================================================

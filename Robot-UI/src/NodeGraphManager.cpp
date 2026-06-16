@@ -96,6 +96,9 @@ NodeGraphManager::NodeGraphManager()
 {
     ed::Config cfg;
     cfg.SettingsFile = nullptr;
+    cfg.DragButtonIndex = ImGuiMouseButton_Right;     // 右键拖拽节点
+    cfg.SelectButtonIndex = ImGuiMouseButton_Left;     // 左键：点引脚连线 / 选节点
+    cfg.NavigateButtonIndex = ImGuiMouseButton_Middle;
     m_EditorCtx = ed::CreateEditor(&cfg);
     ed::SetCurrentEditor(m_EditorCtx);
     AddItem();
