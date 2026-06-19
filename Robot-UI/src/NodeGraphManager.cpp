@@ -3,6 +3,7 @@
 #include "RobotComponentManager.h"
 #include "GamepadMapperManager.h"
 #include "RobotCommManager.h"
+#include "ShortcutManager.h"
 #include "Walnut/Core/Log.h"
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -24,6 +25,8 @@ void NodeGraphManager::AddItem()
     if (m_RobotMgr)     item.graph->SetRobotComponentManager(m_RobotMgr);
     if (m_GamepadMgr)   item.graph->SetGamepadMapperManager(m_GamepadMgr);
     if (m_RobotCommMgr) item.graph->SetRobotCommManager(m_RobotCommMgr);
+    if (m_ShortcutMgr)  item.graph->SetShortcutManager(m_ShortcutMgr);
+    if (m_StoredSendActionCb) item.graph->SetSendActionCb(m_StoredSendActionCb);
     m_Items.push_back(std::move(item));
     if (m_Items.size() == 1) {
         m_SelectedIndex = 0;
@@ -70,7 +73,7 @@ void NodeGraphManager::SaveCurrentToItem()
         auto& item = m_Items[m_SelectedIndex];
         item.editorYaml = GetGraphYaml();
         item.graph->LoadGraphData(item.editorYaml);
-        item.comm_index = m_SelectedGraph->GetCommIndex();
+        // comm_index is no longer needed (replaced by comm_refs in YAML)
     }
 }
 
@@ -79,11 +82,12 @@ void NodeGraphManager::LoadItemToCurrent()
     if (m_SelectedIndex >= 0 && m_SelectedIndex < (int)m_Items.size()) {
         auto& item = m_Items[m_SelectedIndex];
         m_SelectedGraph = item.graph.get();
-        m_SelectedGraph->SetCommIndex(item.comm_index);
         // 重新注入依赖到新选中的 graph
         if (m_RobotMgr)     m_SelectedGraph->SetRobotComponentManager(m_RobotMgr);
         if (m_GamepadMgr)   m_SelectedGraph->SetGamepadMapperManager(m_GamepadMgr);
         if (m_RobotCommMgr) m_SelectedGraph->SetRobotCommManager(m_RobotCommMgr);
+        if (m_ShortcutMgr)  m_SelectedGraph->SetShortcutManager(m_ShortcutMgr);
+        if (m_StoredSendActionCb) m_SelectedGraph->SetSendActionCb(m_StoredSendActionCb);
         // mode name 从 YAML 中恢复（GetGraphYaml 已序列化）
         LoadGraphYaml(m_Items[m_SelectedIndex].editorYaml);
     }
@@ -141,6 +145,22 @@ void NodeGraphManager::SetGamepadMapperManager(GamepadMapperManager* g)
     if (m_SelectedGraph) m_SelectedGraph->SetGamepadMapperManager(g);
 }
 
+void NodeGraphManager::SetShortcutManager(ShortcutManager* sm)
+{
+    m_ShortcutMgr = sm;
+    if (m_SelectedGraph) m_SelectedGraph->SetShortcutManager(sm);
+    for (auto& item : m_Items)
+        if (item.graph) item.graph->SetShortcutManager(sm);
+}
+
+void NodeGraphManager::SetSendActionCb(std::function<void(int,bool,bool)> cb)
+{
+    m_StoredSendActionCb = cb;
+    if (m_SelectedGraph) m_SelectedGraph->SetSendActionCb(cb);
+    for (auto& item : m_Items)
+        if (item.graph) item.graph->SetSendActionCb(cb);
+}
+
 std::vector<GraphItem> NodeGraphManager::GetAllItems() const
 {
     // Save current changes to the active item before snapshotting
@@ -181,6 +201,8 @@ void NodeGraphManager::LoadItems(const std::vector<GraphItem>& items)
             if (m_RobotMgr)  item.graph->SetRobotComponentManager(m_RobotMgr);
             if (m_GamepadMgr) item.graph->SetGamepadMapperManager(m_GamepadMgr);
         }
+        if (m_RobotCommMgr) item.graph->SetRobotCommManager(m_RobotCommMgr);
+        if (m_ShortcutMgr)  item.graph->SetShortcutManager(m_ShortcutMgr);
         item.editorYaml = src.editorYaml;
         item.comm_index = src.comm_index;
         m_Items.push_back(std::move(item));
@@ -211,10 +233,18 @@ std::string NodeGraphManager::GetGraphYaml() const
 std::string NodeGraphManager::GetGraphYamlForIndex(int idx)
 {
     if (idx < 0 || idx >= (int)m_Items.size()) return {};
-    // 如果是当前选中项，先保存未提交的编辑到 item
     if (idx == m_SelectedIndex) {
         const_cast<NodeGraphManager*>(this)->SaveCurrentToItem();
     }
+    return m_Items[idx].graph->GetGraphDataYaml();
+}
+
+std::string NodeGraphManager::GetGraphDataYamlForIndex(int idx)
+{
+    if (idx < 0 || idx >= (int)m_Items.size()) return {};
+    // 如果读取的是当前编辑器正在编辑的图，直接从实时图读取（不触发 SaveCurrentToItem）
+    if (idx == m_SelectedIndex && m_SelectedGraph)
+        return m_SelectedGraph->GetGraphDataYaml();
     return m_Items[idx].graph->GetGraphDataYaml();
 }
 

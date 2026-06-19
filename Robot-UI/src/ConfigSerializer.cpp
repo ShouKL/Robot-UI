@@ -31,27 +31,7 @@ bool ConfigSerializer::Save(const std::string& filepath,
     {
         WL_INFO_TAG("component", "Saving component: {}", filepath);
 
-        // 将 graphMap 同步到各 RobotMode 的 node_graph_pairs
-        if (graphMap) {
-            auto& comps = const_cast<RobotComponentManager&>(robotMgr).GetComponents();
-            for (auto& comp : comps) {
-                auto& item = comp.component;
-                item.node_graph_pairs.clear();
-                for (const auto& [key, graph] : *graphMap) {
-                    // key = "robotModeName|gamepadModeName"
-                    std::string modeName = std::string(item.name) + "|";
-                    if (key.substr(0, modeName.size()) == modeName) {
-                        std::string gpName = key.substr(modeName.size());
-                        item.node_graph_pairs[gpName] = graph;
-                    }
-                }
-                // 更新旧版 node_graph 为当前 gamepad_mapping_Mode 对应的图
-                auto it = item.node_graph_pairs.find(item.gamepad_mapping_Mode);
-                if (it != item.node_graph_pairs.end()) {
-                    item.node_graph = it->second;
-                }
-            }
-        }
+        // graphMap 已由 graph_items 独立管理，不再同步到 RobotComponent
 
         YAML::Emitter out;
         out << YAML::BeginMap;
@@ -119,6 +99,8 @@ bool ConfigSerializer::SaveKernel(const std::string& filepath,
 
         EmitStyle(out, styleManager);
         EmitUIState(out, uiState);
+        if (!uiState.software_shortcuts_yaml.empty())
+            EmitSoftwareShortcuts(out, uiState.software_shortcuts_yaml);
 
         out << YAML::EndMap;  // robot_ui_kernel
         out << YAML::EndMap;  // root
@@ -183,6 +165,9 @@ bool ConfigSerializer::LoadKernel(const std::string& filepath,
             if (!ApplyUIState(uiNode, uiState, outError))
                 return false;
         }
+
+        if (const YAML::Node& swNode = cfg["software_shortcuts"]; swNode.IsDefined())
+            ApplySoftwareShortcuts(swNode, uiState.software_shortcuts_yaml, outError);
 
         return true;
     }
@@ -268,20 +253,7 @@ bool ConfigSerializer::Load(const std::string& filepath,
             }
         }
 
-        // 从 RobotMode 的 node_graph_pairs 构建 graphMap
-        if (graphMap) {
-            graphMap->clear();
-            for (const auto& comp : robotMgr.GetComponents()) {
-                const auto& item = comp.component;
-                for (const auto& [gpName, graph] : item.node_graph_pairs) {
-                    if (!graph.empty()) {
-                        std::string key = std::string(item.name) + "|" + gpName;
-                        (*graphMap)[key] = graph;
-                    }
-                }
-            }
-        }
-
+        // graphMap 已由 NodeGraphManager 独立管理（graph_items），不再从 RobotComponent 构建
         if (graphItems)
         {
             if (const YAML::Node& giNode = cfg["graph_items"]; giNode.IsDefined())
@@ -326,26 +298,22 @@ void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const RobotComponentM
     out << YAML::Key << "items" << YAML::Value << YAML::BeginSeq;
     for (const auto& comp : comps)
     {
-        const auto& item = comp.component;
         out << YAML::BeginMap;
 
-        out << YAML::Key << "name" << YAML::Value << item.name;
-        out << YAML::Key << "gamepad_mapping" << YAML::Value << item.gamepad_mapping_Mode;
-        out << YAML::Key << "host_ip" << YAML::Value << item.host_ip;
-        out << YAML::Key << "remote_port" << YAML::Value << item.remote_port;
-        out << YAML::Key << "local_port" << YAML::Value << item.local_port;
-        out << YAML::Key << "protocol_type" << YAML::Value << item.protocol_type;
+        out << YAML::Key << "name" << YAML::Value << comp.name;
+        // gamepad_mapping 已移至 GamepadMapper 独立管理，不在 Component 中存储
+        // host_ip / port / protocol_type 已移至 RobotCommConfig
 
         // Motion 组件
-        out << YAML::Key << "has_motion" << YAML::Value << item.actuator_config.has_motion;
+        out << YAML::Key << "has_motion" << YAML::Value << comp.actuator_config.has_motion;
 
         // Sensor 组件
-        out << YAML::Key << "has_temperature" << YAML::Value << item.sensor_config.has_temperature;
-        out << YAML::Key << "has_humidity" << YAML::Value << item.sensor_config.has_humidity;
-        out << YAML::Key << "has_depth" << YAML::Value << item.sensor_config.has_depth;
+        out << YAML::Key << "has_temperature" << YAML::Value << comp.sensor_config.has_temperature;
+        out << YAML::Key << "has_humidity" << YAML::Value << comp.sensor_config.has_humidity;
+        out << YAML::Key << "has_depth" << YAML::Value << comp.sensor_config.has_depth;
 
         out << YAML::Key << "brushless_motors" << YAML::Value << YAML::BeginSeq;
-        for (const auto& m : item.actuator_config.brushlessmotor)
+        for (const auto& m : comp.actuator_config.brushlessmotor)
         {
             out << YAML::BeginMap;
             out << YAML::Key << "id" << YAML::Value << m.id;
@@ -381,7 +349,7 @@ void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const RobotComponentM
         out << YAML::EndSeq;
 
         out << YAML::Key << "servos" << YAML::Value << YAML::BeginSeq;
-        for (const auto& s : item.actuator_config.servo)
+        for (const auto& s : comp.actuator_config.servo)
         {
             out << YAML::BeginMap;
             out << YAML::Key << "id" << YAML::Value << s.id;
@@ -394,8 +362,8 @@ void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const RobotComponentM
         out << YAML::EndSeq;  // servos
 
         // Motion 数据
-        if (item.actuator_config.has_motion) {
-            const auto& mc = item.actuator_config.motion;
+        if (comp.actuator_config.has_motion) {
+            const auto& mc = comp.actuator_config.motion;
             out << YAML::Key << "motion" << YAML::Value << YAML::BeginMap;
             out << YAML::Key << "x"  << YAML::Value << mc.x;  out << YAML::Key << "x_enc"  << YAML::Value << static_cast<int>(mc.x.encoding);
             out << YAML::Key << "y"  << YAML::Value << mc.y;  out << YAML::Key << "y_enc"  << YAML::Value << static_cast<int>(mc.y.encoding);
@@ -406,99 +374,7 @@ void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const RobotComponentM
             out << YAML::EndMap;
         }
 
-        // 节点图数据
-        if (!item.node_graph.empty())
-            out << YAML::Key << "node_graph" << YAML::Value << YAML::Literal << item.node_graph;
-
-        // 节点图组合数据 (gamepadModeName → graph yaml)
-        if (!item.node_graph_pairs.empty()) {
-            out << YAML::Key << "node_graph_pairs" << YAML::Value << YAML::BeginMap;
-            for (const auto& [gpName, graph] : item.node_graph_pairs) {
-                if (!graph.empty())
-                    out << YAML::Key << gpName << YAML::Value << YAML::Literal << graph;
-            }
-            out << YAML::EndMap;
-        }
-
-        // 协议发送配置（多帧）
-        {
-            const auto& sendCfgs = item.protocol_send;
-            out << YAML::Key << "protocol_send" << YAML::Value << YAML::BeginSeq;
-            for (const auto& p : sendCfgs) {
-                out << YAML::BeginMap;
-
-                out << YAML::Key << "name" << YAML::Value << p.name;
-                out << YAML::Key << "command_byte" << YAML::Value << static_cast<int>(p.command_byte);
-                out << YAML::Key << "enabled" << YAML::Value << p.enabled;
-                out << YAML::Key << "include_length" << YAML::Value << p.include_length;
-                out << YAML::Key << "checksum" << YAML::Value << static_cast<int>(p.checksum);
-                out << YAML::Key << "big_endian" << YAML::Value << p.big_endian;
-
-                auto emitBytes = [&](const char* key, const std::vector<uint8_t>& bytes) {
-                    out << YAML::Key << key << YAML::Value << YAML::BeginSeq;
-                    for (auto b : bytes) out << static_cast<int>(b);
-                    out << YAML::EndSeq;
-                };
-                emitBytes("header", p.header);
-                emitBytes("tail", p.tail);
-
-                out << YAML::Key << "fields" << YAML::Value << YAML::BeginSeq;
-                for (const auto& f : p.fields) {
-                    out << YAML::BeginMap;
-                    out << YAML::Key << "name" << YAML::Value << f.name;
-                    out << YAML::Key << "path" << YAML::Value << f.field_path;
-                    out << YAML::Key << "encoding" << YAML::Value << static_cast<int>(f.encoding);
-                    out << YAML::Key << "group" << YAML::Value << f.group;
-                    out << YAML::Key << "visible" << YAML::Value << f.visible;
-                    out << YAML::Key << "fix" << YAML::Value << f.fix;
-                    out << YAML::Key << "fix_value" << YAML::Value << f.fix_value;
-                    out << YAML::EndMap;
-                }
-                out << YAML::EndSeq;  // fields
-
-                out << YAML::EndMap;  // each send config
-            }
-            out << YAML::EndSeq;  // protocol_send
-        }
-
-        // 协议接收配置（多帧）
-        {
-            const auto& recvCfgs = item.protocol_receive;
-            out << YAML::Key << "protocol_receive" << YAML::Value << YAML::BeginSeq;
-            for (const auto& pr : recvCfgs) {
-                out << YAML::BeginMap;
-
-                out << YAML::Key << "name" << YAML::Value << pr.name;
-                out << YAML::Key << "command_byte" << YAML::Value << static_cast<int>(pr.command_byte);
-                out << YAML::Key << "include_length" << YAML::Value << pr.include_length;
-                out << YAML::Key << "checksum" << YAML::Value << static_cast<int>(pr.checksum);
-                out << YAML::Key << "big_endian" << YAML::Value << pr.big_endian;
-
-                auto emitBytes = [&](const char* key, const std::vector<uint8_t>& bytes) {
-                    out << YAML::Key << key << YAML::Value << YAML::BeginSeq;
-                    for (auto b : bytes) out << static_cast<int>(b);
-                    out << YAML::EndSeq;
-                };
-                emitBytes("header", pr.header);
-                emitBytes("tail", pr.tail);
-
-                out << YAML::Key << "fields" << YAML::Value << YAML::BeginSeq;
-                for (const auto& f : pr.fields) {
-                    out << YAML::BeginMap;
-                    out << YAML::Key << "name" << YAML::Value << f.name;
-                    out << YAML::Key << "path" << YAML::Value << f.field_path;
-                    out << YAML::Key << "encoding" << YAML::Value << static_cast<int>(f.encoding);
-                    out << YAML::Key << "group" << YAML::Value << f.group;
-                    out << YAML::Key << "visible" << YAML::Value << f.visible;
-                    out << YAML::Key << "fix" << YAML::Value << f.fix;
-                    out << YAML::EndMap;
-                }
-                out << YAML::EndSeq;  // fields
-
-                out << YAML::EndMap;  // each receive config
-            }
-            out << YAML::EndSeq;  // protocol_receive
-        }
+        // 协议发送/接收配置已移至 RobotCommConfig（独立序列化）
 
         out << YAML::EndMap;  // item
     }
@@ -677,142 +553,89 @@ bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, RobotCompon
         if (ps.IsDefined())
         {
             mode.protocol_send.clear();
-
             auto readSendCfg = [](const YAML::Node& cfgNode, ProtocolSendConfig& p) {
                 auto readBytes = [](const YAML::Node& seq) -> std::vector<uint8_t> {
                     std::vector<uint8_t> bytes;
                     if (seq.IsDefined() && seq.IsSequence())
-                        for (const auto& v : seq)
-                            bytes.push_back(static_cast<uint8_t>(v.as<int>()));
+                        for (const auto& v : seq) bytes.push_back(static_cast<uint8_t>(v.as<int>()));
                     return bytes;
                 };
-
-                if (const YAML::Node& n = cfgNode["name"]; n.IsDefined()) {
-                    std::string nm = n.as<std::string>();
-                    strncpy(p.name, nm.c_str(), sizeof(p.name) - 1);
-                }
-                if (const YAML::Node& n = cfgNode["command_byte"]; n.IsDefined())
-                    p.command_byte = static_cast<uint8_t>(n.as<int>());
-                if (const YAML::Node& n = cfgNode["enabled"]; n.IsDefined())
-                    p.enabled = n.as<bool>();
-                if (const YAML::Node& n = cfgNode["include_length"]; n.IsDefined())
-                    p.include_length = n.as<bool>();
-                if (const YAML::Node& n = cfgNode["checksum"]; n.IsDefined())
-                    p.checksum = static_cast<ChecksumType>(n.as<int>());
-                if (const YAML::Node& n = cfgNode["big_endian"]; n.IsDefined())
-                    p.big_endian = n.as<bool>();
+                if (const YAML::Node& n = cfgNode["name"]; n.IsDefined()) { std::string nm = n.as<std::string>(); strncpy(p.name, nm.c_str(), sizeof(p.name) - 1); }
+                p.command_bytes = readBytes(cfgNode["command_byte"]);
+                if (p.command_bytes.empty() && cfgNode["command_byte"].IsDefined() && !cfgNode["command_byte"].IsSequence())
+                    p.command_bytes.push_back(static_cast<uint8_t>(cfgNode["command_byte"].as<int>()));
+                if (const YAML::Node& n = cfgNode["enabled"]; n.IsDefined()) p.enabled = n.as<bool>();
+                if (const YAML::Node& n = cfgNode["include_length"]; n.IsDefined()) p.include_length = n.as<bool>();
+                if (const YAML::Node& n = cfgNode["checksum"]; n.IsDefined()) p.checksum = static_cast<ChecksumType>(n.as<int>());
+                if (const YAML::Node& n = cfgNode["big_endian"]; n.IsDefined()) p.big_endian = n.as<bool>();
                 p.header = readBytes(cfgNode["header"]);
                 p.tail   = readBytes(cfgNode["tail"]);
-
                 const YAML::Node& fieldsNode = cfgNode["fields"];
                 if (fieldsNode.IsDefined() && fieldsNode.IsSequence()) {
                     p.fields.clear();
                     for (const auto& fItem : fieldsNode) {
                         SendField sf;
-                        if (const YAML::Node& n = fItem["name"]; n.IsDefined())
-                            sf.name = n.as<std::string>();
-                        if (const YAML::Node& n = fItem["path"]; n.IsDefined())
-                            sf.field_path = n.as<std::string>();
-                        if (const YAML::Node& n = fItem["encoding"]; n.IsDefined())
-                            sf.encoding = static_cast<DataEncoding>(n.as<int>());
-                        if (const YAML::Node& n = fItem["group"]; n.IsDefined())
-                            sf.group = n.as<std::string>();
-                        if (const YAML::Node& n = fItem["visible"]; n.IsDefined())
-                            sf.visible = n.as<bool>();
-                        if (const YAML::Node& n = fItem["fix"]; n.IsDefined())
-                            sf.fix = n.as<bool>();
-                        if (const YAML::Node& n = fItem["fix_value"]; n.IsDefined())
-                            sf.fix_value = n.as<double>();
+                        if (const YAML::Node& n = fItem["name"]; n.IsDefined()) sf.name = n.as<std::string>();
+                        if (const YAML::Node& n = fItem["path"]; n.IsDefined()) sf.field_path = n.as<std::string>();
+                        if (const YAML::Node& n = fItem["encoding"]; n.IsDefined()) sf.encoding = static_cast<DataEncoding>(n.as<int>());
+                        if (const YAML::Node& n = fItem["group"]; n.IsDefined()) sf.group = n.as<std::string>();
+                        if (const YAML::Node& n = fItem["visible"]; n.IsDefined()) sf.visible = n.as<bool>();
+                        if (const YAML::Node& n = fItem["fix"]; n.IsDefined()) sf.fix = n.as<bool>();
+                        if (const YAML::Node& n = fItem["fix_value"]; n.IsDefined()) sf.fix_value = n.as<double>();
+                        if (const YAML::Node& n = fItem["raw_data"]; n.IsDefined() && n.IsSequence()) {
+                            for (const auto& v : n) sf.raw_data.push_back(static_cast<uint8_t>(v.as<int>()));
+                        }
                         p.fields.push_back(sf);
                     }
                 }
             };
-
-            if (ps.IsSequence()) {
-                // 新格式：数组，每个元素是一个独立的数据帧配置
-                for (const auto& cfgItem : ps) {
-                    ProtocolSendConfig p;
-                    readSendCfg(cfgItem, p);
-                    mode.protocol_send.push_back(std::move(p));
-                }
-            } else if (ps.IsMap()) {
-                // 旧格式兼容：单个 map（自动生成默认 command_byte=0x00）
-                ProtocolSendConfig p;
-                readSendCfg(ps, p);
-                mode.protocol_send.push_back(std::move(p));
-            }
+            if (ps.IsSequence()) { for (const auto& cfgItem : ps) { ProtocolSendConfig p; readSendCfg(cfgItem, p); mode.protocol_send.push_back(std::move(p)); } }
+            else if (ps.IsMap()) { ProtocolSendConfig p; readSendCfg(ps, p); mode.protocol_send.push_back(std::move(p)); }
         }
 
-        // 读取协议接收配置（支持多帧新格式和单帧旧格式）
+        // 读取协议接收配置
         const YAML::Node& pr = modeNode["protocol_receive"];
         if (pr.IsDefined())
         {
             mode.protocol_receive.clear();
-
             auto readRecvCfg = [](const YAML::Node& cfgNode, ProtocolReceiveConfig& rc) {
                 auto readBytes = [](const YAML::Node& seq) -> std::vector<uint8_t> {
                     std::vector<uint8_t> bytes;
                     if (seq.IsDefined() && seq.IsSequence())
-                        for (const auto& v : seq)
-                            bytes.push_back(static_cast<uint8_t>(v.as<int>()));
+                        for (const auto& v : seq) bytes.push_back(static_cast<uint8_t>(v.as<int>()));
                     return bytes;
                 };
-
-                if (const YAML::Node& n = cfgNode["name"]; n.IsDefined()) {
-                    std::string nm = n.as<std::string>();
-                    strncpy(rc.name, nm.c_str(), sizeof(rc.name) - 1);
+                if (const YAML::Node& n = cfgNode["name"]; n.IsDefined()) { std::string nm = n.as<std::string>(); strncpy(rc.name, nm.c_str(), sizeof(rc.name) - 1); }
+                rc.command_bytes = readBytes(cfgNode["command_byte"]);
+                if (rc.command_bytes.empty()) {
+                    if (const YAML::Node& n = cfgNode["command_byte"]; n.IsDefined() && !n.IsSequence()) rc.command_bytes.push_back(static_cast<uint8_t>(n.as<int>()));
+                    else if (const YAML::Node& n = cfgNode["msg_type"]; n.IsDefined()) rc.command_bytes.push_back(static_cast<uint8_t>(n.as<int>()));
                 }
-                if (const YAML::Node& n = cfgNode["command_byte"]; n.IsDefined())
-                    rc.command_byte = static_cast<uint8_t>(n.as<int>());
-                else if (const YAML::Node& n = cfgNode["msg_type"]; n.IsDefined())
-                    rc.command_byte = static_cast<uint8_t>(n.as<int>());  // 兼容旧版 msg_type 字段
-                if (const YAML::Node& n = cfgNode["include_length"]; n.IsDefined())
-                    rc.include_length = n.as<bool>();
-                if (const YAML::Node& n = cfgNode["checksum"]; n.IsDefined())
-                    rc.checksum = static_cast<ChecksumType>(n.as<int>());
-                if (const YAML::Node& n = cfgNode["big_endian"]; n.IsDefined())
-                    rc.big_endian = n.as<bool>();
+                if (const YAML::Node& n = cfgNode["include_length"]; n.IsDefined()) rc.include_length = n.as<bool>();
+                if (const YAML::Node& n = cfgNode["checksum"]; n.IsDefined()) rc.checksum = static_cast<ChecksumType>(n.as<int>());
+                if (const YAML::Node& n = cfgNode["big_endian"]; n.IsDefined()) rc.big_endian = n.as<bool>();
                 rc.header = readBytes(cfgNode["header"]);
                 rc.tail   = readBytes(cfgNode["tail"]);
-
                 const YAML::Node& fieldsNode = cfgNode["fields"];
                 if (fieldsNode.IsDefined() && fieldsNode.IsSequence()) {
                     rc.fields.clear();
                     for (const auto& fItem : fieldsNode) {
                         ReceiveField rf;
-                        if (const YAML::Node& n = fItem["name"]; n.IsDefined())
-                            rf.name = n.as<std::string>();
-                        if (const YAML::Node& n = fItem["path"]; n.IsDefined())
-                            rf.field_path = n.as<std::string>();
-                        if (const YAML::Node& n = fItem["encoding"]; n.IsDefined())
-                            rf.encoding = static_cast<DataEncoding>(n.as<int>());
-                        if (const YAML::Node& n = fItem["group"]; n.IsDefined())
-                            rf.group = n.as<std::string>();
-                        if (const YAML::Node& n = fItem["visible"]; n.IsDefined())
-                            rf.visible = n.as<bool>();
-                        if (const YAML::Node& n = fItem["fix"]; n.IsDefined())
-                            rf.fix = n.as<bool>();
+                        if (const YAML::Node& n = fItem["name"]; n.IsDefined()) rf.name = n.as<std::string>();
+                        if (const YAML::Node& n = fItem["path"]; n.IsDefined()) rf.field_path = n.as<std::string>();
+                        if (const YAML::Node& n = fItem["encoding"]; n.IsDefined()) rf.encoding = static_cast<DataEncoding>(n.as<int>());
+                        if (const YAML::Node& n = fItem["group"]; n.IsDefined()) rf.group = n.as<std::string>();
+                        if (const YAML::Node& n = fItem["visible"]; n.IsDefined()) rf.visible = n.as<bool>();
+                        if (const YAML::Node& n = fItem["fix"]; n.IsDefined()) rf.fix = n.as<bool>();
                         rc.fields.push_back(rf);
                     }
                 }
             };
-
-            if (pr.IsSequence()) {
-                // 新格式：数组
-                for (const auto& cfgItem : pr) {
-                    ProtocolReceiveConfig rc;
-                    readRecvCfg(cfgItem, rc);
-                    mode.protocol_receive.push_back(std::move(rc));
-                }
-            } else if (pr.IsMap()) {
-                // 旧格式兼容：单个 map
-                ProtocolReceiveConfig rc;
-                readRecvCfg(pr, rc);
-                mode.protocol_receive.push_back(std::move(rc));
-            }
+            if (pr.IsSequence()) { for (const auto& cfgItem : pr) { ProtocolReceiveConfig rc; readRecvCfg(cfgItem, rc); mode.protocol_receive.push_back(std::move(rc)); } }
+            else if (pr.IsMap()) { ProtocolReceiveConfig rc; readRecvCfg(pr, rc); mode.protocol_receive.push_back(std::move(rc)); }
         }
 
-        mode.actuator_config.brushlessmotor.clear();
+        // 读取传感器配置
         const YAML::Node& motors = modeNode["brushless_motors"];
         if (motors.IsDefined() && motors.IsSequence())
         {
@@ -1238,6 +1061,78 @@ void ConfigSerializer::EmitRobotComm(YAML::Emitter& out,
         out << YAML::Key << "local_port"    << YAML::Value << cfg.local_port;
         out << YAML::Key << "transport_type" << YAML::Value << cfg.transport_type;
         out << YAML::Key << "send_freq_hz"   << YAML::Value << cfg.send_freq_hz;
+        out << YAML::Key << "active_component_idx" << YAML::Value << cfg.active_component_idx;
+
+        // 协议发送配置（多帧）
+        out << YAML::Key << "protocol_send" << YAML::Value << YAML::BeginSeq;
+        for (const auto& p : cfg.protocol_send) {
+            out << YAML::BeginMap;
+            out << YAML::Key << "name" << YAML::Value << p.name;
+            auto emitBytes = [&](const char* key, const std::vector<uint8_t>& bytes) {
+                out << YAML::Key << key << YAML::Value << YAML::BeginSeq;
+                for (auto b : bytes) out << static_cast<int>(b);
+                out << YAML::EndSeq;
+            };
+            emitBytes("command_byte", p.command_bytes);
+            out << YAML::Key << "enabled" << YAML::Value << p.enabled;
+            out << YAML::Key << "include_length" << YAML::Value << p.include_length;
+            out << YAML::Key << "checksum" << YAML::Value << static_cast<int>(p.checksum);
+            out << YAML::Key << "big_endian" << YAML::Value << p.big_endian;
+            emitBytes("header", p.header);
+            emitBytes("tail", p.tail);
+            out << YAML::Key << "fields" << YAML::Value << YAML::BeginSeq;
+            for (const auto& f : p.fields) {
+                out << YAML::BeginMap;
+                out << YAML::Key << "name" << YAML::Value << f.name;
+                out << YAML::Key << "path" << YAML::Value << f.field_path;
+                out << YAML::Key << "encoding" << YAML::Value << static_cast<int>(f.encoding);
+                out << YAML::Key << "group" << YAML::Value << f.group;
+                out << YAML::Key << "visible" << YAML::Value << f.visible;
+                out << YAML::Key << "fix" << YAML::Value << f.fix;
+                out << YAML::Key << "fix_value" << YAML::Value << f.fix_value;
+                if (!f.raw_data.empty()) {
+                    out << YAML::Key << "raw_data" << YAML::Value << YAML::BeginSeq;
+                    for (auto b : f.raw_data) out << static_cast<int>(b);
+                    out << YAML::EndSeq;
+                }
+                out << YAML::EndMap;
+            }
+            out << YAML::EndSeq;  // fields
+            out << YAML::EndMap;  // each send config
+        }
+        out << YAML::EndSeq;  // protocol_send
+
+        // 协议接收配置（多帧）
+        out << YAML::Key << "protocol_receive" << YAML::Value << YAML::BeginSeq;
+        for (const auto& pr : cfg.protocol_receive) {
+            out << YAML::BeginMap;
+            out << YAML::Key << "name" << YAML::Value << pr.name;
+            auto emitBytes2 = [&](const char* key, const std::vector<uint8_t>& bytes) {
+                out << YAML::Key << key << YAML::Value << YAML::BeginSeq;
+                for (auto b : bytes) out << static_cast<int>(b);
+                out << YAML::EndSeq;
+            };
+            emitBytes2("command_byte", pr.command_bytes);
+            out << YAML::Key << "include_length" << YAML::Value << pr.include_length;
+            out << YAML::Key << "checksum" << YAML::Value << static_cast<int>(pr.checksum);
+            out << YAML::Key << "big_endian" << YAML::Value << pr.big_endian;
+            emitBytes2("header", pr.header);
+            emitBytes2("tail", pr.tail);
+            out << YAML::Key << "fields" << YAML::Value << YAML::BeginSeq;
+            for (const auto& f : pr.fields) {
+                out << YAML::BeginMap;
+                out << YAML::Key << "name" << YAML::Value << f.name;
+                out << YAML::Key << "path" << YAML::Value << f.field_path;
+                out << YAML::Key << "encoding" << YAML::Value << static_cast<int>(f.encoding);
+                out << YAML::Key << "group" << YAML::Value << f.group;
+                out << YAML::Key << "visible" << YAML::Value << f.visible;
+                out << YAML::EndMap;
+            }
+            out << YAML::EndSeq;  // fields
+            out << YAML::EndMap;
+        }
+        out << YAML::EndSeq;  // protocol_receive
+
         out << YAML::EndMap;
     }
     out << YAML::EndSeq;  // nodes
@@ -1272,6 +1167,132 @@ bool ConfigSerializer::ApplyRobotComm(const YAML::Node& node,
             if (const YAML::Node& n = item["local_port"];     n.IsDefined()) cfg.local_port     = n.as<int>();
             if (const YAML::Node& n = item["transport_type"]; n.IsDefined()) cfg.transport_type = n.as<int>();
             if (const YAML::Node& n = item["send_freq_hz"];   n.IsDefined()) cfg.send_freq_hz   = n.as<int>();
+            if (const YAML::Node& n = item["active_component_idx"]; n.IsDefined()) cfg.active_component_idx = n.as<int>();
+
+            // 协议发送配置
+            const YAML::Node& ps = item["protocol_send"];
+            if (ps.IsDefined()) {
+                auto readBytes = [](const YAML::Node& seq) -> std::vector<uint8_t> {
+                    std::vector<uint8_t> bytes;
+                    if (seq.IsDefined() && seq.IsSequence())
+                        for (const auto& v : seq)
+                            bytes.push_back(static_cast<uint8_t>(v.as<int>()));
+                    return bytes;
+                };
+                auto readSendCfg = [&](const YAML::Node& cfgNode, ProtocolSendConfig& p) {
+                    if (const YAML::Node& n = cfgNode["name"]; n.IsDefined()) {
+                        std::string nm = n.as<std::string>();
+                        strncpy(p.name, nm.c_str(), sizeof(p.name) - 1);
+                    }
+                    p.command_bytes = readBytes(cfgNode["command_byte"]);
+                    if (p.command_bytes.empty() && cfgNode["command_byte"].IsDefined() && !cfgNode["command_byte"].IsSequence())
+                        p.command_bytes.push_back(static_cast<uint8_t>(cfgNode["command_byte"].as<int>()));
+                    if (const YAML::Node& n = cfgNode["enabled"]; n.IsDefined())
+                        p.enabled = n.as<bool>();
+                    if (const YAML::Node& n = cfgNode["include_length"]; n.IsDefined())
+                        p.include_length = n.as<bool>();
+                    if (const YAML::Node& n = cfgNode["checksum"]; n.IsDefined())
+                        p.checksum = static_cast<ChecksumType>(n.as<int>());
+                    if (const YAML::Node& n = cfgNode["big_endian"]; n.IsDefined())
+                        p.big_endian = n.as<bool>();
+                    p.header = readBytes(cfgNode["header"]);
+                    p.tail   = readBytes(cfgNode["tail"]);
+                    const YAML::Node& fieldsNode = cfgNode["fields"];
+                    if (fieldsNode.IsDefined() && fieldsNode.IsSequence()) {
+                        p.fields.clear();
+                        for (const auto& fItem : fieldsNode) {
+                            SendField sf;
+                            if (const YAML::Node& n = fItem["name"]; n.IsDefined())
+                                sf.name = n.as<std::string>();
+                            if (const YAML::Node& n = fItem["path"]; n.IsDefined())
+                                sf.field_path = n.as<std::string>();
+                            if (const YAML::Node& n = fItem["encoding"]; n.IsDefined())
+                                sf.encoding = static_cast<DataEncoding>(n.as<int>());
+                            if (const YAML::Node& n = fItem["group"]; n.IsDefined())
+                                sf.group = n.as<std::string>();
+                            if (const YAML::Node& n = fItem["visible"]; n.IsDefined())
+                                sf.visible = n.as<bool>();
+                            if (const YAML::Node& n = fItem["fix"]; n.IsDefined())
+                                sf.fix = n.as<bool>();
+                            if (const YAML::Node& n = fItem["fix_value"]; n.IsDefined())
+                                sf.fix_value = n.as<double>();
+                            if (const YAML::Node& n = fItem["raw_data"]; n.IsDefined() && n.IsSequence()) {
+                                for (const auto& v : n) sf.raw_data.push_back(static_cast<uint8_t>(v.as<int>()));
+                            }
+                            p.fields.push_back(sf);
+                        }
+                    }
+                };
+                if (ps.IsSequence()) {
+                    for (const auto& cfgItem : ps) {
+                        ProtocolSendConfig p;
+                        readSendCfg(cfgItem, p);
+                        cfg.protocol_send.push_back(std::move(p));
+                    }
+                } else if (ps.IsMap()) {
+                    ProtocolSendConfig p;
+                    readSendCfg(ps, p);
+                    cfg.protocol_send.push_back(std::move(p));
+                }
+            }
+
+            // 协议接收配置
+            const YAML::Node& pr = item["protocol_receive"];
+            if (pr.IsDefined()) {
+                auto readBytes = [](const YAML::Node& seq) -> std::vector<uint8_t> {
+                    std::vector<uint8_t> bytes;
+                    if (seq.IsDefined() && seq.IsSequence())
+                        for (const auto& v : seq)
+                            bytes.push_back(static_cast<uint8_t>(v.as<int>()));
+                    return bytes;
+                };
+                auto readRecvCfg = [&](const YAML::Node& cfgNode, ProtocolReceiveConfig& rc) {
+                    if (const YAML::Node& n = cfgNode["name"]; n.IsDefined()) {
+                        std::string nm = n.as<std::string>();
+                        strncpy(rc.name, nm.c_str(), sizeof(rc.name) - 1);
+                    }
+                    rc.command_bytes = readBytes(cfgNode["command_byte"]);
+                    if (rc.command_bytes.empty() && cfgNode["command_byte"].IsDefined() && !cfgNode["command_byte"].IsSequence())
+                        rc.command_bytes.push_back(static_cast<uint8_t>(cfgNode["command_byte"].as<int>()));
+                    if (const YAML::Node& n = cfgNode["include_length"]; n.IsDefined())
+                        rc.include_length = n.as<bool>();
+                    if (const YAML::Node& n = cfgNode["checksum"]; n.IsDefined())
+                        rc.checksum = static_cast<ChecksumType>(n.as<int>());
+                    if (const YAML::Node& n = cfgNode["big_endian"]; n.IsDefined())
+                        rc.big_endian = n.as<bool>();
+                    rc.header = readBytes(cfgNode["header"]);
+                    rc.tail   = readBytes(cfgNode["tail"]);
+                    const YAML::Node& fieldsNode = cfgNode["fields"];
+                    if (fieldsNode.IsDefined() && fieldsNode.IsSequence()) {
+                        rc.fields.clear();
+                        for (const auto& fItem : fieldsNode) {
+                            ReceiveField rf;
+                            if (const YAML::Node& n = fItem["name"]; n.IsDefined())
+                                rf.name = n.as<std::string>();
+                            if (const YAML::Node& n = fItem["path"]; n.IsDefined())
+                                rf.field_path = n.as<std::string>();
+                            if (const YAML::Node& n = fItem["encoding"]; n.IsDefined())
+                                rf.encoding = static_cast<DataEncoding>(n.as<int>());
+                            if (const YAML::Node& n = fItem["group"]; n.IsDefined())
+                                rf.group = n.as<std::string>();
+                            if (const YAML::Node& n = fItem["visible"]; n.IsDefined())
+                                rf.visible = n.as<bool>();
+                            rc.fields.push_back(rf);
+                        }
+                    }
+                };
+                if (pr.IsSequence()) {
+                    for (const auto& cfgItem : pr) {
+                        ProtocolReceiveConfig rc;
+                        readRecvCfg(cfgItem, rc);
+                        cfg.protocol_receive.push_back(std::move(rc));
+                    }
+                } else if (pr.IsMap()) {
+                    ProtocolReceiveConfig rc;
+                    readRecvCfg(pr, rc);
+                    cfg.protocol_receive.push_back(std::move(rc));
+                }
+            }
 
             configs.push_back(cfg);
         }
@@ -1319,4 +1340,27 @@ bool ConfigSerializer::ApplyGraphItems(const YAML::Node& node, std::vector<Graph
     return true;
 }
 
+// ============================================================================
+// 软件 UI 快捷键序列化（存入 .kernel）
+// ============================================================================
 
+void ConfigSerializer::EmitSoftwareShortcuts(YAML::Emitter& out, const std::string& swYaml)
+{
+    try {
+        YAML::Node node = YAML::Load(swYaml);
+        out << YAML::Key << "software_shortcuts" << YAML::Value << node;
+    } catch (...) {}
+}
+
+bool ConfigSerializer::ApplySoftwareShortcuts(const YAML::Node& node, std::string& outYaml, std::string* outError)
+{
+    (void)outError;
+    try {
+        YAML::Emitter em;
+        em << node;
+        outYaml = em.c_str();
+        return true;
+    } catch (...) {
+        return false;
+    }
+}

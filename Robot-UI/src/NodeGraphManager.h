@@ -8,6 +8,7 @@
 
 #include "ManagerBase.h"
 #include "NodeGraph.h"
+#include <functional>
 #include <imgui_node_editor.h>
 #include <vector>
 #include <string>
@@ -17,6 +18,7 @@
 class RobotComponentManager;
 class GamepadMapperManager;
 class RobotCommManager;
+class ShortcutManager;
 
 struct GraphItem
 {
@@ -55,6 +57,8 @@ public:
     void SetRobotComponentManager(RobotComponentManager* c);
     void SetGamepadMapperManager(GamepadMapperManager* g);
     void SetRobotCommManager(RobotCommManager* comm);
+    void SetShortcutManager(ShortcutManager* sm);
+    void SetSendActionCb(std::function<void(int,bool,bool)> cb);
 
     // ---- Internal (called by RobotSettingPanel) ----
     void ApplyChanges();
@@ -70,6 +74,7 @@ public:
 
     // ---- 供 RobotStatus 同步活跃 NodeGraph 到求值器 ----
     std::string GetGraphYamlForIndex(int idx);
+    std::string GetGraphDataYamlForIndex(int idx);  // no SaveCurrentToItem side effect
 
 private:
     void SaveCurrentToItem();
@@ -84,4 +89,6 @@ private:
     RobotComponentManager* m_RobotMgr = nullptr;
     GamepadMapperManager*  m_GamepadMgr = nullptr;
     RobotCommManager*      m_RobotCommMgr = nullptr;
+    ShortcutManager*       m_ShortcutMgr = nullptr;
+    std::function<void(int,bool,bool)> m_StoredSendActionCb;
 };

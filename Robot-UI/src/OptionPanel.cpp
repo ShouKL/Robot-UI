@@ -39,7 +39,7 @@ void OptionPanel::DrawOptionPanel(bool* p_open)
             if (!IsEditing())
                 BeginEdit();
 
-            const char* items[] = { "Style" };
+            const char* items[] = { "Shortcuts", "Style" };
             for (int i = 0; i < IM_ARRAYSIZE(items); i++) {
                 ImGui::PushID(i);
                 if (ImGui::Selectable(items[i], m_SelectedId == i, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, 30))) {
@@ -57,10 +57,12 @@ void OptionPanel::DrawOptionPanel(bool* p_open)
             ImGui::Indent(10.0f);
             ImGui::Spacing();
 
-            if (m_SelectedId == 0) {
+            if (m_SelectedId == 1) {
                 if (m_ImGuiStyleManager) {
                     m_ImGuiStyleManager->DrawStylePanel();
                 }
+            } else if (m_SelectedId == 0) {
+                DrawShortcutsPanel();
             }
 
             ImGui::Unindent(10.0f);
@@ -127,4 +129,57 @@ void OptionPanel::TakeSnapshots()
         m_StyleSnapshot_Invert = m_ImGuiStyleManager->GetInvert();
         m_StyleSnapshot_Alpha  = m_ImGuiStyleManager->GetAlpha();
     }
+}
+
+// ==================== 快捷键面板（只读参考）====================
+
+void OptionPanel::DrawShortcutsPanel()
+{
+    ImGui::Spacing();
+    ImGui::TextColored(ImVec4(0.3f, 0.7f, 1.0f, 1.0f), "Keyboard Shortcuts");
+    ImGui::Spacing();
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.3f, 1.0f));
+    ImGui::TextWrapped("Shortcuts are fixed and shown in the menu bar. This table is for reference only.");
+    ImGui::PopStyleColor();
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    if (!m_ShortcutMgr) { ImGui::TextDisabled("ShortcutManager not available."); return; }
+
+    int actionCount = m_ShortcutMgr->GetActionCount();
+
+    if (ImGui::BeginTable("ShortcutsTable", 3,
+            ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable))
+    {
+        ImGui::TableSetupColumn("Category",   ImGuiTableColumnFlags_WidthFixed, 160);
+        ImGui::TableSetupColumn("Action",     ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn("Keys",       ImGuiTableColumnFlags_WidthFixed, 220);
+        ImGui::TableHeadersRow();
+
+        const char* lastCategory = nullptr;
+        for (int i = 0; i < actionCount; ++i)
+        {
+            auto& b = m_ShortcutMgr->GetBinding(i);
+            const char* cat = ShortcutManager::GetActionCategory(i);
+            const char* lbl = ShortcutManager::GetActionLabel(i);
+
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            if (lastCategory != cat) {
+                ImGui::TextColored(ImVec4(0.5f, 0.8f, 1.0f, 1.0f), "%s", cat);
+                lastCategory = cat;
+            }
+
+            ImGui::TableSetColumnIndex(1);
+            ImGui::TextUnformatted(lbl);
+
+            ImGui::TableSetColumnIndex(2);
+            ImGui::TextDisabled("%s", b.ToString().c_str());
+        }
+        ImGui::EndTable();
+    }
+
+    ImGui::Spacing();
 }

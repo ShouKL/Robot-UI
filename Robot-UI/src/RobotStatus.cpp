@@ -5,15 +5,16 @@
 #include "NodeGraphManager.h"
 #include "RobotCommManager.h"
 #include "RobotComponentManager.h"
+#include "Walnut/Core/Log.h"
 #include <cstring>
+#include <unordered_map>
 #include <yaml-cpp/yaml.h>
 
 RobotStatus::RobotStatus()
 {
-    m_RobotAPI = std::make_shared<HardwareInterface>();
     m_CurrentCommand = std::make_shared<const ActuatorConfig>();
     m_GraphEvaluator = std::make_unique<NodeGraph>();
-    WL_INFO_TAG("ROBOT_STATUS", "RobotStatus created (with headless graph evaluator)");
+    WL_INFO_TAG("ROBOT_STATUS", "RobotStatus created (multi-connection mode, with headless graph evaluator)");
 }
 
 // ---- 同步 ActiveNodeGraph 到求值器 ----
@@ -22,20 +23,21 @@ void RobotStatus::SyncActiveNodeGraph()
     if (!m_NodeGraphManager) return;
     if (m_ActiveNodeGraphIdx < 0 || m_ActiveNodeGraphIdx >= m_NodeGraphManager->GetItemCount()) return;
 
-    std::string yaml = m_NodeGraphManager->GetGraphYamlForIndex(m_ActiveNodeGraphIdx);
+    std::string yaml = m_NodeGraphManager->GetGraphDataYamlForIndex(m_ActiveNodeGraphIdx);
     if (yaml.empty()) return;
 
-    // Skip if same as last synced
     if (yaml == m_LastSyncedYaml) return;
     m_LastSyncedYaml = yaml;
 
     std::unique_lock<std::shared_mutex> lock(m_StatusMutex);
-    if (m_GraphEvaluator->LoadGraphData(yaml))
+    if (m_GraphEvaluator->LoadGraphData(yaml)) {
         WL_INFO_TAG("ROBOT_STATUS", "Synced graph from active NodeGraph #{} ({})",
                     m_ActiveNodeGraphIdx, m_NodeGraphManager->GetItemNameBuf(m_ActiveNodeGraphIdx));
-    else
+        m_ActiveCommIndices = m_GraphEvaluator->GetCommRefs();
+    } else {
         WL_WARN_TAG("ROBOT_STATUS", "Failed to parse graph from active NodeGraph #{}",
                     m_ActiveNodeGraphIdx);
+    }
 }
 
 void RobotStatus::EnableLiveSync(bool enable)
@@ -72,14 +74,27 @@ void RobotStatus::SyncFromManagerSelected()
         WL_WARN_TAG("ROBOT_STATUS", "Failed to parse graph from Manager selected #{}", selIdx);
 }
 
-// ---- 获取当前活跃 Comm 的发送频率 ----
+// ---- 获取当前活跃 Comm 的发送频率（取所有连接中的最小值）----
 int RobotStatus::GetSendFreqHz() const
 {
-    if (!m_RobotCommManager || m_ActiveCommIdx < 0) return 100;
-    auto items = m_RobotCommManager->GetAllItems();
-    if (m_ActiveCommIdx >= (int)items.size()) return 100;
-    int hz = items[m_ActiveCommIdx].send_freq_hz;
-    return hz > 0 ? hz : 100;
+    int minHz = 200; // 安全上限
+    for (const auto& conn : m_Connections) {
+        if (!conn.isLinked) continue;
+        int hz = conn.config.send_freq_hz;
+        if (hz > 0 && hz < minHz) minHz = hz;
+    }
+    if (minHz == 200) {
+        // 无已连接实例时，回退到活跃 Comm 配置（取最小值）
+        if (!m_RobotCommManager || m_ActiveCommIndices.empty()) return 100;
+        auto items = m_RobotCommManager->GetAllItems();
+        for (int idx : m_ActiveCommIndices) {
+            if (idx < 0 || idx >= (int)items.size()) continue;
+            int hz = items[idx].send_freq_hz;
+            if (hz > 0 && hz < minHz) minHz = hz;
+        }
+        return (minHz == 200) ? 100 : minHz;
+    }
+    return minHz;
 }
 
 // ---- 从当前选中的 NodeGraph 推导 ActiveMode / ActiveGamepad / ActiveComm ----
@@ -100,8 +115,8 @@ void RobotStatus::DeriveActiveFromNodeGraph()
             if (!modeName.empty()) {
                 auto& comps = m_RobotComponentManager->GetComponents();
                 for (auto& c : comps) {
-                    if (std::strcmp(c.component.name, modeName.c_str()) == 0) {
-                        SetActiveMode(&c.component);
+                    if (std::strcmp(c.name, modeName.c_str()) == 0) {
+                        SetActiveMode(c);
                         WL_INFO_TAG("ROBOT_STATUS", "Derived ActiveMode '{}' from NodeGraph #{}",
                                     modeName, m_ActiveNodeGraphIdx);
                         break;
@@ -126,12 +141,26 @@ void RobotStatus::DeriveActiveFromNodeGraph()
             }
         }
 
-        // 推导 Comm
-        if (m_RobotCommManager && root["comm_index"]) {
-            int commIdx = root["comm_index"].as<int>();
-            if (commIdx >= 0 && commIdx < m_RobotCommManager->GetItemCount()) {
-                SetActiveCommIdx(commIdx);
-                WL_INFO_TAG("ROBOT_STATUS", "Derived ActiveComm #{} from NodeGraph #{}", commIdx, m_ActiveNodeGraphIdx);
+        // 推导 Comm（读 comm_refs 数组，回退到旧格式 comm_index）
+        if (m_RobotCommManager) {
+            int commMgrCount = m_RobotCommManager->GetItemCount();
+            if (root["comm_refs"] && root["comm_refs"].IsSequence()) {
+                m_ActiveCommIndices.clear();
+                for (auto r : root["comm_refs"]) {
+                    int ci = r.as<int>();
+                    if (ci >= 0 && ci < commMgrCount)
+                        m_ActiveCommIndices.push_back(ci);
+                }
+                WL_INFO_TAG("ROBOT_STATUS", "Derived {} ActiveComm(s) from NodeGraph #{} comm_refs",
+                            m_ActiveCommIndices.size(), m_ActiveNodeGraphIdx);
+            } else if (root["comm_index"]) {
+                int commIdx = root["comm_index"].as<int>();
+                m_ActiveCommIndices.clear();
+                if (commIdx >= 0 && commIdx < commMgrCount) {
+                    m_ActiveCommIndices.push_back(commIdx);
+                    WL_INFO_TAG("ROBOT_STATUS", "Derived ActiveComm #{} from NodeGraph #{} (old comm_index)",
+                                commIdx, m_ActiveNodeGraphIdx);
+                }
             }
         }
     }
@@ -142,20 +171,48 @@ void RobotStatus::DeriveActiveFromNodeGraph()
 
 RobotStatus::~RobotStatus()
 {
-    Unlink();
+    UnlinkAll();
+}
+
+// ---- 向求值器注入回调（供 ShortcutTrigger 节点使用） ----
+void RobotStatus::SetEvaluatorSendActionCb(std::function<void(int,bool,bool)> cb)
+{
+    std::unique_lock<std::shared_mutex> lock(m_StatusMutex);
+    if (m_GraphEvaluator)
+        m_GraphEvaluator->SetSendActionCb(std::move(cb));
+}
+
+void RobotStatus::SetEvaluatorShortcutManager(ShortcutManager* sm)
+{
+    std::unique_lock<std::shared_mutex> lock(m_StatusMutex);
+    if (m_GraphEvaluator)
+        m_GraphEvaluator->SetShortcutManager(sm);
+}
+
+// ---- 从编辑器图同步到内部求值器 ----
+void RobotStatus::SyncGraphFromEditor(NodeGraph* editor)
+{
+    if (!editor || !m_GraphEvaluator) return;
+    std::string yaml = editor->GetGraphDataYaml();
+    if (yaml.empty()) return;
+
+    std::unique_lock<std::shared_mutex> lock(m_StatusMutex);
+    if (m_GraphEvaluator->LoadGraphData(yaml))
+        WL_INFO_TAG("ROBOT_STATUS", "Synced graph from editor");
+    else
+        WL_WARN_TAG("ROBOT_STATUS", "Failed to sync graph from editor");
 }
 
 // ---- 活跃模式管理（写锁） ----
 
-void RobotStatus::SetActiveMode(const RobotMode* item)
+void RobotStatus::SetActiveMode(const RobotComponent& comp)
 {
     std::unique_lock<std::shared_mutex> lock(m_StatusMutex);
-    m_ActiveMode = item;
-    if (item) {
-        WL_INFO_TAG("ROBOT_STATUS", "Selected item set to: {}", item->name);
-    } else {
-        WL_INFO_TAG("ROBOT_STATUS", "Selected item cleared");
-    }
+    strncpy(m_ActiveMode.name, comp.name, sizeof(m_ActiveMode.name) - 1);
+    m_ActiveMode.actuator_config = comp.actuator_config;
+    m_ActiveMode.sensor_config   = comp.sensor_config;
+    m_HasActiveMode = true;
+    WL_INFO_TAG("ROBOT_STATUS", "Selected item set to: {}", comp.name);
 }
 
 void RobotStatus::SetActiveGamepad(GamepadMapper* gp)
@@ -171,28 +228,27 @@ void RobotStatus::SetActiveGamepad(GamepadMapper* gp)
 void RobotStatus::LoadGraph(const std::string& gpMapperName)
 {
     std::unique_lock<std::shared_mutex> lock(m_StatusMutex);
-    if (!m_GraphEvaluator || !m_ActiveMode) {
+    if (!m_GraphEvaluator || !m_HasActiveMode) {
         if (m_GraphEvaluator) m_GraphEvaluator->Clear();
         return;
     }
 
     // 优先从 node_graph_pairs 查找
-    auto it = m_ActiveMode->node_graph_pairs.find(gpMapperName);
-    if (it != m_ActiveMode->node_graph_pairs.end()) {
+    auto it = m_ActiveMode.node_graph_pairs.find(gpMapperName);
+    if (it != m_ActiveMode.node_graph_pairs.end()) {
         if (m_GraphEvaluator->LoadGraphData(it->second))
             WL_INFO_TAG("ROBOT_STATUS", "Loaded graph for item '{}' + gamepad '{}'",
-                        m_ActiveMode->name, gpMapperName);
+                        m_ActiveMode.name, gpMapperName);
         else
             WL_WARN_TAG("ROBOT_STATUS", "Failed to parse graph for item '{}' + gamepad '{}'",
-                        m_ActiveMode->name, gpMapperName);
-    } else if (!m_ActiveMode->node_graph.empty()) {
-        // 兼容旧版：使用 node_graph 字段
-        m_GraphEvaluator->LoadGraphData(m_ActiveMode->node_graph);
-        WL_INFO_TAG("ROBOT_STATUS", "Loaded legacy graph for item '{}'", m_ActiveMode->name);
+                        m_ActiveMode.name, gpMapperName);
+    } else if (!m_ActiveMode.node_graph.empty()) {
+        m_GraphEvaluator->LoadGraphData(m_ActiveMode.node_graph);
+        WL_INFO_TAG("ROBOT_STATUS", "Loaded legacy graph for item '{}'", m_ActiveMode.name);
     } else {
         m_GraphEvaluator->Clear();
         WL_INFO_TAG("ROBOT_STATUS", "No graph for item '{}' + gamepad '{}', cleared",
-                    m_ActiveMode->name, gpMapperName);
+                    m_ActiveMode.name, gpMapperName);
     }
 }
 
@@ -205,21 +261,142 @@ void RobotStatus::EvaluateIntoActuator(const std::map<std::string, float>& keyVa
         m_GraphEvaluator->EvaluateIntoActuator(keyValues, data);
 }
 
+void RobotStatus::EvaluateIntoActuators(const std::map<std::string, float>& keyValues,
+                                         std::vector<ActuatorConfig>& dataVec,
+                                         std::set<int>* pWrittenIndices)
+{
+    std::shared_lock lock(m_StatusMutex);
+    if (m_GraphEvaluator)
+        m_GraphEvaluator->EvaluateIntoActuators(keyValues, dataVec, pWrittenIndices);
+}
+
 // ---- 外联 getter（读锁） ----
 
 bool RobotStatus::HasGraphEvaluator()    const { std::shared_lock lock(m_StatusMutex); return m_GraphEvaluator != nullptr; }
-bool RobotStatus::HasActiveMode()        const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode != nullptr; }
-const RobotMode* RobotStatus::GetActiveModePtr() const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode; }
+bool RobotStatus::HasActiveMode()        const { std::shared_lock lock(m_StatusMutex); return m_HasActiveMode; }
+const RobotMode* RobotStatus::GetActiveModePtr() const { std::shared_lock lock(m_StatusMutex); return m_HasActiveMode ? &m_ActiveMode : nullptr; }
 GamepadMapper* RobotStatus::GetActiveGamepadPtr() const { std::shared_lock lock(m_StatusMutex); return m_ActiveGamepad; }
-const std::string RobotStatus::GetActiveModeName() const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode ? std::string(m_ActiveMode->name) : ""; }
+std::string RobotStatus::GetActiveModeName() const { std::shared_lock lock(m_StatusMutex); return m_HasActiveMode ? std::string(m_ActiveMode.name) : ""; }
 
-const ActuatorConfig&        RobotStatus::GetAppliedActuator()   const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode->actuator_config; }
-const std::vector<ProtocolSendConfig>& RobotStatus::GetAppliedSendConfig() const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode->protocol_send; }
-const std::vector<ProtocolReceiveConfig>& RobotStatus::GetAppliedRecvConfig() const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode->protocol_receive; }
-const SensorConfig&          RobotStatus::GetSensorConfig()      const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode->sensor_config; }
-bool RobotStatus::HasTemperature() const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode && m_ActiveMode->sensor_config.has_temperature; }
-bool RobotStatus::HasHumidity()    const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode && m_ActiveMode->sensor_config.has_humidity; }
-bool RobotStatus::HasDepth()       const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode && m_ActiveMode->sensor_config.has_depth; }
+const ActuatorConfig&        RobotStatus::GetAppliedActuator()   const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode.actuator_config; }
+const std::vector<ProtocolSendConfig>& RobotStatus::GetAppliedSendConfig() const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode.protocol_send; }
+const std::vector<ProtocolReceiveConfig>& RobotStatus::GetAppliedRecvConfig() const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode.protocol_receive; }
+
+// ====== 快捷键：切换发送帧 ======
+
+void RobotStatus::ToggleSendFrame(int index)
+{
+    if (!m_RobotCommManager) return;
+    auto& nodes = m_RobotCommManager->GetNodes();
+
+    std::vector<ProtocolSendConfig*> configs;
+    {
+        std::shared_lock lock(m_StatusMutex);
+        fprintf(stderr, "[TRACE] ToggleSendFrame index=%d activeCommIndices=%d\n", index, (int)m_ActiveCommIndices.size());
+        for (int ci : m_ActiveCommIndices) {
+            if (ci < 0 || ci >= (int)nodes.size()) continue;
+            for (auto& sc : nodes[ci].component.protocol_send)
+                configs.push_back(&sc);
+        }
+    }
+
+    fprintf(stderr, "[TRACE] ToggleSendFrame collectedConfigs=%d\n", (int)configs.size());
+    if (index < 0 || index >= (int)configs.size()) return;
+    bool was = configs[index]->enabled;
+    configs[index]->enabled = !configs[index]->enabled;
+    fprintf(stderr, "[TRACE] ToggleSendFrame[%d] '%s' %d->%d linkedConns=%d\n",
+        index, configs[index]->name, was, configs[index]->enabled, (int)m_Connections.size());
+
+    for (auto& conn : m_Connections) {
+        if (!conn.isLinked) continue;
+        std::vector<ProtocolSendConfig> sendCopy;
+        for (auto* sc : configs) sendCopy.push_back(*sc);
+        conn.hw->SetProtocolConfig(sendCopy);
+    }
+}
+
+void RobotStatus::OneShotSendFrame(int index)
+{
+    if (!m_RobotCommManager) return;
+    auto& nodes = m_RobotCommManager->GetNodes();
+
+    std::vector<ProtocolSendConfig*> configs;
+    {
+        std::shared_lock lock(m_StatusMutex);
+        for (int ci : m_ActiveCommIndices) {
+            if (ci < 0 || ci >= (int)nodes.size()) continue;
+            for (auto& sc : nodes[ci].component.protocol_send)
+                configs.push_back(&sc);
+        }
+    }
+
+    if (index < 0 || index >= (int)configs.size()) return;
+
+    // 保存原始状态，临时启用，发一次，恢复
+    bool wasEnabled = configs[index]->enabled;
+    configs[index]->enabled = true;
+
+    for (auto& conn : m_Connections) {
+        if (!conn.isLinked) continue;
+        std::vector<ProtocolSendConfig> sendCopy;
+        for (auto* sc : configs) sendCopy.push_back(*sc);
+        conn.hw->SetProtocolConfig(sendCopy);
+    }
+
+    // 发送一次当前命令
+    {
+        std::shared_lock lock(m_StatusMutex);
+        ActuatorConfig cmd;
+        if (m_CurrentCommand) cmd = *m_CurrentCommand;
+        for (auto& conn : m_Connections)
+            if (conn.isLinked) conn.hw->SendActuatorData(cmd);
+    }
+
+    // 恢复原来状态
+    configs[index]->enabled = wasEnabled;
+    for (auto& conn : m_Connections) {
+        if (!conn.isLinked) continue;
+        std::vector<ProtocolSendConfig> sendCopy;
+        for (auto* sc : configs) sendCopy.push_back(*sc);
+        conn.hw->SetProtocolConfig(sendCopy);
+    }
+}
+
+void RobotStatus::ToggleAllSendFrames()
+{
+    if (!m_RobotCommManager) return;
+    auto& nodes = m_RobotCommManager->GetNodes();
+
+    std::vector<ProtocolSendConfig*> configs;
+    {
+        std::shared_lock lock(m_StatusMutex);
+        for (int ci : m_ActiveCommIndices) {
+            if (ci < 0 || ci >= (int)nodes.size()) continue;
+            for (auto& sc : nodes[ci].component.protocol_send)
+                configs.push_back(&sc);
+        }
+    }
+
+    // 判断当前状态：全开则全关；否则全开
+    bool allOn = !configs.empty();
+    for (auto* sc : configs)
+        if (!sc->enabled) { allOn = false; break; }
+
+    for (auto* sc : configs)
+        sc->enabled = !allOn;
+
+    // 推送更新
+    for (auto& conn : m_Connections) {
+        if (!conn.isLinked) continue;
+        std::vector<ProtocolSendConfig> sendCopy;
+        for (auto* sc : configs) sendCopy.push_back(*sc);
+        conn.hw->SetProtocolConfig(sendCopy);
+    }
+}
+const SensorConfig&          RobotStatus::GetSensorConfig()      const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode.sensor_config; }
+bool RobotStatus::HasTemperature() const { std::shared_lock lock(m_StatusMutex); return m_HasActiveMode && m_ActiveMode.sensor_config.has_temperature; }
+bool RobotStatus::HasHumidity()    const { std::shared_lock lock(m_StatusMutex); return m_HasActiveMode && m_ActiveMode.sensor_config.has_humidity; }
+bool RobotStatus::HasDepth()       const { std::shared_lock lock(m_StatusMutex); return m_HasActiveMode && m_ActiveMode.sensor_config.has_depth; }
 
 // ---- 运行时数据更新（读锁保护 m_CurrentSensor/m_SensorValid） ----
 
@@ -258,50 +435,122 @@ bool RobotStatus::IsSensorValid() const
     return m_SensorValid;
 }
 
-// ---- 连接控制 ---- 
-bool RobotStatus::Link(const RobotCommConfig& cfg)
-{
-    Unlink();  // 断开旧连接
-    WL_INFO_TAG("ROBOT_STATUS", "Linking to {}:{} (local: {})...", cfg.host_ip, cfg.remote_port, cfg.local_port);
+// ---- 多连接控制（由 NodeGraph 的 CommRefs 决定，自动同步）----
 
-    bool ok = m_RobotAPI->Initialize(cfg.host_ip, cfg.remote_port, cfg.local_port, cfg.transport_type);
-    if (ok) {
-        m_IsLinked = true;
-        WL_INFO_TAG("ROBOT_STATUS", "Linked successfully: {} ({})", cfg.name, cfg.host_ip);
-    } else {
-        WL_ERROR_TAG("ROBOT_STATUS", "Link failed: {} ({})", cfg.name, cfg.host_ip);
+void RobotStatus::SyncConnectionsFromGraph()
+{
+    if (!m_GraphEvaluator || !m_RobotCommManager) return;
+
+    const auto& commRefs = m_GraphEvaluator->GetCommRefs();
+    int commMgrCount = m_RobotCommManager->GetItemCount();
+    auto allCfgs = m_RobotCommManager->GetAllItems();
+
+    // 只同步连接池的 config 部分，绝不改变 isLinked 状态
+    bool changed = ((int)m_Connections.size() != (int)commRefs.size());
+    if (!changed) {
+        for (int i = 0; i < (int)commRefs.size(); ++i) {
+            int ci = commRefs[i];
+            if (i >= (int)m_Connections.size()) { changed = true; break; }
+            const char* wantedName = (ci >= 0 && ci < (int)allCfgs.size()) ? allCfgs[ci].name : "";
+            if (strcmp(m_Connections[i].config.name, wantedName) != 0) { changed = true; break; }
+        }
     }
+
+    if (changed) {
+        // 保存旧连接状态
+        std::unordered_map<std::string, bool> linkedMap;
+        for (auto& conn : m_Connections)
+            if (conn.isLinked) linkedMap[conn.config.name] = true;
+
+        m_Connections.clear();
+        for (int ci : commRefs) {
+            if (ci < 0 || ci >= commMgrCount) continue;
+            ConnectionEntry entry;
+            entry.hw = std::make_shared<HardwareInterface>();
+            entry.config = allCfgs[ci];
+            // 仅当之前已连接时重建（用户手动点过 Connect），否则保持未连接
+            entry.isLinked = (linkedMap.count(entry.config.name) > 0);
+            if (entry.isLinked) {
+                entry.hw->Initialize(entry.config.host_ip, entry.config.remote_port,
+                                     entry.config.local_port, entry.config.transport_type);
+                if (!entry.hw->IsConnected()) entry.isLinked = false;
+            }
+            m_Connections.push_back(std::move(entry));
+        }
+        WL_INFO_TAG("ROBOT_STATUS", "Synced {} connections from graph comm_refs (linked={})",
+                    m_Connections.size(),
+                    (int)std::count_if(m_Connections.begin(), m_Connections.end(),
+                                       [](auto& c){ return c.isLinked; }));
+    }
+}
+
+bool RobotStatus::IsLinked() const
+{
+    for (const auto& conn : m_Connections)
+        if (conn.isLinked) return true;
+    return false;
+}
+
+const ConnectionEntry* RobotStatus::GetConnection(int index) const
+{
+    if (index >= 0 && index < (int)m_Connections.size())
+        return &m_Connections[index];
+    return nullptr;
+}
+
+bool RobotStatus::LinkConnection(int index)
+{
+    if (index < 0 || index >= (int)m_Connections.size()) return false;
+    auto& conn = m_Connections[index];
+    WL_INFO_TAG("ROBOT_STATUS", "Linking {} ({}:{})...", conn.config.name, conn.config.host_ip, conn.config.remote_port);
+    bool ok = conn.hw->Initialize(conn.config.host_ip, conn.config.remote_port,
+                                   conn.config.local_port, conn.config.transport_type);
+    if (ok) {
+        // Push protocol configs from RobotComm to hardware interface
+        conn.hw->SetProtocolConfig(conn.config.protocol_send);
+        conn.hw->SetProtocolReceiveConfig(conn.config.protocol_receive);
+    }
+    conn.isLinked = ok;
     return ok;
 }
 
-void RobotStatus::Unlink()
+void RobotStatus::UnlinkConnection(int index)
 {
-    if (m_IsLinked)
-        WL_INFO_TAG("ROBOT_STATUS", "Unlinked");
-    m_IsLinked = false;
-    m_LastSyncedProtocolItem = nullptr;
+    if (index < 0 || index >= (int)m_Connections.size()) return;
+    auto& conn = m_Connections[index];
+    if (conn.isLinked)
+        WL_INFO_TAG("ROBOT_STATUS", "Unlinked {} ({})", conn.config.name, conn.config.host_ip);
+    conn.isLinked = false;
+}
+
+void RobotStatus::UnlinkAll()
+{
+    for (auto& conn : m_Connections) conn.isLinked = false;
+    m_LastSyncedProtocolKey.clear();
 }
 
 void RobotStatus::SendActuatorData(const ActuatorConfig& data)
 {
-    if (m_IsLinked) {
-        m_RobotAPI->SendActuatorData(data);
-        // 发送后检查连接是否已被硬件层标记为断开
-        if (!m_RobotAPI->IsConnected()) {
-            WL_ERROR_TAG("ROBOT_STATUS", "Connection lost during send — auto-unlinking");
-            Unlink();
+    for (auto& conn : m_Connections) {
+        if (!conn.isLinked) continue;
+        conn.hw->SendActuatorData(data);
+        if (!conn.hw->IsConnected()) {
+            WL_ERROR_TAG("ROBOT_STATUS", "Connection lost during send: {} ({})",
+                         conn.config.name, conn.config.host_ip);
+            conn.isLinked = false;
         }
     }
 }
 
 SensorData RobotStatus::GetSensorData()
 {
-    if (m_IsLinked) {
-        SensorData d = m_RobotAPI->GetSensorData();
-        // 接收后检查连接是否已被硬件层标记为断开
-        if (!m_RobotAPI->IsConnected()) {
-            WL_ERROR_TAG("ROBOT_STATUS", "Connection lost during recv — auto-unlinking");
-            Unlink();
+    for (auto& conn : m_Connections) {
+        if (!conn.isLinked) continue;
+        SensorData d = conn.hw->GetSensorData();
+        if (!conn.hw->IsConnected()) {
+            WL_ERROR_TAG("ROBOT_STATUS", "Connection lost during recv: {} ({})",
+                         conn.config.name, conn.config.host_ip);
+            conn.isLinked = false;
         }
         return d;
     }
@@ -319,6 +568,13 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
     m_RobotCommManager        = commManager;
     m_RobotComponentManager   = compMgr;
     m_GamepadMapperManager    = gpMgr;
+
+    // 首帧自动同步 + 推导 Active（无需用户手动切换 NodeGraph combo）
+    if (!m_DidFirstDerive && nodeGraphMgr && nodeGraphMgr->GetItemCount() > 0) {
+        m_DidFirstDerive = true;
+        SyncActiveNodeGraph();
+        DeriveActiveFromNodeGraph();
+    }
 
     // 响应外部请求（如 RestoreRobotStatusActive 后）同步 NodeGraph
     if (m_NeedsNodeGraphSync) {
@@ -378,30 +634,50 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
         }
     }
 
-    // ---- Connect / Disconnect 按钮（Comm 由 NodeGraph 确定，不暴露下拉框）----
+    // ---- 连接状态（由 NodeGraph CommRefs 自动驱动，不可手动增减） ----
+    SyncConnectionsFromGraph();
+
     if (commManager && commManager->GetItemCount() > 0)
     {
-        if (m_ActiveCommIdx >= commManager->GetItemCount())
-            m_ActiveCommIdx = 0;
-
         ImGui::Spacing();
-        bool linked = m_IsLinked;
-        ImVec4 statusColor = linked ? ImVec4(0.3f, 1.0f, 0.3f, 1.0f) : ImVec4(1.0f, 0.5f, 0.0f, 1.0f);
-        ImGui::TextColored(statusColor, "Status: %s", linked ? "Linked" : "Disconnected");
+        int linkedCount = 0;
+        for (const auto& conn : m_Connections)
+            if (conn.isLinked) ++linkedCount;
+        bool anyLinked = (linkedCount > 0);
 
-        if (!linked)
-        {
-            if (ImGui::Button("Connect", ImVec2(-1, 0)))
-            {
-                auto items = commManager->GetAllItems();
-                if (m_ActiveCommIdx >= 0 && m_ActiveCommIdx < (int)items.size())
-                    Link(items[m_ActiveCommIdx]);
+        ImVec4 statusColor = anyLinked ? ImVec4(0.3f, 1.0f, 0.3f, 1.0f) : ImVec4(1.0f, 0.5f, 0.0f, 1.0f);
+        ImGui::TextColored(statusColor, "Status: %d/%d linked", linkedCount, (int)m_Connections.size());
+
+        if (m_Connections.empty()) {
+            ImGui::TextDisabled("  (NodeGraph has no comm refs — add in sidebar)");
+        } else if (ImGui::TreeNodeEx("Connections", ImGuiTreeNodeFlags_DefaultOpen)) {
+            ImGui::Indent();
+            for (int i = 0; i < (int)m_Connections.size(); ++i) {
+                auto& conn = m_Connections[i];
+                ImGui::PushID(i);
+                ImVec4 col = conn.isLinked ? ImVec4(0.3f, 1.0f, 0.3f, 1.0f) : ImVec4(0.7f, 0.7f, 0.7f, 1.0f);
+                ImGui::TextColored(col, "[%d] %s", i, conn.config.name);
+                ImGui::SameLine();
+                ImGui::TextDisabled("(%s:%d)", conn.config.host_ip, conn.config.remote_port);
+                if (conn.isLinked) {
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton("Disconnect")) UnlinkConnection(i);
+                } else {
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton("Connect")) LinkConnection(i);
+                }
+                ImGui::PopID();
             }
+            ImGui::Unindent();
+            ImGui::TreePop();
         }
-        else
-        {
-            if (ImGui::Button("Disconnect", ImVec2(-1, 0)))
-                Unlink();
+
+        // 一键操作
+        if (anyLinked) {
+            if (ImGui::Button("Disconnect All", ImVec2(-1, 0))) UnlinkAll();
+        } else if (!m_Connections.empty()) {
+            if (ImGui::Button("Connect All", ImVec2(-1, 0)))
+                for (int i = 0; i < (int)m_Connections.size(); ++i) LinkConnection(i);
         }
     }
 
@@ -410,15 +686,15 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
         ImGui::Spacing();
         ImGui::TextDisabled("Active Items:");
 
-        const RobotMode* mode = nullptr;
+        RobotMode mode;
         GamepadMapper* gp = nullptr;
         {
             std::shared_lock lock(m_StatusMutex);
-            mode = m_ActiveMode;
+            if (m_HasActiveMode) mode = m_ActiveMode;
             gp = m_ActiveGamepad;
         }
 
-        ImGui::Text("  Component:    %s", mode ? mode->name : "(none)");
+        ImGui::Text("  Component:    %s", m_HasActiveMode ? mode.name : "(none)");
         ImGui::Text("  Gamepad:      %s", gp ? gp->name : "(none)");
 
         if (nodeGraphMgr && m_ActiveNodeGraphIdx < nodeGraphMgr->GetItemCount())
@@ -431,83 +707,112 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
         else
             ImGui::Text("  LiveStream:   (none)");
 
-        if (commManager && m_ActiveCommIdx < commManager->GetItemCount())
-            ImGui::Text("  Comm Config:  %s", commManager->GetItemNameBuf(m_ActiveCommIdx));
-        else
+        if (commManager && !m_ActiveCommIndices.empty()) {
+            ImGui::Text("  Comm Configs:");
+            for (int ci : m_ActiveCommIndices) {
+                if (ci < commManager->GetItemCount())
+                    ImGui::Text("    - %s", commManager->GetItemNameBuf(ci));
+            }
+        } else {
             ImGui::Text("  Comm Config:  (none)");
+        }
     }
 
     ImGui::Separator();
 
     // 快照：在共享锁下获取所有需要的数据，然后用局部变量绘制
-    const RobotMode* item = nullptr;
+    RobotMode snapshotMode;
     std::shared_ptr<const ActuatorConfig> cmd;
     bool linked;
     {
         std::shared_lock lock(m_StatusMutex);
-        item = m_ActiveMode;
+        snapshotMode = m_ActiveMode;
         cmd  = m_CurrentCommand;
-        linked = m_IsLinked;
+        linked = IsLinked();
     }
+    if (!m_HasActiveMode) { ImGui::TextDisabled("No selected item"); ImGui::End(); return; }
+
     // 未连接时，使用 RobotComponent 中配置的初始值；连接后使用实时求值结果
     if (!cmd || !linked)
-        cmd = std::make_shared<const ActuatorConfig>(item ? item->actuator_config : ActuatorConfig{});
+        cmd = std::make_shared<const ActuatorConfig>(snapshotMode.actuator_config);
 
-    if (!item) { ImGui::TextDisabled("No selected item"); ImGui::End(); return; }
+    // 从活跃 Comm 配置中收集协议字段引用（直接操作原始数据，无需写回）
+    std::vector<std::pair<int, ProtocolSendConfig*>> activeSendCfgs;   // (commIdx, ptr)
+    std::vector<std::pair<int, ProtocolReceiveConfig*>> activeRecvCfgs;
+    if (commManager) {
+        auto& nodes = commManager->GetNodes();
+        for (int ci : m_ActiveCommIndices) {
+            if (ci < 0 || ci >= (int)nodes.size()) continue;
+            auto& cfg = nodes[ci].component;
+            for (auto& sc : cfg.protocol_send)
+                activeSendCfgs.push_back({ci, &sc});
+            for (auto& rc : cfg.protocol_receive)
+                activeRecvCfgs.push_back({ci, &rc});
+        }
+    }
 
-    // === Send Control — 控制发送哪些数据帧 ===
+    // === Send Control ===
     if (ImGui::CollapsingHeader("Send Control", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        const auto& sendCfgs = item->protocol_send;
-        if (sendCfgs.empty())
+        if (activeSendCfgs.empty())
         {
             ImGui::TextDisabled("  No send frames configured");
         }
         else
         {
             ImGui::Indent();
-            auto* modeMut = const_cast<RobotMode*>(item);
 
-            // 当前活跃 item 变化时，自动推送协议配置到 HardwareInterface
-            if (m_IsLinked && m_LastSyncedProtocolItem != item) {
-                m_RobotAPI->SetProtocolConfig(sendCfgs);
-                m_RobotAPI->SetProtocolReceiveConfig(item->protocol_receive);
-                m_LastSyncedProtocolItem = item;
+            // 每次连接后首次同步协议配置到硬件
+            if (IsLinked() && m_LastSyncedProtocolKey != snapshotMode.name) {
+                std::vector<ProtocolSendConfig> sendCopy;
+                std::vector<ProtocolReceiveConfig> recvCopy;
+                for (auto& p : activeSendCfgs)  sendCopy.push_back(*p.second);
+                for (auto& p : activeRecvCfgs)  recvCopy.push_back(*p.second);
+                for (auto& conn : m_Connections) {
+                    if (!conn.isLinked) continue;
+                    conn.hw->SetProtocolConfig(sendCopy);
+                    conn.hw->SetProtocolReceiveConfig(recvCopy);
+                }
+                m_LastSyncedProtocolKey = snapshotMode.name;
             }
 
             bool anyChanged = false;
-            for (size_t i = 0; i < sendCfgs.size(); ++i)
+            for (size_t i = 0; i < activeSendCfgs.size(); ++i)
             {
-                auto& sc = modeMut->protocol_send[i];
+                auto& sc = *activeSendCfgs[i].second;
                 ImGui::PushID((int)i);
                 if (ImGui::Checkbox("##sendEn", &sc.enabled))
                     anyChanged = true;
                 ImGui::PopID();
                 ImGui::SameLine();
                 ImGui::TextColored(sc.enabled ? ImVec4(0.3f, 1.0f, 0.3f, 1.0f) : ImVec4(0.5f, 0.5f, 0.5f, 1.0f),
-                    "%s  [0x%02X] %s (%zu fields)",
-                    sc.name, sc.command_byte, sc.enabled ? "ON" : "OFF", sc.fields.size());
+                    "%s  [cmd:%zub] %s (%zu fields)",
+                    sc.name, sc.command_bytes.size(), sc.enabled ? "ON" : "OFF", sc.fields.size());
             }
-            if (anyChanged && m_IsLinked)
-                m_RobotAPI->SetProtocolConfig(modeMut->protocol_send);
+            if (anyChanged && IsLinked()) {
+                std::vector<ProtocolSendConfig> sendCopy;
+                for (auto& p : activeSendCfgs) sendCopy.push_back(*p.second);
+                for (auto& conn : m_Connections) {
+                    if (!conn.isLinked) continue;
+                    conn.hw->SetProtocolConfig(sendCopy);
+                }
+            }
             ImGui::Unindent();
         }
     }
 
-    // === Actuator — 分组来自 protocol_send，值实时显示（连接时用求值结果，未连接用初始配置） ===
+    // === Actuator ===
     if (ImGui::CollapsingHeader("Actuator", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        const auto& sendCfgs = item->protocol_send;
-        if (sendCfgs.empty())
+        if (activeSendCfgs.empty())
         {
             ImGui::TextDisabled("  No send frames configured");
         }
         else
         {
-            // 聚合所有 send frame 的字段（按 group 分组）
             std::map<std::string, std::vector<const SendField*>> groups;
-            for (const auto& sc : sendCfgs)
-                for (const auto& f : sc.fields)
+            for (const auto& sc : activeSendCfgs)
+                for (const auto& f : sc.second->fields)
                     groups[f.group.empty() ? "Default" : f.group].push_back(&f);
 
             ImGui::Indent();
@@ -534,20 +839,18 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
         }
     }
 
-    // === Sensor — 按分组折叠显示 ===
+    // === Sensor ===
     if (ImGui::CollapsingHeader("Sensor", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        const auto& recvCfgs = item->protocol_receive;
-        if (recvCfgs.empty())
+        if (activeRecvCfgs.empty())
         {
             ImGui::TextDisabled("  No receive frames configured");
         }
         else
         {
-            // 聚合所有接收帧的字段（按 group 分组）
             std::map<std::string, std::vector<const ReceiveField*>> groups;
-            for (const auto& rc : recvCfgs)
-                for (const auto& f : rc.fields)
+            for (const auto& rc : activeRecvCfgs)
+                for (const auto& f : rc.second->fields)
                     groups[f.group.empty() ? "Default" : f.group].push_back(&f);
 
             ImGui::Indent();
@@ -558,7 +861,7 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
                     int visibleCnt = 0;
                     SensorData sensorData;
                     bool hasData = false;
-                    if (m_IsLinked)
+                    if (IsLinked())
                     {
                         sensorData = GetSensorData();
                         hasData = sensorData.is_valid;
@@ -583,6 +886,50 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
                 }
             }
             ImGui::Unindent();
+        }
+    }
+
+    // === Graph Variables — 显示节点图中标记为 visible 的中间变量 ===
+    {
+        std::shared_lock lock(m_StatusMutex);
+        if (m_GraphEvaluator)
+        {
+            const auto& globals = m_GraphEvaluator->GetGlobals();
+            int visibleCount = 0;
+            for (const auto& gv : globals)
+                if (gv.visible) { ++visibleCount; }
+
+            if (ImGui::CollapsingHeader("Graph Variables", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                if (visibleCount == 0)
+                {
+                    ImGui::TextDisabled("  (no visible variables)");
+                }
+                else
+                {
+                    ImGui::Indent();
+                    for (const auto& gv : globals)
+                    {
+                        if (!gv.visible) continue;
+
+                        switch (gv.type) {
+                        case PinType::Bool:
+                            if (gv.value >= 0.5f)
+                                ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "  %s = True", gv.name.c_str());
+                            else
+                                ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "  %s = False", gv.name.c_str());
+                            break;
+                        case PinType::Int:
+                            ImGui::Text("  %s = %d", gv.name.c_str(), (int)gv.value);
+                            break;
+                        default:
+                            ImGui::Text("  %s = %.2f", gv.name.c_str(), gv.value);
+                            break;
+                        }
+                    }
+                    ImGui::Unindent();
+                }
+            }
         }
     }
 

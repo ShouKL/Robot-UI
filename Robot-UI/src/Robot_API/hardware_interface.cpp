@@ -330,9 +330,9 @@ SensorData HardwareInterface::DeserializeSensorData(const std::vector<uint8_t>& 
         WL_WARN_TAG("HW", "ParseSensorFrame FAIL #{} — {}B matches none of {} receive config(s)", s_FailCount, raw_data.size(), m_ReceiveCfgs.size());
         for (size_t ci = 0; ci < m_ReceiveCfgs.size(); ++ci) {
             const auto& rc = m_ReceiveCfgs[ci];
-            WL_WARN_TAG("HW", "  cfg[{}]: header_size={} include_len={} cmd=0x{:02X} checksum={} tail_size={} fields={}",
+            WL_WARN_TAG("HW", "  cfg[{}]: header_size={} include_len={} cmd_bytes={} checksum={} tail_size={} fields={}",
                         ci, rc.header.size(), rc.include_length ? 1 : 0,
-                        rc.command_byte, static_cast<int>(rc.checksum),
+                        rc.command_bytes.size(), static_cast<int>(rc.checksum),
                         rc.tail.size(), rc.fields.size());
         }
         WL_WARN_TAG("HW", "  received hex: {}", hexBuf);

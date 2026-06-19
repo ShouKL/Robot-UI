@@ -12,16 +12,27 @@ robot_ui_kernel:
     robot_status_open: true
     node_editor_open: true
     thrust_curve_editor_open: false
-    robot_comm_open: true
+    robot_comm_open: false
     notification_open: true
     terminal_open: true
-    monitor_wall_open: true
+    monitor_wall_open: false
     robot_active_mode: 0
     gamepad_active_mode: 0
-    node_left_side_width: 180
+    node_left_side_width: 200
     node_right_side_width: 200
     robot_path: ..\..\..\asset\file\demo.rbt
     robot_dirty: false
     recent_files:
       - ..\..\..\asset\file\demo.rbt
       - ..\..\..\asset\file\default.rbt
+  software_shortcuts:
+    File Open: {key: 560, ctrl: true, shift: false, alt: false}
+    File Save: {key: 564, ctrl: true, shift: false, alt: false}
+    File Save As: {key: 564, ctrl: true, shift: true, alt: false}
+    Toggle Option Panel: {key: 560, ctrl: true, shift: false, alt: false}
+    Toggle Status Panel: {key: 564, ctrl: true, shift: false, alt: false}
+    Toggle Robot Setting Panel: {key: 550, ctrl: true, shift: false, alt: false}
+    Toggle Terminal Panel: {key: 565, ctrl: true, shift: false, alt: false}
+    Toggle Monitor Wall: {key: 558, ctrl: true, shift: false, alt: false}
+    Toggle Thrust Curve Editor: {key: 566, ctrl: true, shift: false, alt: false}
+    Toggle About: {key: 546, ctrl: true, shift: true, alt: false}

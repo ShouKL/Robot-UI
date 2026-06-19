@@ -6,9 +6,7 @@
 #include <cctype>
 
 void RobotComponent::DrawConfigPanel() {
-    auto& item = component;
-
-    auto& actuator_config = item.actuator_config;
+    auto& actuator_config = this->actuator_config;
 
     // ---- 马达编辑 ----
     ImGui::PushID("MotorsSection");
@@ -121,13 +119,13 @@ void RobotComponent::DrawConfigPanel() {
 
     // ---- Motion ----
     ImGui::PushID("MotionSection");
-    bool motion_enabled = item.actuator_config.has_motion;
+    bool motion_enabled = actuator_config.has_motion;
     if (ImGui::Checkbox("Motion Control", &motion_enabled)) {
-        item.actuator_config.has_motion = motion_enabled;
+        actuator_config.has_motion = motion_enabled;
     }
-    if (item.actuator_config.has_motion) {
+    if (actuator_config.has_motion) {
         ImGui::Indent();
-        auto& m = item.actuator_config.motion;
+        auto& m = actuator_config.motion;
         float fv;
         fv = (float)m.x.value;  ImGui::InputFloat("X",  &fv); m.x.value = fv;
         fv = (float)m.y.value;  ImGui::InputFloat("Y",  &fv); m.y.value = fv;
@@ -143,9 +141,9 @@ void RobotComponent::DrawConfigPanel() {
     ImGui::Spacing();
     ImGui::Text("Sensors");
     ImGui::Separator();
-    ImGui::Checkbox("Temperature", &item.sensor_config.has_temperature);
-    ImGui::Checkbox("Humidity",    &item.sensor_config.has_humidity);
-    ImGui::Checkbox("Depth",       &item.sensor_config.has_depth);
+    ImGui::Checkbox("Temperature", &sensor_config.has_temperature);
+    ImGui::Checkbox("Humidity",    &sensor_config.has_humidity);
+    ImGui::Checkbox("Depth",       &sensor_config.has_depth);
 
     ImGui::Spacing(); ImGui::Separator();
 }

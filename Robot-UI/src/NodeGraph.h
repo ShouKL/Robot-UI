@@ -23,6 +23,7 @@ namespace Walnut { class Image; }
 
 class RobotComponentManager;
 class GamepadMapperManager;
+class ShortcutManager;
 #include "RobotCommManager.h"
 
 // ============================================================================
@@ -44,9 +45,10 @@ struct EditorLink
 // OutputTargetInfo — describes a protocol send field as an output target
 // ============================================================================
 struct OutputTargetInfo {
-    std::string name;         // display name (e.g., "Motor Left > Target Speed")
+    std::string name;         // display name (e.g., "MyComm > Motor Left > Target Speed")
     std::string field_path;   // e.g., "brushlessmotor.0.target_speed"
     DataEncoding encoding = DataEncoding::Float32;
+    int  comm_index = 0;      // which RobotComm (index into m_CommRefs) this target belongs to
 };
 
 // ============================================================================
@@ -58,10 +60,11 @@ using KeyNameList = std::vector<std::string>;
 // GlobalVar — a typed, ID-stable graph variable (persisted with the graph)
 // ============================================================================
 struct GlobalVar {
-    int      id    = 0;
+    int      id      = 0;
     std::string name;
-    float    value = 0.0f;
-    PinType  type  = PinType::Float;
+    float    value   = 0.0f;
+    PinType  type    = PinType::Float;
+    bool     visible = false;  // show in RobotStatus panel
 };
 
 // ============================================================================
@@ -104,10 +107,22 @@ public:
     void SetRobotComponentManager(RobotComponentManager* c) { m_RobotMgr = c; }
     void SetGamepadMapperManager(GamepadMapperManager* g)    { m_GamepadMgr = g; }
     void SetRobotCommManager(RobotCommManager* comm)         { m_CommMgr = comm; }
+    void SetShortcutManager(ShortcutManager* sm)             { m_ShortcutMgr = sm; }
 
-    // ---- Comm 配置选择 ----
-    int  GetCommIndex() const { return m_CommIndex; }
-    void SetCommIndex(int idx) { m_CommIndex = idx; }
+    // ---- Send action callback (ShortcutTrigger → RobotStatus) ----
+    // Called on rising edge: (sendFlatIndex, enable, oneShot)
+    void SetSendActionCb(std::function<void(int,bool,bool)> cb) { m_SendActionCb = std::move(cb); }
+
+    // ---- Comm 配置管理（由 NodeGraph 决定连接哪些 RobotComm） ----
+    // m_CommRefs 存储 RobotCommManager 中的索引列表
+    // CustomOutput 节点的 CommIndex 引用 m_CommRefs 的下标
+    const std::vector<int>& GetCommRefs() const { return m_CommRefs; }
+    int GetNodeCount() const { return (int)m_Nodes.size(); }
+    int  GetCommRef(int graphCommIdx) const;  // graphCommIdx → RobotCommManager 索引
+    int  GetCommRefCount() const { return (int)m_CommRefs.size(); }
+    void AddCommRef(int robotCommMgrIdx);
+    void RemoveCommRef(int graphCommIdx);
+    void SetCommRefs(const std::vector<int>& refs) { m_CommRefs = refs; }
 
     // ---- External data feeding (runtime values from gamepad thread) ----
     void SetCurrentModePair(const std::string& robotMode, const std::string& gamepadMode);
@@ -140,15 +155,23 @@ public:
     std::unique_ptr<NodeGraph> Clone() const;
 
     // ---- Evaluation ----
-    // Compute output map from keyValues.
-    // NOTE: Stateful nodes (Memory/Logic/Control) modify their internal state during
-    // evaluation, so callers MUST hold a unique_lock (write lock) on m_EvalMutex.
-    // Internal use only — use Evaluate() or EvaluateIntoActuator() for public API.
+    // Evaluate into per-comm ActuatorConfig vector.
+    // dataVec[commIndex] receives outputs from CustomOutput nodes with that CommIndex.
+    // dataVec is resized to cover all referenced comm indices.
+    // Internal use only — use EvaluateIntoActuators() for public API.
+    void EvaluateComputeInto(const std::map<std::string, float>& keyValues,
+                             std::vector<ActuatorConfig>& dataVec,
+                             std::set<int>* pWrittenIndices = nullptr);
+    // Compute output map from keyValues (legacy, single-comm).
     std::map<std::string, float> EvaluateCompute(const std::map<std::string, float>& keyValues);
     // Thread-safe evaluation (acquires unique_lock — serializes concurrent evals)
     std::map<std::string, float> Evaluate(const std::map<std::string, float>& keyValues);
-    // Evaluate and write outputs into ActuatorConfig
+    // Evaluate and write outputs into ActuatorConfig (legacy, single target)
     void EvaluateIntoActuator(const std::map<std::string, float>& keyValues, ActuatorConfig& data);
+    // Evaluate and write outputs into per-comm ActuatorConfig vector
+    void EvaluateIntoActuators(const std::map<std::string, float>& keyValues,
+                               std::vector<ActuatorConfig>& dataVec,
+                               std::set<int>* pWrittenIndices = nullptr);
     // Evaluate and update node display fields (InputA, InputB, Value) — UI thread only
     void EvaluateForDisplay(const std::map<std::string, float>& keyValues);
 
@@ -163,9 +186,11 @@ public:
     void DrawNodeContents(EditorNode& node,
                           const std::set<std::string>& analogKeys,
                           const std::vector<OutputTargetInfo>& outputTargets);
-    void DrawMenuBar();
+    void DrawMenuBar();  // deprecated, removed
     void DrawKeyValuesSidebar(float sideWidth, const std::set<std::string>& analogKeys);
     void DrawGlobalsSidebar(float sideWidth);
+    void DrawCommRefsSidebar(float sideWidth);
+    void DrawTriggerSidebar(float sideWidth);
 
     // ---- Node creation (editor-side) ----
     void AddNode(NodeType type);
@@ -224,13 +249,16 @@ private:
     std::shared_ptr<Walnut::Image> m_StopIcon;
     ax::NodeEditor::NodeId m_ActiveKeySourceId = 0;
     ax::NodeEditor::NodeId m_ActiveOutputId    = 0;
+    ax::NodeEditor::NodeId m_ActiveTriggerId   = 0;  // ShortcutTrigger
     ax::NodeEditor::PinId  m_LinkSourcePin     = 0;   // pending link source (click-to-connect)
     ImVec2                 m_LinkSourceMouse   = ImVec2(0,0);
     RobotComponentManager* m_RobotMgr = nullptr;
     GamepadMapperManager*  m_GamepadMgr = nullptr;
     RobotCommManager*      m_CommMgr = nullptr;
+    ShortcutManager*       m_ShortcutMgr = nullptr;
+    std::function<void(int,bool,bool)> m_SendActionCb;  // (sendFlatIndex, enable, oneShot)
 
-    int m_CommIndex = 0;  // 关联的 RobotComm 配置索引
+    std::vector<int> m_CommRefs;  // indices into RobotCommManager
 
     // ---- Cached per-frame data from managers (populated in Draw) ----
     KeyNameList                        m_AvailableKeys;
@@ -241,7 +269,7 @@ private:
     std::vector<GlobalVar>   m_GlobalVars;
     std::vector<float>       m_GlobalTempVals;  // temporary float array for evaluation
 
-    float m_LeftSideWidth  = 180.0f;
+    float m_LeftSideWidth  = 200.0f;
     float m_RightSideWidth = 200.0f;
 
     ax::NodeEditor::NodeId m_ActiveGlobalReadId = 0;

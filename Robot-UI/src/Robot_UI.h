@@ -18,6 +18,7 @@
 #include "RobotStatus.h"
 #include "TerminalPanel.h"
 #include "MonitorWall.h"
+#include "ShortcutManager.h"
 #include "Robot_API/robot_api.h"
 #include "imgui.h"
 #include <atomic>
@@ -82,6 +83,7 @@ private:
     std::unique_ptr<MonitorWall>       m_MonitorWall;
     std::unique_ptr<FileManager>       m_FileManager;
     std::unique_ptr<TerminalPanel>     m_TerminalPanel;
+    ShortcutManager                     m_ShortcutManager;
 
     // 手柄线程
     std::thread m_GamepadThread;

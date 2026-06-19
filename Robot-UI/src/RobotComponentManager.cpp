@@ -14,13 +14,13 @@ void RobotComponentManager::AddItem()
     comp.id = NextId();
     char buf[64];
     snprintf(buf, sizeof(buf), "Item_%d", comp.id);
-    strncpy(comp.component.name, buf, sizeof(comp.component.name) - 1);
+    strncpy(comp.name, buf, sizeof(comp.name) - 1);
     m_Components.push_back(comp);
     if (m_Components.size() == 1) {
         m_SelectedIndex = 0;
         m_Components[0].isSelected = true;
     }
-    WL_INFO_TAG("COMP", "Item added: {} (id={})", comp.component.name, comp.id);
+    WL_INFO_TAG("COMP", "Item added: {} (id={})", comp.name, comp.id);
 }
 
 void RobotComponentManager::RemoveItem(int id)
@@ -28,7 +28,7 @@ void RobotComponentManager::RemoveItem(int id)
     int index = FindNodeIndex(m_Components, id);
     if (index < 0 || index >= (int)m_Components.size()) return;
     if (m_Components.size() <= 1) return;
-    WL_INFO_TAG("COMP", "Item deleted: {} (id={})", m_Components[index].component.name, m_Components[index].id);
+    WL_INFO_TAG("COMP", "Item deleted: {} (id={})", m_Components[index].name, m_Components[index].id);
     m_Components.erase(m_Components.begin() + index);
     if (m_SelectedIndex >= (int)m_Components.size())
         m_SelectedIndex = (int)m_Components.size() - 1;
@@ -47,7 +47,7 @@ void RobotComponentManager::SetSelectedIndex(int idx)
 void RobotComponentManager::RenameItem(int id, const char* newName)
 {
     for (auto& c : m_Components)
-        if (c.id == id) { strncpy_s(c.component.name, newName, sizeof(c.component.name) - 1); break; }
+        if (c.id == id) { strncpy_s(c.name, newName, sizeof(c.name) - 1); break; }
 }
 
 void RobotComponentManager::DrawContent()
@@ -70,8 +70,13 @@ RobotComponent* RobotComponentManager::GetSelectedComponent()
 std::vector<RobotMode> RobotComponentManager::GetAllItems() const
 {
     std::vector<RobotMode> out;
-    for (const auto& c : m_Components)
-        out.push_back(c.component);
+    for (const auto& c : m_Components) {
+        RobotMode m;
+        strncpy(m.name, c.name, sizeof(m.name) - 1);
+        m.actuator_config = c.actuator_config;
+        m.sensor_config   = c.sensor_config;
+        out.push_back(m);
+    }
     return out;
 }
 
@@ -82,7 +87,9 @@ void RobotComponentManager::LoadComponents(const std::vector<RobotMode>& modes, 
     for (const auto& item : modes) {
         RobotComponent comp;
         comp.id = NextId();
-        comp.component = item;
+        strncpy(comp.name, item.name, sizeof(comp.name) - 1);
+        comp.actuator_config = item.actuator_config;
+        comp.sensor_config   = item.sensor_config;
         m_Components.push_back(comp);
     }
     SetSelectedIndex(selectedIdx >= 0 && selectedIdx < (int)m_Components.size() ? selectedIdx : 0);
@@ -95,7 +102,9 @@ void RobotComponentManager::LoadItems(const std::vector<RobotMode>& modes)
     for (const auto& item : modes) {
         RobotComponent comp;
         comp.id = NextId();
-        comp.component = item;
+        strncpy(comp.name, item.name, sizeof(comp.name) - 1);
+        comp.actuator_config = item.actuator_config;
+        comp.sensor_config   = item.sensor_config;
         m_Components.push_back(comp);
     }
     if (m_SelectedIndex >= (int)m_Components.size()) m_SelectedIndex = 0;

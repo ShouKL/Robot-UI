@@ -95,6 +95,7 @@ NodeCategory GetNodeCategory(NodeType type)
     case NodeType::ConstValue:   return NodeCategory::Math;
     case NodeType::LookupTable:  return NodeCategory::Math;
     case NodeType::CustomOutput: return NodeCategory::Control;
+    case NodeType::ShortcutTrigger: return NodeCategory::Control;
     }
     return NodeCategory::Math;
 }
@@ -120,6 +121,7 @@ ImColor GetNodeHeaderColor(NodeType type)
     auto cat = GetCategoryColor(GetNodeCategory(type));
     switch (type)
     {
+    case NodeType::ShortcutTrigger: return ImColor(200, 160,  60);
     default: return cat;
     }
 }
@@ -181,6 +183,7 @@ const char* GetNodeTitle(NodeType type)
     case NodeType::ConstValue:   return "Const Value";
     case NodeType::LookupTable:  return "Lookup Table";
     case NodeType::CustomOutput: return "Output";
+    case NodeType::ShortcutTrigger: return "Shortcut";
 
     default: return "???";
     }
@@ -720,6 +723,17 @@ float ComputeNodeOutput(EditorNode& node,
         return node.Value;
     case NodeType::CustomOutput:
         return GetPinByIndex(node, pinVals, 0);
+    case NodeType::ShortcutTrigger:
+    {
+        // Input Trigger → output passthrough.
+        // Rising edge detection is handled in NodeGraph::EvaluateForDisplay().
+        // Old compat: if KeyName is set, use gamepad key as trigger source.
+        if (!node.KeyName.empty()) {
+            auto it = keyValues.find(node.KeyName);
+            return (it != keyValues.end() && it->second >= 0.5f) ? 1.0f : 0.0f;
+        }
+        return GetPinByIndex(node, pinVals, 0);
+    }
     }
     return 0.0f;
 }
@@ -856,6 +870,9 @@ EditorNode CreateEditorNodeByType(NodeType type, std::function<int()> nextId)
         auto n = N("Const Value"); n.Outputs = {O("Value")}; n.Value = 0.0f; return n; }
     case NodeType::CustomOutput: {
         auto n = N("Output"); n.Inputs = {I("Value")}; return n; }
+    case NodeType::ShortcutTrigger: {
+        auto n = N("Shortcut"); n.Inputs = {I("Trigger")}; n.Outputs = {O("Value")};
+        n.ShortcutActionIndex = -1; n.ShortcutSendIndex = -1; n.ShortcutSendMode = 0; return n; }
     case NodeType::LookupTable: {
         auto n = N("Lookup Table"); n.Inputs = {OI("Index")}; n.Outputs = {O("Value")};
         n.ModeLabels = {"0", "1", "2", "3", "4", "5", "6", "7"};
@@ -881,6 +898,7 @@ const NodeType AllNodeTypes[] = {
     NodeType::GlobalRead, NodeType::GlobalWrite,
     NodeType::PID, NodeType::DeadbandComparator,
     NodeType::KeySource, NodeType::ConstValue, NodeType::LookupTable, NodeType::CustomOutput,
+    NodeType::ShortcutTrigger,
 };
 const int AllNodeTypeCount = sizeof(AllNodeTypes) / sizeof(AllNodeTypes[0]);
 

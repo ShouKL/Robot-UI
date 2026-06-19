@@ -46,11 +46,11 @@ private:
     ActuatorConfig m_CurrentActuatorData;
     std::mutex m_DataMutex;
 
-    int m_LocalPort;
+    int m_LocalPort = 0;
     int m_TransportType = 0;  // 0=UDP, 1=TCP
-    bool m_IsConnected;
+    bool m_IsConnected = false;
     std::string m_TargetIP;
-    int m_TargetPort;
+    int m_TargetPort = 0;
 
     std::vector<ProtocolSendConfig>    m_ProtocolCfgs;   // 用户自定义发送协议（多帧）
     std::vector<ProtocolReceiveConfig> m_ReceiveCfgs;    // 用户自定义接收协议（多帧）

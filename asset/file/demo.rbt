@@ -3,11 +3,6 @@ robot_ui_config:
   robot:
     items:
       - name: ROV
-        gamepad_mapping: ""
-        host_ip: ""
-        remote_port: 0
-        local_port: 0
-        protocol_type: 0
         has_motion: true
         has_temperature: true
         has_humidity: false
@@ -163,2090 +158,80 @@ robot_ui_config:
           ry_enc: 0
           rz: 0
           rz_enc: 0
-        node_graph: |
-          nodes:
-            []
-          links:
-            []
-
-        node_graph_pairs:
-          "": |
-            nodes:
-              []
-            links:
-              []
-
-          XBOX: |
-            nodes:
-              - id: 143
-                type: 7
-                value: 3.07999992
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 1
-                  - 0
-                  - 0
-                output_types:
-                  - 0
-              - id: 152
-                type: 7
-                value: 2.54999995
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 1
-                  - 0
-                  - 0
-                output_types:
-                  - 0
-              - id: 157
-                type: 7
-                value: 3.07999992
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 1
-                  - 0
-                  - 0
-                output_types:
-                  - 0
-              - id: 174
-                type: 23
-                value: 0
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 1
-                  - 1
-                output_types:
-                  - 1
-              - id: 176
-                type: 16
-                value: 0
-                key_name: ""
-                op_mode: 1
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 1
-                  - 1
-                output_types:
-                  - 1
-              - id: 181
-                type: 16
-                value: 0
-                key_name: ""
-                op_mode: 1
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 1
-                  - 1
-                output_types:
-                  - 1
-              - id: 188
-                type: 16
-                value: 0
-                key_name: ""
-                op_mode: 1
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 0
-                  - 0
-                output_types:
-                  - 1
-              - id: 191
-                type: 23
-                value: 1
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 1
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 1
-                  - 1
-                output_types:
-                  - 1
-              - id: 198
-                type: 23
-                value: 0
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 1
-                  - 1
-                output_types:
-                  - 1
-              - id: 206
-                type: 45
-                value: 2.54999995
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  []
-                output_types:
-                  - 0
-              - id: 208
-                type: 45
-                value: 0.74000001
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  []
-                output_types:
-                  - 0
-              - id: 210
-                type: 45
-                value: 3.07999992
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  []
-                output_types:
-                  - 0
-              - id: 212
-                type: 45
-                value: 9.75
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  []
-                output_types:
-                  - 0
-              - id: 215
-                type: 44
-                value: 1.52590219e-05
-                key_name: LSX
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  []
-                output_types:
-                  - 0
-              - id: 217
-                type: 44
-                value: -1.52590219e-05
-                key_name: LSY
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  []
-                output_types:
-                  - 0
-              - id: 218
-                type: 44
-                value: 1.52590219e-05
-                key_name: RSX
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  []
-                output_types:
-                  - 0
-              - id: 220
-                type: 44
-                value: -1.52590219e-05
-                key_name: RSY
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  []
-                output_types:
-                  - 0
-              - id: 226
-                type: 46
-                value: 0
-                key_name: ""
-                op_mode: 0
-                output_target: motion.rz
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 0
-                output_types:
-                  []
-              - id: 228
-                type: 46
-                value: 0
-                key_name: ""
-                op_mode: 0
-                output_target: motion.z
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 0
-                output_types:
-                  []
-              - id: 230
-                type: 46
-                value: 0
-                key_name: ""
-                op_mode: 0
-                output_target: motion.y
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 0
-                output_types:
-                  []
-              - id: 232
-                type: 46
-                value: 0
-                key_name: ""
-                op_mode: 0
-                output_target: motion.x
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 0
-                output_types:
-                  []
-              - id: 238
-                type: 46
-                value: 3.07999992
-                key_name: ""
-                op_mode: 0
-                output_target: servo.Servo.angle
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 0
-                output_types:
-                  []
-              - id: 240
-                type: 44
-                value: 0
-                key_name: LB
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  []
-                output_types:
-                  - 0
-              - id: 242
-                type: 44
-                value: -1
-                key_name: LT
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  []
-                output_types:
-                  - 0
-              - id: 244
-                type: 44
-                value: 0
-                key_name: RB
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  []
-                output_types:
-                  - 0
-              - id: 248
-                type: 44
-                value: -1
-                key_name: RT
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  []
-                output_types:
-                  - 0
-              - id: 253
-                type: 39
-                value: 1
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: 0
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 2
-                  - 0
-                output_types:
-                  - 0
-              - id: 258
-                type: 44
-                value: 0
-                key_name: Y
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  []
-                output_types:
-                  - 1
-              - id: 270
-                type: 34
-                value: 1
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 1
-                  - 3
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 1
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 1
-                  - 1
-                output_types:
-                  - 2
-              - id: 280
-                type: 47
-                value: 3000
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  - 6000
-                  - 3000
-                  - 1500
-                  - 750
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 2
-                output_types:
-                  - 0
-              - id: 281
-                type: 38
-                value: 1
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: 0
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  []
-                output_types:
-                  - 2
-              - id: 284
-                type: 0
-                value: 0
-                key_name: ""
-                op_mode: 2
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 0
-                  - 0
-                output_types:
-                  - 0
-              - id: 290
-                type: 38
-                value: 1
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: 0
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  []
-                output_types:
-                  - 0
-              - id: 291
-                type: 47
-                value: 2500
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  - 5000
-                  - 2500
-                  - 1250
-                  - 625
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 2
-                output_types:
-                  - 0
-              - id: 294
-                type: 0
-                value: 0
-                key_name: ""
-                op_mode: 2
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 0
-                  - 0
-                output_types:
-                  - 0
-              - id: 302
-                type: 38
-                value: 1
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: 0
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  []
-                output_types:
-                  - 0
-              - id: 303
-                type: 0
-                value: 0
-                key_name: ""
-                op_mode: 2
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 0
-                  - 0
-                output_types:
-                  - 0
-              - id: 307
-                type: 47
-                value: 3000
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  - 6000
-                  - 3000
-                  - 1500
-                  - 750
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 2
-                output_types:
-                  - 0
-              - id: 314
-                type: 0
-                value: 0
-                key_name: ""
-                op_mode: 2
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 0
-                  - 0
-                output_types:
-                  - 0
-              - id: 315
-                type: 38
-                value: 1
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: 0
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  []
-                output_types:
-                  - 0
-              - id: 317
-                type: 47
-                value: 500
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  - 1000
-                  - 500
-                  - 250
-                  - 125
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 2
-                output_types:
-                  - 0
-              - id: 324
-                type: 12
-                value: 0
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0.100000001
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 0
-                output_types:
-                  - 0
-              - id: 327
-                type: 12
-                value: 0
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0.100000001
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 0
-                output_types:
-                  - 0
-              - id: 330
-                type: 12
-                value: 0
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0.100000001
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 0
-                output_types:
-                  - 0
-              - id: 333
-                type: 12
-                value: 0
-                key_name: ""
-                op_mode: 0
-                output_target: ""
-                global_var_id: -1
-                param:
-                  - 0.100000001
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                mode_labels:
-                  []
-                state_f:
-                  - 0
-                  - 0
-                  - 0
-                  - 0
-                input_types:
-                  - 0
-                output_types:
-                  - 0
-            links:
-              - id: 183
-                from_node: 176
-                from_pin: 0
-                to_node: 181
-                to_pin: 0
-              - id: 184
-                from_node: 181
-                from_pin: 0
-                to_node: 174
-                to_pin: 1
-              - id: 185
-                from_node: 174
-                from_pin: 0
-                to_node: 143
-                to_pin: 0
-              - id: 193
-                from_node: 188
-                from_pin: 0
-                to_node: 191
-                to_pin: 1
-              - id: 195
-                from_node: 191
-                from_pin: 0
-                to_node: 157
-                to_pin: 0
-              - id: 197
-                from_node: 157
-                from_pin: 0
-                to_node: 143
-                to_pin: 2
-              - id: 201
-                from_node: 198
-                from_pin: 0
-                to_node: 152
-                to_pin: 0
-              - id: 203
-                from_node: 152
-                from_pin: 0
-                to_node: 157
-                to_pin: 2
-              - id: 207
-                from_node: 206
-                from_pin: 0
-                to_node: 152
-                to_pin: 2
-              - id: 209
-                from_node: 208
-                from_pin: 0
-                to_node: 152
-                to_pin: 1
-              - id: 211
-                from_node: 210
-                from_pin: 0
-                to_node: 157
-                to_pin: 1
-              - id: 213
-                from_node: 212
-                from_pin: 0
-                to_node: 143
-                to_pin: 1
-              - id: 214
-                from_node: 188
-                from_pin: 0
-                to_node: 181
-                to_pin: 1
-              - id: 239
-                from_node: 143
-                from_pin: 0
-                to_node: 238
-                to_pin: 0
-              - id: 241
-                from_node: 240
-                from_pin: 0
-                to_node: 174
-                to_pin: 0
-              - id: 243
-                from_node: 242
-                from_pin: 0
-                to_node: 191
-                to_pin: 0
-              - id: 245
-                from_node: 244
-                from_pin: 0
-                to_node: 188
-                to_pin: 0
-              - id: 246
-                from_node: 244
-                from_pin: 0
-                to_node: 176
-                to_pin: 1
-              - id: 247
-                from_node: 244
-                from_pin: 0
-                to_node: 198
-                to_pin: 0
-              - id: 249
-                from_node: 248
-                from_pin: 0
-                to_node: 198
-                to_pin: 1
-              - id: 250
-                from_node: 248
-                from_pin: 0
-                to_node: 188
-                to_pin: 1
-              - id: 264
-                from_node: 242
-                from_pin: 0
-                to_node: 176
-                to_pin: 0
-              - id: 276
-                from_node: 258
-                from_pin: 0
-                to_node: 270
-                to_pin: 0
-              - id: 278
-                from_node: 270
-                from_pin: 0
-                to_node: 253
-                to_pin: 0
-              - id: 279
-                from_node: 258
-                from_pin: 0
-                to_node: 253
-                to_pin: 1
-              - id: 283
-                from_node: 281
-                from_pin: 0
-                to_node: 280
-                to_pin: 0
-              - id: 288
-                from_node: 280
-                from_pin: 0
-                to_node: 284
-                to_pin: 1
-              - id: 289
-                from_node: 284
-                from_pin: 0
-                to_node: 232
-                to_pin: 0
-              - id: 299
-                from_node: 291
-                from_pin: 0
-                to_node: 294
-                to_pin: 1
-              - id: 300
-                from_node: 290
-                from_pin: 0
-                to_node: 291
-                to_pin: 0
-              - id: 301
-                from_node: 294
-                from_pin: 0
-                to_node: 230
-                to_pin: 0
-              - id: 310
-                from_node: 302
-                from_pin: 0
-                to_node: 307
-                to_pin: 0
-              - id: 311
-                from_node: 307
-                from_pin: 0
-                to_node: 303
-                to_pin: 1
-              - id: 313
-                from_node: 303
-                from_pin: 0
-                to_node: 228
-                to_pin: 0
-              - id: 320
-                from_node: 315
-                from_pin: 0
-                to_node: 317
-                to_pin: 0
-              - id: 322
-                from_node: 317
-                from_pin: 0
-                to_node: 314
-                to_pin: 1
-              - id: 323
-                from_node: 314
-                from_pin: 0
-                to_node: 226
-                to_pin: 0
-              - id: 325
-                from_node: 215
-                from_pin: 0
-                to_node: 324
-                to_pin: 0
-              - id: 326
-                from_node: 324
-                from_pin: 0
-                to_node: 284
-                to_pin: 0
-              - id: 328
-                from_node: 217
-                from_pin: 0
-                to_node: 327
-                to_pin: 0
-              - id: 329
-                from_node: 327
-                from_pin: 0
-                to_node: 294
-                to_pin: 0
-              - id: 331
-                from_node: 218
-                from_pin: 0
-                to_node: 330
-                to_pin: 0
-              - id: 332
-                from_node: 330
-                from_pin: 0
-                to_node: 303
-                to_pin: 0
-              - id: 334
-                from_node: 220
-                from_pin: 0
-                to_node: 333
-                to_pin: 0
-              - id: 335
-                from_node: 333
-                from_pin: 0
-                to_node: 314
-                to_pin: 0
-            globals:
-              - id: 0
-                name: mode
-                value: 1
-                type: 2
-            active_robot_mode: ROV
-            active_gamepad_mode: XBOX
-            comm_index: 0
-        protocol_send:
-          - name: Motion
-            command_byte: 1
-            enabled: false
-            include_length: false
-            checksum: 2
-            big_endian: false
-            header:
-              - 250
-              - 175
-            tail:
-              - 251
-              - 191
-            fields:
-              - name: X
-                path: motion.x
-                encoding: 0
-                group: Motion
-                visible: true
-                fix: false
-                fix_value: 0
-              - name: Y
-                path: motion.y
-                encoding: 0
-                group: Motion
-                visible: true
-                fix: false
-                fix_value: 0
-              - name: Z
-                path: motion.z
-                encoding: 0
-                group: Motion
-                visible: true
-                fix: false
-                fix_value: 0
-              - name: RX
-                path: motion.rx
-                encoding: 0
-                group: Motion
-                visible: true
-                fix: false
-                fix_value: 0
-              - name: RY
-                path: motion.ry
-                encoding: 0
-                group: Motion
-                visible: true
-                fix: false
-                fix_value: 0
-              - name: RZ
-                path: motion.rz
-                encoding: 0
-                group: Motion
-                visible: true
-                fix: false
-                fix_value: 0
-              - name: Angle
-                path: servo.Servo.angle
-                encoding: 0
-                group: Servo
-                visible: true
-                fix: false
-                fix_value: 0
-          - name: LeftFront
-            command_byte: 2
-            enabled: false
-            include_length: false
-            checksum: 2
-            big_endian: false
-            header:
-              - 250
-              - 175
-            tail:
-              - 251
-              - 191
-            fields:
-              - name: ID
-                path: brushlessmotor.LeftFront.id
-                encoding: 0
-                group: LeftFront
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: np_mid
-                path: brushlessmotor.LeftFront.curve.np_mid
-                encoding: 0
-                group: LeftFront
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: np_ini
-                path: brushlessmotor.LeftFront.curve.np_ini
-                encoding: 0
-                group: LeftFront
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pp_ini
-                path: brushlessmotor.LeftFront.curve.pp_ini
-                encoding: 0
-                group: LeftFront
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pp_mid
-                path: brushlessmotor.LeftFront.curve.pp_mid
-                encoding: 0
-                group: LeftFront
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: nt_end
-                path: brushlessmotor.LeftFront.curve.nt_end
-                encoding: 0
-                group: LeftFront
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: nt_mid
-                path: brushlessmotor.LeftFront.curve.nt_mid
-                encoding: 0
-                group: LeftFront
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pt_mid
-                path: brushlessmotor.LeftFront.curve.pt_mid
-                encoding: 0
-                group: LeftFront
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pt_end
-                path: brushlessmotor.LeftFront.curve.pt_end
-                encoding: 0
-                group: LeftFront
-                visible: true
-                fix: true
-                fix_value: 0
-          - name: RightFront
-            command_byte: 2
-            enabled: false
-            include_length: false
-            checksum: 2
-            big_endian: false
-            header:
-              - 250
-              - 175
-            tail:
-              - 251
-              - 191
-            fields:
-              - name: ID
-                path: brushlessmotor.RightFront.id
-                encoding: 6
-                group: RightFront
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: np_mid
-                path: brushlessmotor.RightFront.curve.np_mid
-                encoding: 0
-                group: RightFront
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: np_ini
-                path: brushlessmotor.RightFront.curve.np_ini
-                encoding: 0
-                group: RightFront
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pp_ini
-                path: brushlessmotor.RightFront.curve.pp_ini
-                encoding: 0
-                group: RightFront
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pp_mid
-                path: brushlessmotor.RightFront.curve.pp_mid
-                encoding: 0
-                group: RightFront
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: nt_end
-                path: brushlessmotor.RightFront.curve.nt_end
-                encoding: 0
-                group: RightFront
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: nt_mid
-                path: brushlessmotor.RightFront.curve.nt_mid
-                encoding: 0
-                group: RightFront
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pt_mid
-                path: brushlessmotor.RightFront.curve.pt_mid
-                encoding: 0
-                group: RightFront
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pt_end
-                path: brushlessmotor.RightFront.curve.pt_end
-                encoding: 0
-                group: RightFront
-                visible: true
-                fix: true
-                fix_value: 0
-          - name: LeftVertical
-            command_byte: 2
-            enabled: false
-            include_length: false
-            checksum: 2
-            big_endian: false
-            header:
-              - 250
-              - 175
-            tail:
-              - 251
-              - 191
-            fields:
-              - name: ID
-                path: brushlessmotor.LeftVertical.id
-                encoding: 6
-                group: LeftVertical
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: np_mid
-                path: brushlessmotor.LeftVertical.curve.np_mid
-                encoding: 0
-                group: LeftVertical
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: np_ini
-                path: brushlessmotor.LeftVertical.curve.np_ini
-                encoding: 0
-                group: LeftVertical
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pp_ini
-                path: brushlessmotor.LeftVertical.curve.pp_ini
-                encoding: 0
-                group: LeftVertical
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pp_mid
-                path: brushlessmotor.LeftVertical.curve.pp_mid
-                encoding: 0
-                group: LeftVertical
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: nt_end
-                path: brushlessmotor.LeftVertical.curve.nt_end
-                encoding: 0
-                group: LeftVertical
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: nt_mid
-                path: brushlessmotor.LeftVertical.curve.nt_mid
-                encoding: 0
-                group: LeftVertical
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pt_mid
-                path: brushlessmotor.LeftVertical.curve.pt_mid
-                encoding: 0
-                group: LeftVertical
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pt_end
-                path: brushlessmotor.LeftVertical.curve.pt_end
-                encoding: 0
-                group: LeftVertical
-                visible: true
-                fix: true
-                fix_value: 0
-          - name: RightVertical
-            command_byte: 2
-            enabled: false
-            include_length: false
-            checksum: 2
-            big_endian: false
-            header:
-              - 250
-              - 175
-            tail:
-              - 251
-              - 191
-            fields:
-              - name: ID
-                path: brushlessmotor.RightVertical.id
-                encoding: 6
-                group: RightVertical
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: np_mid
-                path: brushlessmotor.RightVertical.curve.np_mid
-                encoding: 0
-                group: RightVertical
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: np_ini
-                path: brushlessmotor.RightVertical.curve.np_ini
-                encoding: 0
-                group: RightVertical
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pp_ini
-                path: brushlessmotor.RightVertical.curve.pp_ini
-                encoding: 0
-                group: RightVertical
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pp_mid
-                path: brushlessmotor.RightVertical.curve.pp_mid
-                encoding: 0
-                group: RightVertical
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: nt_end
-                path: brushlessmotor.RightVertical.curve.nt_end
-                encoding: 0
-                group: RightVertical
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: nt_mid
-                path: brushlessmotor.RightVertical.curve.nt_mid
-                encoding: 0
-                group: RightVertical
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pt_mid
-                path: brushlessmotor.RightVertical.curve.pt_mid
-                encoding: 0
-                group: RightVertical
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pt_end
-                path: brushlessmotor.RightVertical.curve.pt_end
-                encoding: 0
-                group: RightVertical
-                visible: true
-                fix: true
-                fix_value: 0
-          - name: LeftRear
-            command_byte: 2
-            enabled: false
-            include_length: false
-            checksum: 2
-            big_endian: false
-            header:
-              - 250
-              - 175
-            tail:
-              - 251
-              - 191
-            fields:
-              - name: ID
-                path: brushlessmotor.LeftRear.id
-                encoding: 6
-                group: LeftRear
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: np_mid
-                path: brushlessmotor.LeftRear.curve.np_mid
-                encoding: 0
-                group: LeftRear
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: np_ini
-                path: brushlessmotor.LeftRear.curve.np_ini
-                encoding: 0
-                group: LeftRear
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pp_ini
-                path: brushlessmotor.LeftRear.curve.pp_ini
-                encoding: 0
-                group: LeftRear
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pp_mid
-                path: brushlessmotor.LeftRear.curve.pp_mid
-                encoding: 0
-                group: LeftRear
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: nt_end
-                path: brushlessmotor.LeftRear.curve.nt_end
-                encoding: 0
-                group: LeftRear
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: nt_mid
-                path: brushlessmotor.LeftRear.curve.nt_mid
-                encoding: 0
-                group: LeftRear
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pt_mid
-                path: brushlessmotor.LeftRear.curve.pt_mid
-                encoding: 0
-                group: LeftRear
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pt_end
-                path: brushlessmotor.LeftRear.curve.pt_end
-                encoding: 0
-                group: LeftRear
-                visible: true
-                fix: true
-                fix_value: 0
-          - name: RightRear
-            command_byte: 2
-            enabled: false
-            include_length: false
-            checksum: 2
-            big_endian: false
-            header:
-              - 250
-              - 175
-            tail:
-              - 251
-              - 191
-            fields:
-              - name: ID
-                path: brushlessmotor.RightRear.id
-                encoding: 6
-                group: RightRear
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: np_mid
-                path: brushlessmotor.RightRear.curve.np_mid
-                encoding: 0
-                group: RightRear
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: np_ini
-                path: brushlessmotor.RightRear.curve.np_ini
-                encoding: 0
-                group: RightRear
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pp_ini
-                path: brushlessmotor.RightRear.curve.pp_ini
-                encoding: 0
-                group: RightRear
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pp_mid
-                path: brushlessmotor.RightRear.curve.pp_mid
-                encoding: 0
-                group: RightRear
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: nt_end
-                path: brushlessmotor.RightRear.curve.nt_end
-                encoding: 0
-                group: RightRear
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: nt_mid
-                path: brushlessmotor.RightRear.curve.nt_mid
-                encoding: 0
-                group: RightRear
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pt_mid
-                path: brushlessmotor.RightRear.curve.pt_mid
-                encoding: 0
-                group: RightRear
-                visible: true
-                fix: true
-                fix_value: 0
-              - name: pt_end
-                path: brushlessmotor.RightRear.curve.pt_end
-                encoding: 0
-                group: RightRear
-                visible: true
-                fix: true
-                fix_value: 0
-        protocol_receive:
-          - name: Sensor
-            command_byte: 3
-            include_length: false
-            checksum: 2
-            big_endian: false
-            header:
-              - 250
-              - 175
-            tail:
-              - 251
-              - 191
-            fields:
-              - name: Depth
-                path: depth.value
-                encoding: 0
-                group: Sensor
-                visible: true
-                fix: false
-              - name: Temperature
-                path: temperature.value
-                encoding: 0
-                group: Sensor
-                visible: true
-                fix: false
-      - name: Item_2
-        gamepad_mapping: ""
-        host_ip: ""
-        remote_port: 0
-        local_port: 0
-        protocol_type: 0
+      - name: Cemera
         has_motion: false
         has_temperature: false
         has_humidity: false
         has_depth: false
         brushless_motors:
-          []
+          - id: 0
+            name: Roll
+            target_speed: 0
+            target_speed_enc: 0
+            np_mid: 0
+            np_mid_enc: 0
+            np_ini: 0
+            np_ini_enc: 0
+            pp_ini: 0
+            pp_ini_enc: 0
+            pp_mid: 0
+            pp_mid_enc: 0
+            nt_end: 0
+            nt_end_enc: 0
+            nt_mid: 0
+            nt_mid_enc: 0
+            pt_mid: 0
+            pt_mid_enc: 0
+            pt_end: 0
+            pt_end_enc: 0
+            pwm_min: 0
+            pwm_max: 0
+          - id: 1
+            name: Pitch
+            target_speed: 0
+            target_speed_enc: 0
+            np_mid: 0
+            np_mid_enc: 0
+            np_ini: 0
+            np_ini_enc: 0
+            pp_ini: 0
+            pp_ini_enc: 0
+            pp_mid: 0
+            pp_mid_enc: 0
+            nt_end: 0
+            nt_end_enc: 0
+            nt_mid: 0
+            nt_mid_enc: 0
+            pt_mid: 0
+            pt_mid_enc: 0
+            pt_end: 0
+            pt_end_enc: 0
+            pwm_min: 0
+            pwm_max: 0
+          - id: 2
+            name: Yaw
+            target_speed: 0
+            target_speed_enc: 0
+            np_mid: 0
+            np_mid_enc: 0
+            np_ini: 0
+            np_ini_enc: 0
+            pp_ini: 0
+            pp_ini_enc: 0
+            pp_mid: 0
+            pp_mid_enc: 0
+            nt_end: 0
+            nt_end_enc: 0
+            nt_mid: 0
+            nt_mid_enc: 0
+            pt_mid: 0
+            pt_mid_enc: 0
+            pt_end: 0
+            pt_end_enc: 0
+            pwm_min: 0
+            pwm_max: 0
         servos:
           []
-        node_graph_pairs:
-          Item_2: |
-            nodes:
-              []
-            links:
-              []
-
-        protocol_send:
-          - name: Send
-            command_byte: 0
-            enabled: true
-            include_length: true
-            checksum: 1
-            big_endian: false
-            header:
-              []
-            tail:
-              []
-            fields:
-              []
-        protocol_receive:
-          - name: Receive
-            command_byte: 0
-            include_length: true
-            checksum: 1
-            big_endian: false
-            header:
-              []
-            tail:
-              []
-            fields:
-              []
     active_mode: 0
   gamepad:
     items:
@@ -2455,8 +440,8 @@ robot_ui_config:
     pwm_max: 0
     default_pwm: 500
     np_mid: 0
-    np_ini: 0
-    pp_ini: 0
+    np_ini: 500
+    pp_ini: 500
     pp_mid: 0
     nt_end: 0
     nt_mid: 0
@@ -2470,17 +455,674 @@ robot_ui_config:
         local_port: 1100
         transport_type: 0
         send_freq_hz: 500
-      - name: Item_2
-        host_ip: 192.168.0.10
-        remote_port: 8888
-        local_port: 8888
+        active_component_idx: 0
+        protocol_send:
+          - name: Motion
+            command_byte:
+              - 1
+            enabled: false
+            include_length: false
+            checksum: 2
+            big_endian: false
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: X
+                path: motion.x
+                encoding: 0
+                group: Motion
+                visible: true
+                fix: false
+                fix_value: 0
+              - name: Y
+                path: motion.y
+                encoding: 0
+                group: Motion
+                visible: true
+                fix: false
+                fix_value: 0
+              - name: Z
+                path: motion.z
+                encoding: 0
+                group: Motion
+                visible: true
+                fix: false
+                fix_value: 0
+              - name: RX
+                path: motion.rx
+                encoding: 0
+                group: Motion
+                visible: true
+                fix: false
+                fix_value: 0
+              - name: RY
+                path: motion.ry
+                encoding: 0
+                group: Motion
+                visible: true
+                fix: false
+                fix_value: 0
+              - name: RZ
+                path: motion.rz
+                encoding: 0
+                group: Motion
+                visible: true
+                fix: false
+                fix_value: 0
+              - name: Angle
+                path: servo.Servo.angle
+                encoding: 0
+                group: Servo
+                visible: true
+                fix: false
+                fix_value: 0
+          - name: LeftFront
+            command_byte:
+              - 2
+            enabled: false
+            include_length: false
+            checksum: 2
+            big_endian: false
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: ID
+                path: brushlessmotor.LeftFront.id
+                encoding: 0
+                group: LeftFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_mid
+                path: brushlessmotor.LeftFront.curve.np_mid
+                encoding: 0
+                group: LeftFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_ini
+                path: brushlessmotor.LeftFront.curve.np_ini
+                encoding: 0
+                group: LeftFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_ini
+                path: brushlessmotor.LeftFront.curve.pp_ini
+                encoding: 0
+                group: LeftFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_mid
+                path: brushlessmotor.LeftFront.curve.pp_mid
+                encoding: 0
+                group: LeftFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_end
+                path: brushlessmotor.LeftFront.curve.nt_end
+                encoding: 0
+                group: LeftFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_mid
+                path: brushlessmotor.LeftFront.curve.nt_mid
+                encoding: 0
+                group: LeftFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_mid
+                path: brushlessmotor.LeftFront.curve.pt_mid
+                encoding: 0
+                group: LeftFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_end
+                path: brushlessmotor.LeftFront.curve.pt_end
+                encoding: 0
+                group: LeftFront
+                visible: true
+                fix: true
+                fix_value: 0
+          - name: RightFront
+            command_byte:
+              - 2
+            enabled: false
+            include_length: false
+            checksum: 2
+            big_endian: false
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: ID
+                path: brushlessmotor.RightFront.id
+                encoding: 6
+                group: RightFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_mid
+                path: brushlessmotor.RightFront.curve.np_mid
+                encoding: 0
+                group: RightFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_ini
+                path: brushlessmotor.RightFront.curve.np_ini
+                encoding: 0
+                group: RightFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_ini
+                path: brushlessmotor.RightFront.curve.pp_ini
+                encoding: 0
+                group: RightFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_mid
+                path: brushlessmotor.RightFront.curve.pp_mid
+                encoding: 0
+                group: RightFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_end
+                path: brushlessmotor.RightFront.curve.nt_end
+                encoding: 0
+                group: RightFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_mid
+                path: brushlessmotor.RightFront.curve.nt_mid
+                encoding: 0
+                group: RightFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_mid
+                path: brushlessmotor.RightFront.curve.pt_mid
+                encoding: 0
+                group: RightFront
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_end
+                path: brushlessmotor.RightFront.curve.pt_end
+                encoding: 0
+                group: RightFront
+                visible: true
+                fix: true
+                fix_value: 0
+          - name: LeftVertical
+            command_byte:
+              - 2
+            enabled: false
+            include_length: false
+            checksum: 2
+            big_endian: false
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: ID
+                path: brushlessmotor.LeftVertical.id
+                encoding: 6
+                group: LeftVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_mid
+                path: brushlessmotor.LeftVertical.curve.np_mid
+                encoding: 0
+                group: LeftVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_ini
+                path: brushlessmotor.LeftVertical.curve.np_ini
+                encoding: 0
+                group: LeftVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_ini
+                path: brushlessmotor.LeftVertical.curve.pp_ini
+                encoding: 0
+                group: LeftVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_mid
+                path: brushlessmotor.LeftVertical.curve.pp_mid
+                encoding: 0
+                group: LeftVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_end
+                path: brushlessmotor.LeftVertical.curve.nt_end
+                encoding: 0
+                group: LeftVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_mid
+                path: brushlessmotor.LeftVertical.curve.nt_mid
+                encoding: 0
+                group: LeftVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_mid
+                path: brushlessmotor.LeftVertical.curve.pt_mid
+                encoding: 0
+                group: LeftVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_end
+                path: brushlessmotor.LeftVertical.curve.pt_end
+                encoding: 0
+                group: LeftVertical
+                visible: true
+                fix: true
+                fix_value: 0
+          - name: RightVertical
+            command_byte:
+              - 2
+            enabled: false
+            include_length: false
+            checksum: 2
+            big_endian: false
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: ID
+                path: brushlessmotor.RightVertical.id
+                encoding: 6
+                group: RightVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_mid
+                path: brushlessmotor.RightVertical.curve.np_mid
+                encoding: 0
+                group: RightVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_ini
+                path: brushlessmotor.RightVertical.curve.np_ini
+                encoding: 0
+                group: RightVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_ini
+                path: brushlessmotor.RightVertical.curve.pp_ini
+                encoding: 0
+                group: RightVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_mid
+                path: brushlessmotor.RightVertical.curve.pp_mid
+                encoding: 0
+                group: RightVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_end
+                path: brushlessmotor.RightVertical.curve.nt_end
+                encoding: 0
+                group: RightVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_mid
+                path: brushlessmotor.RightVertical.curve.nt_mid
+                encoding: 0
+                group: RightVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_mid
+                path: brushlessmotor.RightVertical.curve.pt_mid
+                encoding: 0
+                group: RightVertical
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_end
+                path: brushlessmotor.RightVertical.curve.pt_end
+                encoding: 0
+                group: RightVertical
+                visible: true
+                fix: true
+                fix_value: 0
+          - name: LeftRear
+            command_byte:
+              - 2
+            enabled: false
+            include_length: false
+            checksum: 2
+            big_endian: false
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: ID
+                path: brushlessmotor.LeftRear.id
+                encoding: 6
+                group: LeftRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_mid
+                path: brushlessmotor.LeftRear.curve.np_mid
+                encoding: 0
+                group: LeftRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_ini
+                path: brushlessmotor.LeftRear.curve.np_ini
+                encoding: 0
+                group: LeftRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_ini
+                path: brushlessmotor.LeftRear.curve.pp_ini
+                encoding: 0
+                group: LeftRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_mid
+                path: brushlessmotor.LeftRear.curve.pp_mid
+                encoding: 0
+                group: LeftRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_end
+                path: brushlessmotor.LeftRear.curve.nt_end
+                encoding: 0
+                group: LeftRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_mid
+                path: brushlessmotor.LeftRear.curve.nt_mid
+                encoding: 0
+                group: LeftRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_mid
+                path: brushlessmotor.LeftRear.curve.pt_mid
+                encoding: 0
+                group: LeftRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_end
+                path: brushlessmotor.LeftRear.curve.pt_end
+                encoding: 0
+                group: LeftRear
+                visible: true
+                fix: true
+                fix_value: 0
+          - name: RightRear
+            command_byte:
+              - 2
+            enabled: false
+            include_length: false
+            checksum: 2
+            big_endian: false
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: ID
+                path: brushlessmotor.RightRear.id
+                encoding: 6
+                group: RightRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_mid
+                path: brushlessmotor.RightRear.curve.np_mid
+                encoding: 0
+                group: RightRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: np_ini
+                path: brushlessmotor.RightRear.curve.np_ini
+                encoding: 0
+                group: RightRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_ini
+                path: brushlessmotor.RightRear.curve.pp_ini
+                encoding: 0
+                group: RightRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pp_mid
+                path: brushlessmotor.RightRear.curve.pp_mid
+                encoding: 0
+                group: RightRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_end
+                path: brushlessmotor.RightRear.curve.nt_end
+                encoding: 0
+                group: RightRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: nt_mid
+                path: brushlessmotor.RightRear.curve.nt_mid
+                encoding: 0
+                group: RightRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_mid
+                path: brushlessmotor.RightRear.curve.pt_mid
+                encoding: 0
+                group: RightRear
+                visible: true
+                fix: true
+                fix_value: 0
+              - name: pt_end
+                path: brushlessmotor.RightRear.curve.pt_end
+                encoding: 0
+                group: RightRear
+                visible: true
+                fix: true
+                fix_value: 0
+        protocol_receive:
+          - name: Sensor
+            command_byte:
+              - 3
+            include_length: false
+            checksum: 2
+            big_endian: false
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: Depth
+                path: depth.value
+                encoding: 0
+                group: Sensor
+                visible: true
+              - name: Temperature
+                path: temperature.value
+                encoding: 0
+                group: Sensor
+                visible: true
+      - name: Camera
+        host_ip: 192.168.0.38
+        remote_port: 5000
+        local_port: 1000
         transport_type: 0
-        send_freq_hz: 100
+        send_freq_hz: 500
+        active_component_idx: 1
+        protocol_send:
+          - name: Center
+            command_byte:
+              []
+            enabled: false
+            include_length: false
+            checksum: 0
+            big_endian: false
+            header:
+              []
+            tail:
+              []
+            fields:
+              - name: raw
+                path: ""
+                encoding: 0
+                group: ""
+                visible: true
+                fix: false
+                fix_value: 0
+                raw_data:
+                  - 35
+                  - 84
+                  - 80
+                  - 85
+                  - 71
+                  - 50
+                  - 119
+                  - 80
+                  - 84
+                  - 90
+                  - 48
+                  - 53
+                  - 54
+                  - 70
+          - name: Up
+            command_byte:
+              []
+            enabled: false
+            include_length: false
+            checksum: 0
+            big_endian: false
+            header:
+              []
+            tail:
+              []
+            fields:
+              - name: raw
+                path: ""
+                encoding: 0
+                group: ""
+                visible: true
+                fix: false
+                fix_value: 0
+                raw_data:
+                  - 35
+                  - 84
+                  - 80
+                  - 85
+                  - 71
+                  - 50
+                  - 119
+                  - 71
+                  - 83
+                  - 80
+                  - 55
+                  - 70
+                  - 55
+                  - 51
+          - name: Down
+            command_byte:
+              []
+            enabled: false
+            include_length: false
+            checksum: 0
+            big_endian: false
+            header:
+              []
+            tail:
+              []
+            fields:
+              - name: raw
+                path: ""
+                encoding: 0
+                group: ""
+                visible: true
+                fix: false
+                fix_value: 0
+                raw_data:
+                  - 35
+                  - 84
+                  - 80
+                  - 85
+                  - 71
+                  - 50
+                  - 119
+                  - 71
+                  - 83
+                  - 80
+                  - 56
+                  - 49
+                  - 53
+                  - 70
+        protocol_receive:
+          []
   graph_items:
     - id: 1
       name: ROV-XBOX
       is_selected: true
-      editor_yaml: "nodes:\n  - id: 143\n    type: 7\n    value: 3.07999992\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: 739\n    pos_y: -936\n  - id: 152\n    type: 7\n    value: 2.54999995\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: 741\n    pos_y: -520\n  - id: 157\n    type: 7\n    value: 3.07999992\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: 739\n    pos_y: -728\n  - id: 174\n    type: 23\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 1\n    output_types:\n      - 1\n    pos_x: 569\n    pos_y: -922\n  - id: 176\n    type: 16\n    value: 0\n    key_name: \"\"\n    op_mode: 1\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 1\n    output_types:\n      - 1\n    pos_x: 204\n    pos_y: -922\n  - id: 181\n    type: 16\n    value: 0\n    key_name: \"\"\n    op_mode: 1\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 1\n    output_types:\n      - 1\n    pos_x: 387\n    pos_y: -922\n  - id: 188\n    type: 16\n    value: 0\n    key_name: \"\"\n    op_mode: 1\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n      - 0\n    output_types:\n      - 1\n    pos_x: 204\n    pos_y: -702\n  - id: 191\n    type: 23\n    value: 1\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 1\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 1\n    output_types:\n      - 1\n    pos_x: 571\n    pos_y: -700\n  - id: 198\n    type: 23\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 1\n    output_types:\n      - 1\n    pos_x: 573\n    pos_y: -506\n  - id: 206\n    type: 45\n    value: 2.54999995\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: -10\n    pos_y: -114\n  - id: 208\n    type: 45\n    value: 0.74000001\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: -10\n    pos_y: -354\n  - id: 210\n    type: 45\n    value: 3.07999992\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 6\n    pos_y: -578\n  - id: 212\n    type: 45\n    value: 9.75\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: -26\n    pos_y: -818\n  - id: 215\n    type: 44\n    value: 1.52590219e-05\n    key_name: LSX\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: -316\n    pos_y: 28\n  - id: 217\n    type: 44\n    value: -1.52590219e-05\n    key_name: LSY\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: -316\n    pos_y: 572\n  - id: 218\n    type: 44\n    value: 1.52590219e-05\n    key_name: RSX\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: -316\n    pos_y: 1132\n  - id: 220\n    type: 44\n    value: -1.52590219e-05\n    key_name: RSY\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: -316\n    pos_y: 1644\n  - id: 226\n    type: 46\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.rz\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      []\n    pos_x: 707\n    pos_y: 1794\n  - id: 228\n    type: 46\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.z\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      []\n    pos_x: 691\n    pos_y: 1346\n  - id: 230\n    type: 46\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.y\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      []\n    pos_x: 659\n    pos_y: 738\n  - id: 232\n    type: 46\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.x\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      []\n    pos_x: 643\n    pos_y: 178\n  - id: 238\n    type: 46\n    value: 3.07999992\n    key_name: \"\"\n    op_mode: 0\n    output_target: servo.Servo.angle\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      []\n    pos_x: 979\n    pos_y: -878\n  - id: 240\n    type: 44\n    value: 0\n    key_name: LB\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: -12\n    pos_y: -948\n  - id: 242\n    type: 44\n    value: -1\n    key_name: LT\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: -12\n    pos_y: -724\n  - id: 244\n    type: 44\n    value: 0\n    key_name: RB\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: -12\n    pos_y: -484\n  - id: 248\n    type: 44\n    value: -1\n    key_name: RT\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 3\n    pos_y: -244\n  - id: 253\n    type: 39\n    value: 1\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: 0\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 2\n      - 0\n    output_types:\n      - 0\n    pos_x: 650\n    pos_y: -1248\n  - id: 258\n    type: 44\n    value: 0\n    key_name: Y\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 1\n    pos_x: 3\n    pos_y: -1220\n  - id: 270\n    type: 34\n    value: 1\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 1\n      - 3\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 1\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 1\n    output_types:\n      - 2\n    pos_x: 329\n    pos_y: -1271\n  - id: 280\n    type: 47\n    value: 3000\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      - 6000\n      - 3000\n      - 1500\n      - 750\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 2\n    output_types:\n      - 0\n    pos_x: -108\n    pos_y: 226\n  - id: 281\n    type: 38\n    value: 1\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: 0\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 2\n    pos_x: -316\n    pos_y: 316\n  - id: 284\n    type: 0\n    value: 0\n    key_name: \"\"\n    op_mode: 2\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: 363\n    pos_y: 144\n  - id: 290\n    type: 38\n    value: 1\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: 0\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: -300\n    pos_y: 844\n  - id: 291\n    type: 47\n    value: 2500\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      - 5000\n      - 2500\n      - 1250\n      - 625\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 2\n    output_types:\n      - 0\n    pos_x: -92\n    pos_y: 756\n  - id: 294\n    type: 0\n    value: 0\n    key_name: \"\"\n    op_mode: 2\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: 379\n    pos_y: 718\n  - id: 302\n    type: 38\n    value: 1\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: 0\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: -300\n    pos_y: 1356\n  - id: 303\n    type: 0\n    value: 0\n    key_name: \"\"\n    op_mode: 2\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: 403\n    pos_y: 1312\n  - id: 307\n    type: 47\n    value: 3000\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      - 6000\n      - 3000\n      - 1500\n      - 750\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 2\n    output_types:\n      - 0\n    pos_x: -76\n    pos_y: 1284\n  - id: 314\n    type: 0\n    value: 0\n    key_name: \"\"\n    op_mode: 2\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: 411\n    pos_y: 1776\n  - id: 315\n    type: 38\n    value: 1\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: 0\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: -284\n    pos_y: 1852\n  - id: 317\n    type: 47\n    value: 500\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      - 1000\n      - 500\n      - 250\n      - 125\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 2\n    output_types:\n      - 0\n    pos_x: -44\n    pos_y: 1812\n  - id: 324\n    type: 12\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0.100000001\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: -62\n    pos_y: 14\n  - id: 327\n    type: 12\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0.100000001\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: -52\n    pos_y: 546\n  - id: 330\n    type: 12\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0.100000001\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: -30\n    pos_y: 1086\n  - id: 333\n    type: 12\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    global_var_id: -1\n    param:\n      - 0.100000001\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: -30\n    pos_y: 1602\nlinks:\n  - id: 183\n    from_node: 176\n    from_pin: 0\n    to_node: 181\n    to_pin: 0\n  - id: 184\n    from_node: 181\n    from_pin: 0\n    to_node: 174\n    to_pin: 1\n  - id: 185\n    from_node: 174\n    from_pin: 0\n    to_node: 143\n    to_pin: 0\n  - id: 193\n    from_node: 188\n    from_pin: 0\n    to_node: 191\n    to_pin: 1\n  - id: 195\n    from_node: 191\n    from_pin: 0\n    to_node: 157\n    to_pin: 0\n  - id: 197\n    from_node: 157\n    from_pin: 0\n    to_node: 143\n    to_pin: 2\n  - id: 201\n    from_node: 198\n    from_pin: 0\n    to_node: 152\n    to_pin: 0\n  - id: 203\n    from_node: 152\n    from_pin: 0\n    to_node: 157\n    to_pin: 2\n  - id: 207\n    from_node: 206\n    from_pin: 0\n    to_node: 152\n    to_pin: 2\n  - id: 209\n    from_node: 208\n    from_pin: 0\n    to_node: 152\n    to_pin: 1\n  - id: 211\n    from_node: 210\n    from_pin: 0\n    to_node: 157\n    to_pin: 1\n  - id: 213\n    from_node: 212\n    from_pin: 0\n    to_node: 143\n    to_pin: 1\n  - id: 214\n    from_node: 188\n    from_pin: 0\n    to_node: 181\n    to_pin: 1\n  - id: 239\n    from_node: 143\n    from_pin: 0\n    to_node: 238\n    to_pin: 0\n  - id: 241\n    from_node: 240\n    from_pin: 0\n    to_node: 174\n    to_pin: 0\n  - id: 243\n    from_node: 242\n    from_pin: 0\n    to_node: 191\n    to_pin: 0\n  - id: 245\n    from_node: 244\n    from_pin: 0\n    to_node: 188\n    to_pin: 0\n  - id: 246\n    from_node: 244\n    from_pin: 0\n    to_node: 176\n    to_pin: 1\n  - id: 247\n    from_node: 244\n    from_pin: 0\n    to_node: 198\n    to_pin: 0\n  - id: 249\n    from_node: 248\n    from_pin: 0\n    to_node: 198\n    to_pin: 1\n  - id: 250\n    from_node: 248\n    from_pin: 0\n    to_node: 188\n    to_pin: 1\n  - id: 264\n    from_node: 242\n    from_pin: 0\n    to_node: 176\n    to_pin: 0\n  - id: 276\n    from_node: 258\n    from_pin: 0\n    to_node: 270\n    to_pin: 0\n  - id: 278\n    from_node: 270\n    from_pin: 0\n    to_node: 253\n    to_pin: 0\n  - id: 279\n    from_node: 258\n    from_pin: 0\n    to_node: 253\n    to_pin: 1\n  - id: 283\n    from_node: 281\n    from_pin: 0\n    to_node: 280\n    to_pin: 0\n  - id: 288\n    from_node: 280\n    from_pin: 0\n    to_node: 284\n    to_pin: 1\n  - id: 289\n    from_node: 284\n    from_pin: 0\n    to_node: 232\n    to_pin: 0\n  - id: 299\n    from_node: 291\n    from_pin: 0\n    to_node: 294\n    to_pin: 1\n  - id: 300\n    from_node: 290\n    from_pin: 0\n    to_node: 291\n    to_pin: 0\n  - id: 301\n    from_node: 294\n    from_pin: 0\n    to_node: 230\n    to_pin: 0\n  - id: 310\n    from_node: 302\n    from_pin: 0\n    to_node: 307\n    to_pin: 0\n  - id: 311\n    from_node: 307\n    from_pin: 0\n    to_node: 303\n    to_pin: 1\n  - id: 313\n    from_node: 303\n    from_pin: 0\n    to_node: 228\n    to_pin: 0\n  - id: 320\n    from_node: 315\n    from_pin: 0\n    to_node: 317\n    to_pin: 0\n  - id: 322\n    from_node: 317\n    from_pin: 0\n    to_node: 314\n    to_pin: 1\n  - id: 323\n    from_node: 314\n    from_pin: 0\n    to_node: 226\n    to_pin: 0\n  - id: 325\n    from_node: 215\n    from_pin: 0\n    to_node: 324\n    to_pin: 0\n  - id: 326\n    from_node: 324\n    from_pin: 0\n    to_node: 284\n    to_pin: 0\n  - id: 328\n    from_node: 217\n    from_pin: 0\n    to_node: 327\n    to_pin: 0\n  - id: 329\n    from_node: 327\n    from_pin: 0\n    to_node: 294\n    to_pin: 0\n  - id: 331\n    from_node: 218\n    from_pin: 0\n    to_node: 330\n    to_pin: 0\n  - id: 332\n    from_node: 330\n    from_pin: 0\n    to_node: 303\n    to_pin: 0\n  - id: 334\n    from_node: 220\n    from_pin: 0\n    to_node: 333\n    to_pin: 0\n  - id: 335\n    from_node: 333\n    from_pin: 0\n    to_node: 314\n    to_pin: 0\nglobals:\n  - id: 0\n    name: mode\n    value: 1\n    type: 2\nactive_robot_mode: ROV\nactive_gamepad_mode: XBOX"
+      editor_yaml: "nodes:\n  - id: 143\n    type: 7\n    value: 0.800000012\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: 739\n    pos_y: -936\n  - id: 152\n    type: 7\n    value: 0.800000012\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: 741\n    pos_y: -520\n  - id: 157\n    type: 7\n    value: 0.800000012\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: 739\n    pos_y: -728\n  - id: 174\n    type: 23\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 1\n    output_types:\n      - 1\n    pos_x: 569\n    pos_y: -922\n  - id: 176\n    type: 16\n    value: 0\n    key_name: \"\"\n    op_mode: 1\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 1\n    output_types:\n      - 1\n    pos_x: 204\n    pos_y: -922\n  - id: 181\n    type: 16\n    value: 0\n    key_name: \"\"\n    op_mode: 1\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 1\n    output_types:\n      - 1\n    pos_x: 387\n    pos_y: -922\n  - id: 188\n    type: 16\n    value: 0\n    key_name: \"\"\n    op_mode: 1\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 1\n    output_types:\n      - 1\n    pos_x: 204\n    pos_y: -702\n  - id: 191\n    type: 23\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 1\n    output_types:\n      - 1\n    pos_x: 571\n    pos_y: -700\n  - id: 198\n    type: 23\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 1\n    output_types:\n      - 1\n    pos_x: 573\n    pos_y: -506\n  - id: 206\n    type: 45\n    value: 0.800000012\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: -10\n    pos_y: -114\n  - id: 208\n    type: 45\n    value: 0.699999988\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: -10\n    pos_y: -354\n  - id: 210\n    type: 45\n    value: 0.600000024\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 6\n    pos_y: -578\n  - id: 212\n    type: 45\n    value: 0.5\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: -26\n    pos_y: -818\n  - id: 215\n    type: 44\n    value: -1.52590219e-05\n    key_name: LSY\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 477\n    pos_y: -180\n  - id: 217\n    type: 44\n    value: 1.52590219e-05\n    key_name: RSX\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 477\n    pos_y: 364\n  - id: 218\n    type: 44\n    value: -1.52590219e-05\n    key_name: RSY\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 477\n    pos_y: 924\n  - id: 220\n    type: 44\n    value: 1.52590219e-05\n    key_name: LSX\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 477\n    pos_y: 1436\n  - id: 226\n    type: 46\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.rz\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      []\n    pos_x: 1500\n    pos_y: 1586\n  - id: 228\n    type: 46\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.z\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      []\n    pos_x: 1484\n    pos_y: 1138\n  - id: 230\n    type: 46\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.y\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      []\n    pos_x: 1452\n    pos_y: 530\n  - id: 232\n    type: 46\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: motion.x\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      []\n    pos_x: 1436\n    pos_y: -30\n  - id: 238\n    type: 46\n    value: 0.800000012\n    key_name: \"\"\n    op_mode: 0\n    output_target: servo.Servo.angle\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      []\n    pos_x: 979\n    pos_y: -878\n  - id: 240\n    type: 44\n    value: 0\n    key_name: LB\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: -12\n    pos_y: -948\n  - id: 242\n    type: 44\n    value: -1\n    key_name: LT\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: -12\n    pos_y: -724\n  - id: 244\n    type: 44\n    value: -1\n    key_name: RT\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: -12\n    pos_y: -484\n  - id: 248\n    type: 44\n    value: 0\n    key_name: RB\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 3\n    pos_y: -244\n  - id: 253\n    type: 39\n    value: 2\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: 0\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 2\n      - 0\n    output_types:\n      - 0\n    pos_x: 2019\n    pos_y: -924\n  - id: 280\n    type: 47\n    value: 1500\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      - 6000\n      - 3000\n      - 1500\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 2\n    output_types:\n      - 0\n    pos_x: 685\n    pos_y: 18\n  - id: 281\n    type: 38\n    value: 2\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: 0\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 2\n    pos_x: 477\n    pos_y: 108\n  - id: 284\n    type: 0\n    value: 0\n    key_name: \"\"\n    op_mode: 2\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: 1156\n    pos_y: -64\n  - id: 290\n    type: 38\n    value: 2\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: 0\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 493\n    pos_y: 636\n  - id: 291\n    type: 47\n    value: 1250\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      - 5000\n      - 2500\n      - 1250\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 2\n    output_types:\n      - 0\n    pos_x: 701\n    pos_y: 548\n  - id: 294\n    type: 0\n    value: 0\n    key_name: \"\"\n    op_mode: 2\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: 1172\n    pos_y: 510\n  - id: 302\n    type: 38\n    value: 2\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: 0\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 493\n    pos_y: 1148\n  - id: 303\n    type: 0\n    value: 0\n    key_name: \"\"\n    op_mode: 2\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: 1196\n    pos_y: 1104\n  - id: 307\n    type: 47\n    value: 1500\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      - 6000\n      - 3000\n      - 1500\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 2\n    output_types:\n      - 0\n    pos_x: 717\n    pos_y: 1076\n  - id: 314\n    type: 0\n    value: 0\n    key_name: \"\"\n    op_mode: 2\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: 1204\n    pos_y: 1568\n  - id: 315\n    type: 38\n    value: 2\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: 0\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 509\n    pos_y: 1644\n  - id: 317\n    type: 47\n    value: 250\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      - 1000\n      - 500\n      - 250\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 2\n    output_types:\n      - 0\n    pos_x: 749\n    pos_y: 1604\n  - id: 324\n    type: 12\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0.100000001\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: 731\n    pos_y: -194\n  - id: 327\n    type: 12\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0.100000001\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: 741\n    pos_y: 338\n  - id: 330\n    type: 12\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0.100000001\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: 763\n    pos_y: 878\n  - id: 333\n    type: 12\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0.100000001\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: 763\n    pos_y: 1394\n  - id: 336\n    type: 44\n    value: 0\n    key_name: A\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 1235\n    pos_y: -932\n  - id: 337\n    type: 45\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 2\n    pos_x: 1238\n    pos_y: -802\n  - id: 339\n    type: 44\n    value: 0\n    key_name: B\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 1235\n    pos_y: -708\n  - id: 341\n    type: 45\n    value: 1\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 2\n    pos_x: 1238\n    pos_y: -578\n  - id: 343\n    type: 44\n    value: 0\n    key_name: Y\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 1235\n    pos_y: -484\n  - id: 345\n    type: 45\n    value: 2\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 2\n    pos_x: 1238\n    pos_y: -354\n  - id: 352\n    type: 23\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 1\n    output_types:\n      - 1\n    pos_x: 1611\n    pos_y: -934\n  - id: 357\n    type: 7\n    value: 2\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: 1779\n    pos_y: -968\n  - id: 363\n    type: 7\n    value: 2\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: 1779\n    pos_y: -756\n  - id: 368\n    type: 23\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 1\n    output_types:\n      - 1\n    pos_x: 1611\n    pos_y: -726\n  - id: 387\n    type: 16\n    value: 0\n    key_name: \"\"\n    op_mode: 1\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 1\n    output_types:\n      - 1\n    pos_x: 1427\n    pos_y: -932\n  - id: 392\n    type: 16\n    value: 0\n    key_name: \"\"\n    op_mode: 1\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n      - 0\n    output_types:\n      - 1\n    pos_x: 1587\n    pos_y: -528\n  - id: 393\n    type: 16\n    value: 0\n    key_name: \"\"\n    op_mode: 1\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n      - 0\n    output_types:\n      - 1\n    pos_x: 1587\n    pos_y: -324\n  - id: 401\n    type: 16\n    value: 0\n    key_name: \"\"\n    op_mode: 1\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n      - 0\n    output_types:\n      - 1\n    pos_x: 1787\n    pos_y: -420\n  - id: 406\n    type: 48\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    shortcut_send_index: 8\n    shortcut_send_mode: 1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: 2509\n    pos_y: 306\n  - id: 407\n    type: 48\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    shortcut_send_index: 9\n    shortcut_send_mode: 1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: 2509\n    pos_y: 489\n  - id: 410\n    type: 48\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    shortcut_send_index: 7\n    shortcut_send_mode: 1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: 2509\n    pos_y: 894\n  - id: 413\n    type: 44\n    value: 0\n    key_name: UP\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 2083\n    pos_y: 300\n  - id: 415\n    type: 44\n    value: 0\n    key_name: DOWN\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 2083\n    pos_y: 508\n  - id: 417\n    type: 44\n    value: 0\n    key_name: LEFT\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 2083\n    pos_y: 700\n  - id: 422\n    type: 48\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    shortcut_send_index: 8\n    shortcut_send_mode: 0\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: 2509\n    pos_y: 114\nlinks:\n  - id: 183\n    from_node: 176\n    from_pin: 0\n    to_node: 181\n    to_pin: 0\n  - id: 184\n    from_node: 181\n    from_pin: 0\n    to_node: 174\n    to_pin: 1\n  - id: 185\n    from_node: 174\n    from_pin: 0\n    to_node: 143\n    to_pin: 0\n  - id: 193\n    from_node: 188\n    from_pin: 0\n    to_node: 191\n    to_pin: 1\n  - id: 195\n    from_node: 191\n    from_pin: 0\n    to_node: 157\n    to_pin: 0\n  - id: 197\n    from_node: 157\n    from_pin: 0\n    to_node: 143\n    to_pin: 2\n  - id: 201\n    from_node: 198\n    from_pin: 0\n    to_node: 152\n    to_pin: 0\n  - id: 203\n    from_node: 152\n    from_pin: 0\n    to_node: 157\n    to_pin: 2\n  - id: 207\n    from_node: 206\n    from_pin: 0\n    to_node: 152\n    to_pin: 2\n  - id: 209\n    from_node: 208\n    from_pin: 0\n    to_node: 152\n    to_pin: 1\n  - id: 211\n    from_node: 210\n    from_pin: 0\n    to_node: 157\n    to_pin: 1\n  - id: 213\n    from_node: 212\n    from_pin: 0\n    to_node: 143\n    to_pin: 1\n  - id: 214\n    from_node: 188\n    from_pin: 0\n    to_node: 181\n    to_pin: 1\n  - id: 239\n    from_node: 143\n    from_pin: 0\n    to_node: 238\n    to_pin: 0\n  - id: 241\n    from_node: 240\n    from_pin: 0\n    to_node: 174\n    to_pin: 0\n  - id: 243\n    from_node: 242\n    from_pin: 0\n    to_node: 191\n    to_pin: 0\n  - id: 245\n    from_node: 244\n    from_pin: 0\n    to_node: 188\n    to_pin: 0\n  - id: 246\n    from_node: 244\n    from_pin: 0\n    to_node: 176\n    to_pin: 1\n  - id: 247\n    from_node: 244\n    from_pin: 0\n    to_node: 198\n    to_pin: 0\n  - id: 249\n    from_node: 248\n    from_pin: 0\n    to_node: 198\n    to_pin: 1\n  - id: 250\n    from_node: 248\n    from_pin: 0\n    to_node: 188\n    to_pin: 1\n  - id: 264\n    from_node: 242\n    from_pin: 0\n    to_node: 176\n    to_pin: 0\n  - id: 283\n    from_node: 281\n    from_pin: 0\n    to_node: 280\n    to_pin: 0\n  - id: 288\n    from_node: 280\n    from_pin: 0\n    to_node: 284\n    to_pin: 1\n  - id: 289\n    from_node: 284\n    from_pin: 0\n    to_node: 232\n    to_pin: 0\n  - id: 299\n    from_node: 291\n    from_pin: 0\n    to_node: 294\n    to_pin: 1\n  - id: 300\n    from_node: 290\n    from_pin: 0\n    to_node: 291\n    to_pin: 0\n  - id: 301\n    from_node: 294\n    from_pin: 0\n    to_node: 230\n    to_pin: 0\n  - id: 310\n    from_node: 302\n    from_pin: 0\n    to_node: 307\n    to_pin: 0\n  - id: 311\n    from_node: 307\n    from_pin: 0\n    to_node: 303\n    to_pin: 1\n  - id: 313\n    from_node: 303\n    from_pin: 0\n    to_node: 228\n    to_pin: 0\n  - id: 320\n    from_node: 315\n    from_pin: 0\n    to_node: 317\n    to_pin: 0\n  - id: 322\n    from_node: 317\n    from_pin: 0\n    to_node: 314\n    to_pin: 1\n  - id: 323\n    from_node: 314\n    from_pin: 0\n    to_node: 226\n    to_pin: 0\n  - id: 325\n    from_node: 215\n    from_pin: 0\n    to_node: 324\n    to_pin: 0\n  - id: 326\n    from_node: 324\n    from_pin: 0\n    to_node: 284\n    to_pin: 0\n  - id: 328\n    from_node: 217\n    from_pin: 0\n    to_node: 327\n    to_pin: 0\n  - id: 329\n    from_node: 327\n    from_pin: 0\n    to_node: 294\n    to_pin: 0\n  - id: 331\n    from_node: 218\n    from_pin: 0\n    to_node: 330\n    to_pin: 0\n  - id: 332\n    from_node: 330\n    from_pin: 0\n    to_node: 303\n    to_pin: 0\n  - id: 334\n    from_node: 220\n    from_pin: 0\n    to_node: 333\n    to_pin: 0\n  - id: 335\n    from_node: 333\n    from_pin: 0\n    to_node: 314\n    to_pin: 0\n  - id: 356\n    from_node: 336\n    from_pin: 0\n    to_node: 352\n    to_pin: 0\n  - id: 361\n    from_node: 352\n    from_pin: 0\n    to_node: 357\n    to_pin: 0\n  - id: 362\n    from_node: 337\n    from_pin: 0\n    to_node: 357\n    to_pin: 1\n  - id: 366\n    from_node: 363\n    from_pin: 0\n    to_node: 357\n    to_pin: 2\n  - id: 367\n    from_node: 357\n    from_pin: 0\n    to_node: 253\n    to_pin: 0\n  - id: 370\n    from_node: 368\n    from_pin: 0\n    to_node: 363\n    to_pin: 0\n  - id: 372\n    from_node: 341\n    from_pin: 0\n    to_node: 363\n    to_pin: 1\n  - id: 373\n    from_node: 339\n    from_pin: 0\n    to_node: 368\n    to_pin: 0\n  - id: 385\n    from_node: 345\n    from_pin: 0\n    to_node: 363\n    to_pin: 2\n  - id: 388\n    from_node: 339\n    from_pin: 0\n    to_node: 387\n    to_pin: 0\n  - id: 389\n    from_node: 343\n    from_pin: 0\n    to_node: 387\n    to_pin: 1\n  - id: 391\n    from_node: 343\n    from_pin: 0\n    to_node: 368\n    to_pin: 1\n  - id: 397\n    from_node: 336\n    from_pin: 0\n    to_node: 392\n    to_pin: 0\n  - id: 398\n    from_node: 339\n    from_pin: 0\n    to_node: 392\n    to_pin: 1\n  - id: 399\n    from_node: 339\n    from_pin: 0\n    to_node: 393\n    to_pin: 0\n  - id: 400\n    from_node: 343\n    from_pin: 0\n    to_node: 393\n    to_pin: 1\n  - id: 402\n    from_node: 392\n    from_pin: 0\n    to_node: 401\n    to_pin: 0\n  - id: 403\n    from_node: 393\n    from_pin: 0\n    to_node: 401\n    to_pin: 1\n  - id: 404\n    from_node: 401\n    from_pin: 0\n    to_node: 253\n    to_pin: 1\n  - id: 405\n    from_node: 387\n    from_pin: 0\n    to_node: 352\n    to_pin: 1\n  - id: 419\n    from_node: 417\n    from_pin: 0\n    to_node: 410\n    to_pin: 0\n  - id: 420\n    from_node: 415\n    from_pin: 0\n    to_node: 407\n    to_pin: 0\n  - id: 421\n    from_node: 413\n    from_pin: 0\n    to_node: 406\n    to_pin: 0\nglobals:\n  - id: 0\n    name: mode\n    value: 2\n    type: 2\n    visible: true\nactive_robot_mode: ROV\nactive_gamepad_mode: XBOX\ncomm_refs:\n  - 0\n  - 1"
     - id: 2
       name: Item_2
       is_selected: false

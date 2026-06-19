@@ -4,12 +4,14 @@
 #include "RobotComponentManager.h"
 #include "GamepadMapperManager.h"
 #include "RobotCommManager.h"
+#include "ShortcutManager.h"
 #include "Walnut/Core/Log.h"
 #include <yaml-cpp/yaml.h>
 #include <imgui_internal.h>
 #include "Walnut/Image.h"
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <queue>
 #include <unordered_map>
 #include <sstream>
@@ -123,6 +125,28 @@ void NodeGraph::Clear()
     Clear_NoLock();
     m_GlobalVars.clear();
     m_GlobalTempVals.clear();
+    m_CommRefs.clear();
+}
+
+// ============================================================================
+// CommRef helpers
+// ============================================================================
+int NodeGraph::GetCommRef(int graphCommIdx) const
+{
+    if (graphCommIdx >= 0 && graphCommIdx < (int)m_CommRefs.size())
+        return m_CommRefs[graphCommIdx];
+    return 0;
+}
+
+void NodeGraph::AddCommRef(int robotCommMgrIdx)
+{
+    m_CommRefs.push_back(robotCommMgrIdx);
+}
+
+void NodeGraph::RemoveCommRef(int graphCommIdx)
+{
+    if (graphCommIdx >= 0 && graphCommIdx < (int)m_CommRefs.size())
+        m_CommRefs.erase(m_CommRefs.begin() + graphCommIdx);
 }
 
 // ============================================================================
@@ -319,20 +343,58 @@ static std::vector<int> TopoSortNodes(const std::vector<EditorNode>& nodes, cons
 }
 
 // ============================================================================
-// EvaluateCompute — pure compute
+// EvaluateCore — shared evaluation loop (used by EvaluateCompute/Into/ForDisplay)
+// ============================================================================
+static void EvaluateCore(
+    std::vector<EditorNode>& nodes,
+    const std::vector<EditorLink>& links,
+    const std::map<std::string, float>& keyValues,
+    float dt,
+    float* globals, int globalsCount,
+    std::function<void(EditorNode& node, float out, std::unordered_map<int, float>& pinVals)> onNode)
+{
+    auto order = TopoSortNodes(nodes, links);
+    std::unordered_map<int, float> pinVals;
+
+    for (int nid : order)
+    {
+        EditorNode* node = nullptr;
+        for (auto& n : nodes)
+            if ((int)n.ID.Get() == nid) { node = &n; break; }
+        if (!node) continue;
+
+        float out = ComputeNodeOutput(*node, keyValues, pinVals, dt, globals, globalsCount);
+
+        // Cast output to match output pin type
+        if (!node->Outputs.empty()) {
+            auto otype = node->Outputs[0].Type;
+            if (otype == PinType::Bool)      out = (out >= 0.5f) ? 1.0f : 0.0f;
+            else if (otype == PinType::Int)  out = std::round(out);
+        }
+
+        onNode(*node, out, pinVals);
+
+        // Propagate output to connected pins
+        if (!node->Outputs.empty()) {
+            int outPinId = (int)node->Outputs[0].ID.Get();
+            for (const auto& link : links)
+                if ((int)link.StartPinID.Get() == outPinId)
+                    pinVals[(int)link.EndPinID.Get()] = out;
+        }
+    }
+}
+
+// ============================================================================
+// EvaluateCompute — pure compute (legacy, single output map)
 // ============================================================================
 std::map<std::string, float> NodeGraph::EvaluateCompute(const std::map<std::string, float>& keyValues)
 {
     std::map<std::string, float> outputs;
     if (m_Nodes.empty()) return outputs;
 
-    // Compute real delta time (thread-safe via atomic)
     float dt = GetEvalDeltaTime(m_LastEvalTimeNs);
 
-    auto order = TopoSortNodes(m_Nodes, m_Links);
-    std::unordered_map<int, float> pinVals;
-
-    // Build temp float array indexed by GlobalVarId for O(1) evaluation lookup
+    // Build temp float array indexed by GlobalVarId
     {
         int maxId = -1;
         for (const auto& gv : m_GlobalVars)
@@ -342,40 +404,106 @@ std::map<std::string, float> NodeGraph::EvaluateCompute(const std::map<std::stri
             m_GlobalTempVals[gv.id] = gv.value;
     }
 
-    for (int nid : order)
-    {
-        EditorNode* node = nullptr;
-        for (auto& n : m_Nodes)
-            if ((int)n.ID.Get() == nid) { node = &n; break; }
-        if (!node) continue;
+    EvaluateCore(m_Nodes, m_Links, keyValues, dt, m_GlobalTempVals.data(), (int)m_GlobalTempVals.size(),
+        [&](EditorNode& node, float out, std::unordered_map<int, float>& /*pinVals*/) {
+            if (!node.OutputTarget.empty())
+                outputs[node.OutputTarget] = out;
+        });
 
-        float out = ComputeNodeOutput(*node, keyValues, pinVals, dt, m_GlobalTempVals.data(), (int)m_GlobalTempVals.size());
-
-        // Cast output to match output pin type
-        if (!node->Outputs.empty()) {
-            auto otype = node->Outputs[0].Type;
-            if (otype == PinType::Bool)      out = (out >= 0.5f) ? 1.0f : 0.0f;
-            else if (otype == PinType::Int)  out = std::round(out);
-        }
-
-        if (!node->OutputTarget.empty())
-            outputs[node->OutputTarget] = out;
-
-        // Propagate output to connected pins
-        if (!node->Outputs.empty()) {
-            int outPinId = (int)node->Outputs[0].ID.Get();
-            for (const auto& link : m_Links)
-                if ((int)link.StartPinID.Get() == outPinId)
-                    pinVals[(int)link.EndPinID.Get()] = out;
-        }
-    }
-
-    // Write back modified globals from evaluation (indexed by GlobalVarId)
+    // Write back modified globals
     for (auto& gv : m_GlobalVars)
         if (gv.id < (int)m_GlobalTempVals.size())
             gv.value = m_GlobalTempVals[gv.id];
 
     return outputs;
+}
+
+// ============================================================================
+// EvaluateComputeInto — evaluate and group outputs by graph-comm index
+//   CustomOutput.CommIndex → m_CommRefs[CommIndex] → dataVec idx
+// ============================================================================
+void NodeGraph::EvaluateComputeInto(const std::map<std::string, float>& keyValues,
+                                     std::vector<ActuatorConfig>& dataVec,
+                                     std::set<int>* pWrittenIndices)
+{
+    if (m_Nodes.empty()) return;
+
+    float dt = GetEvalDeltaTime(m_LastEvalTimeNs);
+
+    // Build temp float array indexed by GlobalVarId
+    {
+        int maxId = -1;
+        for (const auto& gv : m_GlobalVars)
+            if (gv.id > maxId) maxId = gv.id;
+        m_GlobalTempVals.assign(maxId + 1, 0.0f);
+        for (const auto& gv : m_GlobalVars)
+            m_GlobalTempVals[gv.id] = gv.value;
+    }
+
+    // Per graph-comm-index output map
+    std::unordered_map<int, std::map<std::string, float>> commOutputs;
+
+    EvaluateCore(m_Nodes, m_Links, keyValues, dt, m_GlobalTempVals.data(), (int)m_GlobalTempVals.size(),
+        [&](EditorNode& node, float out, std::unordered_map<int, float>& /*pinVals*/) {
+            node.Value = out;
+            if (!node.OutputTarget.empty()) {
+                int gIdx = node.CommIndex;  // graph-comm-index = position in m_CommRefs
+                commOutputs[gIdx][node.OutputTarget] = out;
+            }
+        });
+
+    // Write back modified globals
+    for (auto& gv : m_GlobalVars)
+        if (gv.id < (int)m_GlobalTempVals.size())
+            gv.value = m_GlobalTempVals[gv.id];
+
+    // ---- ShortcutTrigger action execution (rising edge detection) ----
+    for (auto& node : m_Nodes) {
+        if (node.Type != NodeType::ShortcutTrigger) continue;
+        float prev = node.Param[0];
+        node.Param[0] = node.Value;
+        if (prev < 0.5f && node.Value >= 0.5f) {
+            fprintf(stderr, "[TRACE] ShortcutTrigger FIRED val=%.2f sendIdx=%d sendMode=%d hasCb=%d\n",
+                node.Value, node.ShortcutSendIndex, node.ShortcutSendMode, m_SendActionCb ? 1 : 0);
+            if (node.ShortcutSendIndex >= 0 && m_SendActionCb) {
+                bool enable = (node.ShortcutSendMode == 0);
+                bool oneShot = (node.ShortcutSendMode == 1);
+                fprintf(stderr, "[TRACE] Calling SendActionCb(idx=%d, enable=%d, oneShot=%d)\n",
+                    node.ShortcutSendIndex, enable, oneShot);
+                m_SendActionCb(node.ShortcutSendIndex, enable, oneShot);
+            } else if (node.ShortcutActionIndex >= 0 && m_ShortcutMgr) {
+                m_ShortcutMgr->ExecuteAction(node.ShortcutActionIndex);
+            }
+        }
+    }
+
+    // Ensure dataVec has enough slots (one per graph-comm-index)
+    int maxIdx = (int)m_CommRefs.size();
+    for (const auto& [idx, _] : commOutputs)
+        if (idx >= maxIdx) maxIdx = idx + 1;
+    if (maxIdx > 0 && dataVec.empty())
+        dataVec.resize(maxIdx);
+    else if ((int)dataVec.size() < maxIdx)
+        dataVec.resize(maxIdx, dataVec.empty() ? ActuatorConfig{} : dataVec[0]);
+
+    // Write outputs to correct ActuatorConfig
+    for (const auto& [commIdx, targetMap] : commOutputs) {
+        if (commIdx >= (int)dataVec.size()) continue;
+        for (const auto& [target, val] : targetMap)
+            WriteOutputToActuator(target, val, dataVec[commIdx]);
+        if (pWrittenIndices) pWrittenIndices->insert(commIdx);
+    }
+}
+
+// ============================================================================
+// EvaluateIntoActuators — thread-safe version of EvaluateComputeInto
+// ============================================================================
+void NodeGraph::EvaluateIntoActuators(const std::map<std::string, float>& keyValues,
+                                       std::vector<ActuatorConfig>& dataVec,
+                                       std::set<int>* pWrittenIndices)
+{
+    std::unique_lock<std::shared_mutex> lock(m_EvalMutex);
+    EvaluateComputeInto(keyValues, dataVec, pWrittenIndices);
 }
 
 // ============================================================================
@@ -389,10 +517,7 @@ void NodeGraph::EvaluateForDisplay(const std::map<std::string, float>& keyValues
 
     float dt = GetEvalDeltaTime(m_LastEvalTimeNs);
 
-    auto order = TopoSortNodes(m_Nodes, m_Links);
-    std::unordered_map<int, float> pinVals;
-
-    // Build temp float array indexed by GlobalVarId for O(1) evaluation lookup
+    // Build temp float array indexed by GlobalVarId
     {
         int maxId = -1;
         for (const auto& gv : m_GlobalVars)
@@ -402,46 +527,45 @@ void NodeGraph::EvaluateForDisplay(const std::map<std::string, float>& keyValues
             m_GlobalTempVals[gv.id] = gv.value;
     }
 
-    for (int nid : order)
-    {
-        EditorNode* node = nullptr;
-        for (auto& n : m_Nodes)
-            if ((int)n.ID.Get() == nid) { node = &n; break; }
-        if (!node) continue;
+    EvaluateCore(m_Nodes, m_Links, keyValues, dt, m_GlobalTempVals.data(), (int)m_GlobalTempVals.size(),
+        [&](EditorNode& node, float out, std::unordered_map<int, float>& pinVals) {
+            // Update display fields
+            for (int i = 0; i < (int)node.Inputs.size() && i < 4; ++i) {
+                auto it = pinVals.find((int)node.Inputs[i].ID.Get());
+                float v = (it != pinVals.end()) ? it->second : 0.0f;
+                node.InputValues[i] = v;
+                node.InputBools[i] = (v >= 0.5f);
+            }
+            node.Value = out;
 
-        float out = ComputeNodeOutput(*node, keyValues, pinVals, dt, m_GlobalTempVals.data(), (int)m_GlobalTempVals.size());
+            if (!node.OutputTarget.empty())
+                m_LastOutputs[node.OutputTarget] = out;
+        });
 
-        // Cast output to match output pin type
-        if (!node->Outputs.empty()) {
-            auto otype = node->Outputs[0].Type;
-            if (otype == PinType::Bool)      out = (out >= 0.5f) ? 1.0f : 0.0f;
-            else if (otype == PinType::Int)  out = std::round(out);
-        }
-
-        // Update generic display fields
-        for (int i = 0; i < (int)node->Inputs.size() && i < 4; ++i) {
-            auto it = pinVals.find((int)node->Inputs[i].ID.Get());
-            float v = (it != pinVals.end()) ? it->second : 0.0f;
-            node->InputValues[i] = v;
-            node->InputBools[i] = (v >= 0.5f);
-        }
-        node->Value = out;
-
-        if (!node->OutputTarget.empty())
-            m_LastOutputs[node->OutputTarget] = out;
-
-        if (!node->Outputs.empty()) {
-            int outPinId = (int)node->Outputs[0].ID.Get();
-            for (auto& link : m_Links)
-                if ((int)link.StartPinID.Get() == outPinId)
-                    pinVals[(int)link.EndPinID.Get()] = out;
-        }
-    }
-
-    // Write back modified globals from evaluation (indexed by GlobalVarId)
+    // Write back modified globals
     for (auto& gv : m_GlobalVars)
         if (gv.id < (int)m_GlobalTempVals.size())
             gv.value = m_GlobalTempVals[gv.id];
+
+    // ---- ShortcutTrigger action execution (rising edge detection) ----
+    for (auto& node : m_Nodes) {
+        if (node.Type != NodeType::ShortcutTrigger) continue;
+        // Param[0] stores previous frame output for edge detection
+        float prev = node.Param[0];
+        node.Param[0] = node.Value;
+        if (prev < 0.5f && node.Value >= 0.5f) {
+            // Rising edge: execute
+            if (node.ShortcutSendIndex >= 0 && m_SendActionCb) {
+                // Send frame action
+                bool enable = (node.ShortcutSendMode == 0);  // Toggle mode
+                bool oneShot = (node.ShortcutSendMode == 1);
+                m_SendActionCb(node.ShortcutSendIndex, enable, oneShot);
+            } else if (node.ShortcutActionIndex >= 0 && m_ShortcutMgr) {
+                // Panel toggle action
+                m_ShortcutMgr->ExecuteAction(node.ShortcutActionIndex);
+            }
+        }
+    }
 }
 
 // ============================================================================
@@ -483,7 +607,14 @@ std::string NodeGraph::GetGraphDataYaml() const
         out << YAML::Key << "key_name"      << YAML::Value << n.KeyName;
         out << YAML::Key << "op_mode"       << YAML::Value << n.OpMode;
         out << YAML::Key << "output_target" << YAML::Value << n.OutputTarget;
+        out << YAML::Key << "comm_index"    << YAML::Value << n.CommIndex;
         out << YAML::Key << "global_var_id" << YAML::Value << n.GlobalVarId;
+        if (n.ShortcutActionIndex >= 0)
+            out << YAML::Key << "shortcut_action" << YAML::Value << n.ShortcutActionIndex;
+        if (n.ShortcutSendIndex >= 0) {
+            out << YAML::Key << "shortcut_send_index" << YAML::Value << n.ShortcutSendIndex;
+            out << YAML::Key << "shortcut_send_mode"  << YAML::Value << n.ShortcutSendMode;
+        }
         out << YAML::Key << "param"         << YAML::Value << YAML::BeginSeq;
         for (int i = 0; i < 8; ++i) out << n.Param[i];
         out << YAML::EndSeq;
@@ -532,14 +663,17 @@ std::string NodeGraph::GetGraphDataYaml() const
         out << YAML::Key << "id"    << YAML::Value << gv.id;
         out << YAML::Key << "name"  << YAML::Value << gv.name;
         out << YAML::Key << "value" << YAML::Value << gv.value;
-        out << YAML::Key << "type"  << YAML::Value << (int)gv.type;
+        out << YAML::Key << "type"    << YAML::Value << (int)gv.type;
+        out << YAML::Key << "visible" << YAML::Value << gv.visible;
         out << YAML::EndMap;
     }
     out << YAML::EndSeq;
 
     out << YAML::Key << "active_robot_mode"   << YAML::Value << m_ActiveRobotModeName;
     out << YAML::Key << "active_gamepad_mode" << YAML::Value << m_ActiveGamepadModeName;
-    out << YAML::Key << "comm_index"          << YAML::Value << m_CommIndex;
+    out << YAML::Key << "comm_refs" << YAML::Value << YAML::BeginSeq;
+    for (int ref : m_CommRefs) out << ref;
+    out << YAML::EndSeq;
 
     out << YAML::EndMap;
     return out.c_str();
@@ -584,7 +718,11 @@ bool NodeGraph::LoadGraphData(const std::string& yamlStr)
                 node->KeyName      = yn["key_name"]     ? yn["key_name"].as<std::string>() : "";
                 node->OpMode       = yn["op_mode"]      ? yn["op_mode"].as<int>()        : 0;
                 node->OutputTarget = yn["output_target"]? yn["output_target"].as<std::string>() : "";
+                node->CommIndex    = yn["comm_index"]   ? yn["comm_index"].as<int>()    : 0;
                 node->GlobalVarId  = yn["global_var_id"]? yn["global_var_id"].as<int>()  : -1;
+                node->ShortcutActionIndex = yn["shortcut_action"] ? yn["shortcut_action"].as<int>() : -1;
+                node->ShortcutSendIndex   = yn["shortcut_send_index"] ? yn["shortcut_send_index"].as<int>() : -1;
+                node->ShortcutSendMode    = yn["shortcut_send_mode"] ? yn["shortcut_send_mode"].as<int>() : 0;
 
                 // Load Param array (new format) or fall back to legacy fields
                 if (yn["param"] && yn["param"].IsSequence()) {
@@ -678,7 +816,8 @@ bool NodeGraph::LoadGraphData(const std::string& yamlStr)
                     GlobalVar gv;
                     gv.name  = g["name"].as<std::string>();
                     gv.value = g["value"] ? g["value"].as<float>() : 0.0f;
-                    gv.type  = g["type"]  ? (PinType)g["type"].as<int>() : PinType::Float;
+                    gv.type    = g["type"]    ? (PinType)g["type"].as<int>() : PinType::Float;
+                    gv.visible = g["visible"] ? g["visible"].as<bool>()    : false;
                     if (g["id"] && g["id"].as<int>() >= 0)
                         gv.id = g["id"].as<int>();
                     else
@@ -690,7 +829,14 @@ bool NodeGraph::LoadGraphData(const std::string& yamlStr)
 
         if (root["active_robot_mode"])   m_ActiveRobotModeName   = root["active_robot_mode"].as<std::string>();
         if (root["active_gamepad_mode"]) m_ActiveGamepadModeName = root["active_gamepad_mode"].as<std::string>();
-        if (root["comm_index"])          m_CommIndex             = root["comm_index"].as<int>();
+        // Load comm_refs (new format) or fall back to comm_index (old format)
+        if (root["comm_refs"] && root["comm_refs"].IsSequence()) {
+            m_CommRefs.clear();
+            for (auto r : root["comm_refs"]) m_CommRefs.push_back(r.as<int>());
+        } else if (root["comm_index"]) {
+            m_CommRefs.clear();
+            m_CommRefs.push_back(root["comm_index"].as<int>());
+        }
 
         m_Modified = false;
         return true;
@@ -718,7 +864,14 @@ std::string NodeGraph::GetGraphYaml() const
         out << YAML::Key << "key_name"      << YAML::Value << n.KeyName;
         out << YAML::Key << "op_mode"       << YAML::Value << n.OpMode;
         out << YAML::Key << "output_target" << YAML::Value << n.OutputTarget;
+        out << YAML::Key << "comm_index"    << YAML::Value << n.CommIndex;
         out << YAML::Key << "global_var_id" << YAML::Value << n.GlobalVarId;
+        if (n.ShortcutActionIndex >= 0)
+            out << YAML::Key << "shortcut_action" << YAML::Value << n.ShortcutActionIndex;
+        if (n.ShortcutSendIndex >= 0) {
+            out << YAML::Key << "shortcut_send_index" << YAML::Value << n.ShortcutSendIndex;
+            out << YAML::Key << "shortcut_send_mode"  << YAML::Value << n.ShortcutSendMode;
+        }
         out << YAML::Key << "param"         << YAML::Value << YAML::BeginSeq;
         for (int i = 0; i < 8; ++i) out << n.Param[i];
         out << YAML::EndSeq;
@@ -770,13 +923,17 @@ std::string NodeGraph::GetGraphYaml() const
         out << YAML::Key << "id"    << YAML::Value << gv.id;
         out << YAML::Key << "name"  << YAML::Value << gv.name;
         out << YAML::Key << "value" << YAML::Value << gv.value;
-        out << YAML::Key << "type"  << YAML::Value << (int)gv.type;
+        out << YAML::Key << "type"    << YAML::Value << (int)gv.type;
+        out << YAML::Key << "visible" << YAML::Value << gv.visible;
         out << YAML::EndMap;
     }
     out << YAML::EndSeq;
 
     out << YAML::Key << "active_robot_mode"   << YAML::Value << m_ActiveRobotModeName;
     out << YAML::Key << "active_gamepad_mode" << YAML::Value << m_ActiveGamepadModeName;
+    out << YAML::Key << "comm_refs" << YAML::Value << YAML::BeginSeq;
+    for (int ref : m_CommRefs) out << ref;
+    out << YAML::EndSeq;
 
     out << YAML::EndMap;
     return out.c_str();
@@ -821,7 +978,11 @@ bool NodeGraph::LoadGraphYaml(const std::string& yamlStr)
                 node->KeyName      = yn["key_name"]     ? yn["key_name"].as<std::string>() : "";
                 node->OpMode       = yn["op_mode"]      ? yn["op_mode"].as<int>()        : 0;
                 node->OutputTarget = yn["output_target"]? yn["output_target"].as<std::string>() : "";
+                node->CommIndex    = yn["comm_index"]   ? yn["comm_index"].as<int>()    : 0;
                 node->GlobalVarId  = yn["global_var_id"]? yn["global_var_id"].as<int>()  : -1;
+                node->ShortcutActionIndex = yn["shortcut_action"] ? yn["shortcut_action"].as<int>() : -1;
+                node->ShortcutSendIndex   = yn["shortcut_send_index"] ? yn["shortcut_send_index"].as<int>() : -1;
+                node->ShortcutSendMode    = yn["shortcut_send_mode"] ? yn["shortcut_send_mode"].as<int>() : 0;
 
                 // Load Param array (new format) or fall back to legacy fields
                 if (yn["param"] && yn["param"].IsSequence()) {
@@ -917,7 +1078,8 @@ bool NodeGraph::LoadGraphYaml(const std::string& yamlStr)
                     GlobalVar gv;
                     gv.name  = g["name"].as<std::string>();
                     gv.value = g["value"] ? g["value"].as<float>() : 0.0f;
-                    gv.type  = g["type"]  ? (PinType)g["type"].as<int>() : PinType::Float;
+                    gv.type    = g["type"]    ? (PinType)g["type"].as<int>() : PinType::Float;
+                    gv.visible = g["visible"] ? g["visible"].as<bool>()    : false;
                     if (g["id"] && g["id"].as<int>() >= 0)
                         gv.id = g["id"].as<int>();
                     else
@@ -932,6 +1094,13 @@ bool NodeGraph::LoadGraphYaml(const std::string& yamlStr)
             m_ActiveRobotModeName = root["active_robot_mode"].as<std::string>();
         if (root["active_gamepad_mode"])
             m_ActiveGamepadModeName = root["active_gamepad_mode"].as<std::string>();
+        if (root["comm_refs"] && root["comm_refs"].IsSequence()) {
+            m_CommRefs.clear();
+            for (auto r : root["comm_refs"]) m_CommRefs.push_back(r.as<int>());
+        } else if (root["comm_index"]) {
+            m_CommRefs.clear();
+            m_CommRefs.push_back(root["comm_index"].as<int>());
+        }
 
         m_Modified = false;
         return true;
@@ -1051,6 +1220,77 @@ void NodeGraph::DrawNodeContents(EditorNode& node,
             node.OutputTarget.clear();
             SetModified(true);
         }
+
+        ImGui::PopID();
+        return;
+    }
+
+    // Special: ShortcutTrigger (pick action via right sidebar, like Output)
+    if (node.Type == NodeType::ShortcutTrigger) {
+        ImGui::PushID((int)node.ID.Get());
+
+        // Input pin (Trigger)
+        for (size_t i = 0; i < node.Inputs.size(); ++i) {
+            auto& pin = node.Inputs[i];
+            ed::BeginPin(pin.ID, ed::PinKind::Input);
+            ::DrawPinIcon(pin, IsPinLinked(pin.ID), 255);
+            ImGui::SameLine(); ImGui::TextUnformatted(pin.Name.c_str());
+            ed::EndPin();
+            ImGui::SameLine(0, 6);
+            float v = (i < 4) ? node.InputValues[i] : 0.0f;
+            if (pin.Type == PinType::Bool) showBool(v);
+            else ImGui::TextDisabled("%.3f", v);
+        }
+
+        // Action selection button (like Output node)
+        std::string btnLabel = "(click to select)";
+        if (node.ShortcutSendIndex >= 0) {
+            if (m_CommMgr) {
+                auto& nodes = m_CommMgr->GetNodes();
+                int flatIdx = 0;
+                for (auto& nd : nodes) {
+                    for (auto& sc : nd.component.protocol_send) {
+                        if (flatIdx == node.ShortcutSendIndex) {
+                            btnLabel = std::string(node.ShortcutSendMode == 0 ? "[Toggle] " : "[OneShot] ") + sc.name;
+                            break;
+                        }
+                        ++flatIdx;
+                    }
+                }
+            }
+        } else if (node.ShortcutActionIndex >= 0) {
+            const char* lbl = ShortcutManager::GetActionLabel(node.ShortcutActionIndex);
+            if (lbl && lbl[0]) btnLabel = lbl;
+        }
+
+        bool isActive = (m_ActiveTriggerId == node.ID);
+        ImVec4 btnCol = isActive ? ImVec4(0.3f, 0.7f, 0.3f, 1.0f) : ImVec4(0.3f, 0.3f, 0.3f, 1.0f);
+        ImGui::PushStyleColor(ImGuiCol_Button, btnCol);
+        if (ImGui::Button(btnLabel.c_str(), ImVec2(155, 0))) {
+            m_ActiveTriggerId = (m_ActiveTriggerId == node.ID) ? ax::NodeEditor::NodeId(0) : node.ID;
+        }
+        ImGui::PopStyleColor();
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+            node.ShortcutActionIndex = -1;
+            node.ShortcutSendIndex = -1;
+            SetModified(true);
+        }
+
+        // Output pin
+        for (auto& pin : node.Outputs) {
+            ed::BeginPin(pin.ID, ed::PinKind::Output);
+            ::DrawPinIcon(pin, IsPinLinked(pin.ID), 255);
+            ImGui::SameLine(); ImGui::TextUnformatted("Value");
+            ed::EndPin();
+            ImGui::SameLine(0, 6);
+            DrawPinTypeSelector(&pin, onMod);
+            ImGui::SameLine(0, 8);
+            if (node.Value >= 0.5f)
+                ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "True");
+            else
+                ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.4f, 1.0f), "False");
+        }
+
         ImGui::PopID();
         return;
     }
@@ -1167,10 +1407,13 @@ static void DrawAddNodeCategoryMenus(std::function<void(NodeType)> addFn)
         NodeCategory cat = (NodeCategory)(catIdx);
         int cnt = GetCategoryNodeCount(cat);
         if (cnt == 0) continue;
-        // Skip KeySource/ConstValue/CustomOutput in categories
+        // Skip KeySource/ConstValue/CustomOutput/ShortcutTrigger in categories
         if (ImGui::BeginMenu(GetCategoryName(cat))) {
             for (int i = 0; i < cnt; ++i) {
                 NodeType nt = GetCategoryNodeType(cat, i);
+                if (nt == NodeType::KeySource || nt == NodeType::ConstValue ||
+                    nt == NodeType::CustomOutput || nt == NodeType::ShortcutTrigger)
+                    continue;
                 if (ImGui::MenuItem(GetNodeTitle(nt))) addFn(nt);
             }
             ImGui::EndMenu();
@@ -1181,43 +1424,15 @@ static void DrawAddNodeCategoryMenus(std::function<void(NodeType)> addFn)
     if (ImGui::MenuItem("Const Value")) addFn(NodeType::ConstValue);
     ImGui::Separator();
     if (ImGui::MenuItem("Output"))      addFn(NodeType::CustomOutput);
+    if (ImGui::MenuItem("Shortcut"))    addFn(NodeType::ShortcutTrigger);
 }
 
 // ============================================================================
-// DrawMenuBar — top menu bar (Add Node / Clear All / Reset View)
-// ============================================================================
-void NodeGraph::DrawMenuBar()
-{
-    if (ImGui::BeginMenuBar())
-    {
-        if (!m_IsRunning)
-        {
-            if (ImGui::BeginMenu("Add Node"))
-            {
-                DrawAddNodeCategoryMenus([this](NodeType nt) { AddNode(nt); });
-                ImGui::EndMenu();
-            }
-            if (ImGui::MenuItem("Clear All"))
-            {
-                Clear();
-                m_NavigateFrame = 1;
-            }
-        }
-        if (ImGui::MenuItem("Reset View"))  ed::NavigateToContent();
-        ImGui::EndMenuBar();
-    }
-}
-
-// ============================================================================
-// DrawKeyValuesSidebar — left sidebar showing input key values
+// DrawMenuBar — removed; Play/Stop moved inline, Add Node is right-click
 // ============================================================================
 void NodeGraph::DrawKeyValuesSidebar(float sideWidth, const std::set<std::string>& analogKeys)
 {
     std::map<std::string, float> snapshot = GetKeyValuesSnapshot();
-
-    ImGui::BeginChild("##KVSide", ImVec2(sideWidth, 0), true);
-    ImGui::TextUnformatted("Input Keys");
-    ImGui::Separator();
 
     // Build deduped key list
     std::set<std::string> keys;
@@ -1262,14 +1477,127 @@ void NodeGraph::DrawKeyValuesSidebar(float sideWidth, const std::set<std::string
             }
         }
     }
-
-    ImGui::EndChild();
 }
 
 // ============================================================================
-// DrawGlobalsSidebar — DEPRECATED, merged into DrawKeyValuesSidebar
+// DrawGlobalsSidebar — managed in RobotStatus panel "Graph Variables" section
 // ============================================================================
 void NodeGraph::DrawGlobalsSidebar(float) {}
+
+// ============================================================================
+// DrawCommRefsSidebar — manage which RobotComm items are referenced
+// ============================================================================
+void NodeGraph::DrawCommRefsSidebar(float sideWidth)
+{
+    if (!m_CommMgr || m_CommMgr->GetItemCount() <= 0) {
+        ImGui::TextDisabled("No comm configs");
+        return;
+    }
+
+    int commCount = m_CommMgr->GetItemCount();
+    (void)sideWidth;
+
+    // List all comm configs as selectable items (no dropdown)
+    for (int j = 0; j < commCount; ++j) {
+        ImGui::PushID(20000 + j);
+
+        // Check if this comm is already referenced
+        bool isActive = false;
+        for (int ref : m_CommRefs) {
+            if (ref == j) { isActive = true; break; }
+        }
+
+        if (ImGui::Selectable(m_CommMgr->GetItemNameBuf(j), isActive)) {
+            if (isActive) {
+                // Remove it
+                auto it = std::find(m_CommRefs.begin(), m_CommRefs.end(), j);
+                if (it != m_CommRefs.end()) m_CommRefs.erase(it);
+            } else {
+                // Add it
+                m_CommRefs.push_back(j);
+            }
+            SetModified(true);
+        }
+        if (isActive) ImGui::SetItemDefaultFocus();
+
+        ImGui::PopID();
+    }
+}
+
+// ============================================================================
+// DrawTriggerSidebar — 为 ShortcutTrigger 节点选择动作
+// ============================================================================
+void NodeGraph::DrawTriggerSidebar(float sideWidth)
+{
+    EditorNode* activeTrig = FindNode(m_ActiveTriggerId);
+    if (!activeTrig || activeTrig->Type != NodeType::ShortcutTrigger) {
+        m_ActiveTriggerId = ax::NodeEditor::NodeId(0);
+        ImGui::TextDisabled("(no ShortcutTrigger selected)");
+        return;
+    }
+
+    (void)sideWidth;
+
+    // ---- Panel actions ----
+    ImGui::TextColored(ImVec4(0.5f, 0.8f, 1.0f, 1.0f), "Panel");
+    if (m_ShortcutMgr) {
+        for (int i = 0; i < m_ShortcutMgr->GetActionCount(); ++i) {
+            const char* label = ShortcutManager::GetActionLabel(i);
+            if (!label || !label[0]) continue;
+            if (strncmp(label, "File ", 5) == 0) continue;
+            bool sel = (activeTrig->ShortcutSendIndex < 0 && activeTrig->ShortcutActionIndex == i);
+            if (ImGui::Selectable(label, sel)) {
+                activeTrig->ShortcutActionIndex = i;
+                activeTrig->ShortcutSendIndex = -1;
+                SetModified(true);
+            }
+            if (sel) ImGui::SetItemDefaultFocus();
+        }
+    }
+
+    // ---- Send frame actions (only from active comm refs) ----
+    if (m_CommMgr) {
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::TextColored(ImVec4(0.5f, 0.8f, 1.0f, 1.0f), "Send Frames (Toggle)");
+        auto& nodes = m_CommMgr->GetNodes();
+        int flatIdx = 0;
+        for (int ci : m_CommRefs) {
+            if (ci < 0 || ci >= (int)nodes.size()) continue;
+            for (auto& sc : nodes[ci].component.protocol_send) {
+                std::string label = std::string("T: ") + sc.name;
+                bool sel = (activeTrig->ShortcutSendIndex == flatIdx && activeTrig->ShortcutSendMode == 0);
+                if (ImGui::Selectable(label.c_str(), sel)) {
+                    activeTrig->ShortcutSendIndex = flatIdx;
+                    activeTrig->ShortcutSendMode = 0;
+                    activeTrig->ShortcutActionIndex = -1;
+                    SetModified(true);
+                }
+                if (sel) ImGui::SetItemDefaultFocus();
+                ++flatIdx;
+            }
+        }
+
+        ImGui::Spacing();
+        ImGui::TextColored(ImVec4(0.5f, 0.8f, 1.0f, 1.0f), "Send Frames (One-Shot)");
+        flatIdx = 0;
+        for (int ci : m_CommRefs) {
+            if (ci < 0 || ci >= (int)nodes.size()) continue;
+            for (auto& sc : nodes[ci].component.protocol_send) {
+                std::string label = std::string("1: ") + sc.name;
+                bool sel = (activeTrig->ShortcutSendIndex == flatIdx && activeTrig->ShortcutSendMode == 1);
+                if (ImGui::Selectable(label.c_str(), sel)) {
+                    activeTrig->ShortcutSendIndex = flatIdx;
+                    activeTrig->ShortcutSendMode = 1;
+                    activeTrig->ShortcutActionIndex = -1;
+                    SetModified(true);
+                }
+                if (sel) ImGui::SetItemDefaultFocus();
+                ++flatIdx;
+            }
+        }
+    }
+}
 
 // ============================================================================
 // Draw — full editor render (called from Manager)
@@ -1279,22 +1607,26 @@ void NodeGraph::Draw(ax::NodeEditor::EditorContext* editorCtx)
     if (m_IsRunning)
         EvaluateForDisplay(GetKeyValuesSnapshot());
 
-    // -------- Play/Stop toolbar (image button, outside ed::) --------
+    // -------- Canvas width (computed early for button centering) --------
+    float splitterW = 5.0f;
+    float totalAvail = ImGui::GetContentRegionAvail().x;
+    float canvasW = totalAvail - m_LeftSideWidth - m_RightSideWidth - splitterW * 2;
+    if (canvasW < 100.0f) canvasW = 100.0f;
+
+    // Play/Stop button — centered in canvas area only
     {
         if (!m_PlayIcon)  m_PlayIcon  = std::make_shared<Walnut::Image>(FileManager::GetExeDir() + "..\\..\\..\\asset\\picture\\PlayButton.png");
         if (!m_StopIcon)  m_StopIcon  = std::make_shared<Walnut::Image>(FileManager::GetExeDir() + "..\\..\\..\\asset\\picture\\StopButton.png");
 
         auto icon = m_IsRunning ? m_StopIcon : m_PlayIcon;
-        ImVec2 iconSize(32, 32);
+        ImVec2 iconSize(20, 20);
 
-        float avail = ImGui::GetContentRegionAvail().x;
-        float offset = (avail - iconSize.x) * 0.5f;
-        if (offset > 0) ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offset);
+        float btnCenterX = m_LeftSideWidth + splitterW + canvasW * 0.5f;
+        ImGui::SetCursorPosX(btnCenterX - iconSize.x * 0.5f);
 
         if (icon->GetDescriptorSet()) {
-            if (ImGui::ImageButton((ImTextureID)icon->GetDescriptorSet(), iconSize)) {
+            if (ImGui::ImageButton((ImTextureID)icon->GetDescriptorSet(), iconSize))
                 ToggleRunning();
-            }
         } else {
             const char* label = m_IsRunning ? " Stop " : " Play ";
             ImVec4 col = m_IsRunning ? ImVec4(0.7f, 0.15f, 0.15f, 1.0f) : ImVec4(0.15f, 0.6f, 0.15f, 1.0f);
@@ -1303,16 +1635,11 @@ void NodeGraph::Draw(ax::NodeEditor::EditorContext* editorCtx)
             if (ImGui::Button(label, ImVec2(iconSize.x * 2, 0))) ToggleRunning();
             ImGui::PopStyleColor(2);
         }
-
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip(m_IsRunning ? "Stop evaluation" : "Start evaluation");
-
-        ImGui::Separator();
     }
 
     ed::SetCurrentEditor(editorCtx);
-
-    DrawMenuBar();
 
     // -------- Pull data from managers --------
     std::vector<std::string> gamepadModeNames;
@@ -1347,64 +1674,48 @@ void NodeGraph::Draw(ax::NodeEditor::EditorContext* editorCtx)
                 }
             }
         }
-        if (m_RobotMgr) {
-            for (const auto& c : m_RobotMgr->GetComponents()) {
-                const auto& mode = c.component;
-                if (std::string(mode.name) == m_ActiveRobotModeName) {
-                    m_OutputTargets = BuildOutputTargetsFromProtocol(mode.protocol_send, mode.actuator_config);
-                    break;
+        // Build output targets from each RobotComm's protocol_send
+        m_OutputTargets.clear();
+        if (m_CommMgr) {
+            // Get actuator config for component display names (optional)
+            const ActuatorConfig* actuator = nullptr;
+            if (m_RobotMgr) {
+                for (auto& c : m_RobotMgr->GetComponents()) {
+                    if (std::string(c.name) == m_ActiveRobotModeName) {
+                        actuator = &c.actuator_config;
+                        break;
+                    }
+                }
+            }
+            for (int ci = 0; ci < (int)m_CommRefs.size(); ++ci) {
+                int realIdx = m_CommRefs[ci];
+                if (realIdx < 0 || realIdx >= m_CommMgr->GetItemCount()) continue;
+                auto commCfgs = m_CommMgr->GetAllItems();
+                if (realIdx >= (int)commCfgs.size()) continue;
+                std::string commName = std::string(commCfgs[realIdx].name) + " > ";
+                for (const auto& p : commCfgs[realIdx].protocol_send) {
+                    if (actuator) {
+                        auto targets = BuildOutputTargetsFromProtocol({p}, *actuator);
+                        for (auto& t : targets) {
+                            t.name = commName + t.name;
+                            t.comm_index = ci;
+                            m_OutputTargets.push_back(t);
+                        }
+                    } else {
+                        // No actuator match — use raw field names
+                        for (const auto& f : p.fields) {
+                            if (f.fix) continue;
+                            OutputTargetInfo t;
+                            t.name       = commName + (f.name.empty() ? f.field_path : f.name);
+                            t.field_path = f.field_path;
+                            t.encoding   = f.encoding;
+                            t.comm_index = ci;
+                            m_OutputTargets.push_back(t);
+                        }
+                    }
                 }
             }
         }
-    }
-
-    // -------- item selector --------
-    {
-        if (!gamepadModeNames.empty())
-        {
-            ImGui::TextUnformatted("Gamepad Mapper:");
-            ImGui::SameLine();
-            ImGui::SetNextItemWidth(140);
-            int selectedGamepadIdx = 0;
-            for (int i = 0; i < (int)gamepadModeNames.size(); ++i) {
-                if (gamepadModeNames[i] == m_ActiveGamepadModeName) { selectedGamepadIdx = i; break; }
-            }
-            if (ImGui::Combo("##GamepadCombo", &selectedGamepadIdx,
-                [](void* data, int idx, const char** out) {
-                    auto& vec = *(const std::vector<std::string>*)data;
-                    *out = vec[idx].c_str(); return true;
-                }, (void*)&gamepadModeNames, (int)gamepadModeNames.size()))
-            {
-                if (selectedGamepadIdx >= 0 && selectedGamepadIdx < (int)gamepadModeNames.size()) {
-                    SwitchGamepadMode(GetActiveRobotModeName(), gamepadModeNames[selectedGamepadIdx]);
-                }
-            }
-            ImGui::SameLine();
-        }
-
-        // ---- Comm Config 选择（来自 RobotCommManager）----
-        if (m_CommMgr && m_CommMgr->GetItemCount() > 0)
-        {
-            ImGui::TextUnformatted("Comm Config:");
-            ImGui::SameLine();
-            ImGui::SetNextItemWidth(140);
-            if (m_CommIndex >= m_CommMgr->GetItemCount())
-                m_CommIndex = 0;
-            const char* preview = m_CommMgr->GetItemNameBuf(m_CommIndex);
-            if (ImGui::BeginCombo("##CommConfigCombo", preview))
-            {
-                for (int i = 0; i < m_CommMgr->GetItemCount(); ++i)
-                {
-                    bool sel = (i == m_CommIndex);
-                    if (ImGui::Selectable(m_CommMgr->GetItemNameBuf(i), sel))
-                        m_CommIndex = i;
-                    if (sel) ImGui::SetItemDefaultFocus();
-                }
-                ImGui::EndCombo();
-            }
-        }
-
-        ImGui::Separator();
     }
 
     // -------- interaction state --------
@@ -1413,26 +1724,48 @@ void NodeGraph::Draw(ax::NodeEditor::EditorContext* editorCtx)
     static ed::PinId  contextPinId  = 0;
 
     // -------- Resizable three-panel layout --------
-    float splitterW = 5.0f;
-    float totalAvail = ImGui::GetContentRegionAvail().x;
-
-    float canvasW = totalAvail - m_LeftSideWidth - m_RightSideWidth - splitterW * 2;
+    // Recalculate canvasW in case layout changed
+    totalAvail = ImGui::GetContentRegionAvail().x;
+    canvasW = totalAvail - m_LeftSideWidth - m_RightSideWidth - splitterW * 2;
     if (canvasW < 100.0f) {
         canvasW = 100.0f;
         float excess = totalAvail - canvasW - splitterW * 2;
         float ratio = excess > 0 ? m_LeftSideWidth / (m_LeftSideWidth + m_RightSideWidth) : 0.5f;
         m_LeftSideWidth  = ratio * excess;
         m_RightSideWidth = (1.0f - ratio) * excess;
-        if (m_LeftSideWidth < 80.0f) m_LeftSideWidth = 80.0f;
+        if (m_LeftSideWidth < 200.0f) m_LeftSideWidth = 200.0f;
         if (m_RightSideWidth < 80.0f) m_RightSideWidth = 80.0f;
         canvasW = totalAvail - m_LeftSideWidth - m_RightSideWidth - splitterW * 2;
         if (canvasW < 100.0f) canvasW = 100.0f;
     }
 
-    // Left sidebar
-    DrawKeyValuesSidebar(m_LeftSideWidth, m_AnalogKeys);
+    // Left sidebar — gamepad + key values
+    ImGui::BeginChild("##LeftCol", ImVec2(m_LeftSideWidth, 0));
+    // Upper: Gamepad/Output mode selectors
+    if (!gamepadModeNames.empty()) {
+        ImGui::TextUnformatted("GamepadMapper");
+        ImGui::Separator();
+        float listH = ImGui::GetTextLineHeightWithSpacing() * (float)gamepadModeNames.size() + 8;
+        if (listH > 200.0f) listH = 200.0f;
+        ImGui::BeginChild("##GPPane", ImVec2(0, listH), true);
+        for (int i = 0; i < (int)gamepadModeNames.size(); ++i) {
+            bool sel = (gamepadModeNames[i] == m_ActiveGamepadModeName);
+            if (ImGui::Selectable(gamepadModeNames[i].c_str(), sel)) {
+                SwitchGamepadMode(GetActiveRobotModeName(), gamepadModeNames[i]);
+            }
+            if (sel) ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndChild();
+    }
+    // Lower: Key Values
+    ImGui::TextUnformatted("Input Keys");
+    ImGui::Separator();
+    ImGui::BeginChild("##KVPane", ImVec2(0, gamepadModeNames.empty() ? 0 : -30), true);
+    DrawKeyValuesSidebar(m_LeftSideWidth - 16, m_AnalogKeys);
+    ImGui::EndChild();
+    ImGui::EndChild(); // ##LeftCol
     ImGui::SameLine(0, 0);
-    ManualSplitter("##S1", &m_LeftSideWidth, 80.0f, splitterW);
+    ManualSplitter("##S1", &m_LeftSideWidth, 200.0f, splitterW);
     ImGui::SameLine(0, 0);
 
     // Navigate BEFORE ed::Begin so NavigateToContent processes on this frame.
@@ -1462,6 +1795,7 @@ void NodeGraph::Draw(ax::NodeEditor::EditorContext* editorCtx)
             if (totalPins >= 5) nodeWidth = 180.0f;
             else if (node.Type == NodeType::CustomOutput) nodeWidth = 190.0f;
             else if (node.Type == NodeType::KeySource) nodeWidth = 150.0f;
+            else if (node.Type == NodeType::ShortcutTrigger) nodeWidth = 200.0f;
             else if (totalPins <= 4) nodeWidth = 120.0f;
 
             ImGui::PushStyleColor(ImGuiCol_Text, (ImVec4)node.Color);
@@ -1661,22 +1995,42 @@ void NodeGraph::Draw(ax::NodeEditor::EditorContext* editorCtx)
         }
     }
 
-    // Right sidebar — draw output values (clickable targets)
+    // Right sidebar — comm refs + output values
     ImGui::SameLine(0, 0);
     ManualSplitter("##S2", &m_RightSideWidth, 80.0f, splitterW, true);
     ImGui::SameLine(0, 0);
-
     {
-        ImGui::BeginChild("##OVSide", ImVec2(m_RightSideWidth, 0), true);
+        ImGui::BeginChild("##RCol", ImVec2(m_RightSideWidth, 0));
+        // Upper: RobotComm
+        ImGui::TextUnformatted("RobotComm");
+        ImGui::SameLine(m_RightSideWidth - 50);
+        ImGui::TextDisabled("%d", (int)m_CommRefs.size());
+        ImGui::Separator();
+        ImGui::BeginChild("##CommPane", ImVec2(0, 140), true);
+        DrawCommRefsSidebar(m_RightSideWidth - 16);
+        ImGui::EndChild();
+        // Middle: Trigger Action (when ShortcutTrigger node is active)
+        ImGui::TextUnformatted("Trigger Action");
+        ImGui::Separator();
+        ImGui::BeginChild("##TrigPane", ImVec2(0, 150), true);
+        DrawTriggerSidebar(m_RightSideWidth - 16);
+        ImGui::EndChild();
+        // Lower: Output Targets
         ImGui::TextUnformatted("Output Values");
         ImGui::Separator();
+        ImGui::BeginChild("##OVSide", ImVec2(0, 0), true);
 
         EditorNode* activeOut = FindNode(m_ActiveOutputId);
         if (activeOut && activeOut->Type != NodeType::CustomOutput) activeOut = nullptr;
 
         if (m_OutputTargets.empty())
         {
-            ImGui::TextDisabled("(no targets)");
+            if (m_CommRefs.empty())
+                ImGui::TextDisabled("(no RobotComm added — click +Add Comm above)");
+            else if (!m_CommMgr)
+                ImGui::TextDisabled("(no comm manager)");
+            else
+                ImGui::TextDisabled("(RobotComm has no send frames with non-fix fields)");
         }
         else
         {
@@ -1708,6 +2062,7 @@ void NodeGraph::Draw(ax::NodeEditor::EditorContext* editorCtx)
                 {
                     if (activeOut) {
                         activeOut->OutputTarget = target.field_path;
+                        activeOut->CommIndex = target.comm_index;
                         SetModified(true);
                     }
                 }
@@ -1802,6 +2157,11 @@ void NodeGraph::Draw(ax::NodeEditor::EditorContext* editorCtx)
                 ImGui::PopStyleColor();
                 ImGui::SameLine();
 
+                // Visible checkbox
+                ImGui::Checkbox("##vis", &m_GlobalVars[i].visible);
+                if (ImGui::IsItemEdited()) SetModified(true);
+                ImGui::SameLine();
+
                 if (ImGui::Selectable(m_GlobalVars[i].name.c_str(), isSelected, ImGuiSelectableFlags_AllowDoubleClick)) {
                     if (isGR) {
                         activeGR->GlobalVarId = m_GlobalVars[i].id;
@@ -1842,7 +2202,8 @@ void NodeGraph::Draw(ax::NodeEditor::EditorContext* editorCtx)
         }
         if (renameIdx >= 0) m_RenamingGlobalIdx = renameIdx;
 
-        ImGui::EndChild();
+        ImGui::EndChild();  // ##OVSide
+    ImGui::EndChild();  // ##RCol
     }
 
     // Restore editor context so it doesn't leak into other windows.
@@ -1878,8 +2239,21 @@ void WriteOutputToActuator(const std::string& target, float val, ActuatorConfig&
     // --- brushlessmotor ---
     if (segs[0] == "brushlessmotor" && segs.size() >= 3) {
         const std::string& motorName = segs[1];
+        // Match logic mirrors GetActuatorField() in robot_api.h:
+        // try exact name, then "Motor_<id>" fallback, then numeric id extraction
+        int fallbackId = -1;
+        {
+            std::string digits;
+            for (int ci = (int)motorName.size() - 1; ci >= 0; --ci) {
+                if (std::isdigit((unsigned char)motorName[ci]))
+                    digits = motorName[ci] + digits;
+                else break;
+            }
+            if (!digits.empty()) fallbackId = std::stoi(digits);
+        }
         for (auto& motor : data.brushlessmotor) {
-            if (motor.name != motorName) continue;
+            std::string fb = std::string("Motor_") + std::to_string(motor.id);
+            if (motor.name != motorName && fb != motorName && motor.id != fallbackId) continue;
             if (segs[2] == "target_speed") { motor.target_speed = val; return; }
             if (segs[2] == "curve" && segs.size() == 4) {
                 if      (segs[3] == "np_mid") motor.curve.np_mid = val;
@@ -1900,8 +2274,20 @@ void WriteOutputToActuator(const std::string& target, float val, ActuatorConfig&
     // --- servo ---
     if (segs[0] == "servo" && segs.size() == 3) {
         const std::string& servoName = segs[1];
+        // Same fallback matching as brushlessmotor and GetActuatorField()
+        int fallbackId = -1;
+        {
+            std::string digits;
+            for (int ci = (int)servoName.size() - 1; ci >= 0; --ci) {
+                if (std::isdigit((unsigned char)servoName[ci]))
+                    digits = servoName[ci] + digits;
+                else break;
+            }
+            if (!digits.empty()) fallbackId = std::stoi(digits);
+        }
         for (auto& sv : data.servo) {
-            if (sv.name != servoName) continue;
+            std::string fb = std::string("Servo_") + std::to_string(sv.id);
+            if (sv.name != servoName && fb != servoName && sv.id != fallbackId) continue;
             if (segs[2] == "angle") { sv.angle = val; return; }
             return;
         }

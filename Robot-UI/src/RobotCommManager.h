@@ -48,6 +48,7 @@ public:
     // ---- 配置访问 ----
     RobotComm&              GetRobotComm()    { return m_RobotComm; }
     std::vector<RobotCommConfig> GetAllItems() const;
+    std::vector<RobotCommNode>&   GetNodes()   { return m_Nodes; }
     RobotCommNode*          GetSelectedNode();
 
     // ---- 批量配置加载（替换所有现有节点） ----

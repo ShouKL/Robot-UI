@@ -5,6 +5,7 @@ class GamepadMapperManager;
 class LiveStreamManager;
 class NodeGraphManager;
 class RobotComponentManager;
+class ShortcutManager;
 
 #include "Robot_API/robot_api.h"
 #include "Robot_API/hardware_interface.h"
@@ -20,10 +21,21 @@ class RobotComponentManager;
 #include <vector>
 
 // ============================================================================
+// ConnectionEntry — 单个机器人连接条目
+// ============================================================================
+struct ConnectionEntry
+{
+    std::shared_ptr<HardwareInterface> hw;
+    RobotCommConfig config;
+    bool isLinked = false;
+};
+
+// ============================================================================
 // RobotStatus — 运行时状态监控 + 连接控制
 // 持有 const RobotMode* 指针指向 RobotComponent 中的活跃模式（不持有拷贝）
-// 负责 Link/Unlink，收发数据
+// 支持多机器人广播：一个节点图 → 求值一次 → 发送到所有已连接的机器人
 // ============================================================================
+class RobotComponent;
 
 class RobotStatus
 {
@@ -32,19 +44,22 @@ public:
     ~RobotStatus();
 
     // ---- 活跃模式管理 ----
-
-    // ---- 活跃模式管理 ----
-    void               SetActiveMode(const RobotMode* item);
+    void               SetActiveMode(const RobotComponent& comp);
     void               SetActiveGamepad(GamepadMapper* gp);
     // 加载当前活跃模式的节点图（根据 gamepadModeName 查找 node_graph_pairs）
     void               LoadGraph(const std::string& gamepadModeName);
-    // 节点图求值：key values → ActuatorConfig（线程安全，可在 GamepadRoutine 中调用）
+    // ---- 节点图求值（线程安全） ----
+    // 兼容旧 API：求值写入单个 ActuatorConfig
     void               EvaluateIntoActuator(const std::map<std::string, float>& keyValues, ActuatorConfig& data);
+    // 新 API：按 CommIndex 分组求值到多个 ActuatorConfig
+    void               EvaluateIntoActuators(const std::map<std::string, float>& keyValues,
+                                             std::vector<ActuatorConfig>& dataVec,
+                                             std::set<int>* pWrittenIndices = nullptr);
     bool               HasGraphEvaluator()    const;
     bool               HasActiveMode()        const;
     const RobotMode*     GetActiveModePtr()   const;
     GamepadMapper*       GetActiveGamepadPtr() const;
-    const std::string    GetActiveModeName()  const;
+    std::string          GetActiveModeName()  const;
 
     // ---- 活跃模式配置快捷访问 ----
     const ActuatorConfig&        GetAppliedActuator()     const;
@@ -55,6 +70,11 @@ public:
     bool HasHumidity()     const;
     bool HasDepth()        const;
 
+    // ---- 快捷键：切换发送帧开关 ----
+    void ToggleSendFrame(int index);        // 翻转发送帧 enabled
+    void ToggleAllSendFrames();             // 全开/全关
+    void OneShotSendFrame(int index);       // 只发一帧（短暂启用后立即关闭）
+
     // ---- 运行时数据更新 ----
     void UpdateCommandData(std::shared_ptr<const ActuatorConfig> cmd);
     void UpdateSensorData(const SensorData& sensor, bool valid);
@@ -64,12 +84,15 @@ public:
     SensorData  GetCurrentSensor() const;
     bool        IsSensorValid()    const;
 
-    // ---- 连接控制（RobotStatus 独占） ----
-    bool Link(const RobotCommConfig& cfg);
-    void Unlink();
-    bool IsLinked() const { return m_IsLinked; }
+    // ---- 多连接（由 NodeGraph 的 CommRefs 决定，不手动管理）----
+    int  GetConnectionCount() const { return (int)m_Connections.size(); }
+    const ConnectionEntry* GetConnection(int index) const;
+    bool IsLinked() const;
+    bool LinkConnection(int index);
+    void UnlinkConnection(int index);
+    void UnlinkAll();
 
-    // ---- 数据收发（RobotStatus 独占） ----
+    // ---- 数据收发 ----
     void       SendActuatorData(const ActuatorConfig& data);
     SensorData GetSensorData();
 
@@ -91,8 +114,19 @@ public:
     int GetSendFreqHz() const;
     void DeriveActiveFromNodeGraph();
 
+    // ---- 向求值器注入回调（供 ShortcutTrigger 节点使用） ----
+    void SetEvaluatorSendActionCb(std::function<void(int,bool,bool)> cb);
+    void SetEvaluatorShortcutManager(ShortcutManager* sm);
+
+    // ---- 设置 Manager 引用（供 GamepadRoutine 独立同步图数据） ----
+    void SetNodeGraphManager(NodeGraphManager* mgr) { m_NodeGraphManager = mgr; }
+
+    // ---- 从编辑器图同步节点/连线/CommRefs 到内部求值器 ----
+    void SyncGraphFromEditor(NodeGraph* editor);
+
 private:
-    const RobotMode*                            m_ActiveMode    = nullptr;
+    RobotMode                                  m_ActiveMode;
+    bool                                       m_HasActiveMode = false;
     GamepadMapper*                              m_ActiveGamepad = nullptr;
     std::unique_ptr<NodeGraph>                  m_GraphEvaluator;
     std::string                                 m_LastSyncedYaml;  // skip re-sync if unchanged
@@ -103,22 +137,22 @@ private:
     // RobotStatus 自己的 Active 选择（不碰 Manager 的 Select）
     int m_ActiveLiveStreamIdx = 0;
     int m_ActiveNodeGraphIdx  = 0;
-    int m_ActiveCommIdx       = 0;
+    std::vector<int> m_ActiveCommIndices;  // 来自 NodeGraph comm_refs
+    bool m_DidFirstDerive = false;         // 首帧完成推导标志
 
 public:
     // 调试：供 RobotSettingPanel 保存/恢复 active 状态
     int  GetActiveLiveStreamIdx() const { return m_ActiveLiveStreamIdx; }
     int  GetActiveNodeGraphIdx()  const { return m_ActiveNodeGraphIdx; }
-    int  GetActiveCommIdx()       const { return m_ActiveCommIdx; }
+    const std::vector<int>& GetActiveCommIndices() const { return m_ActiveCommIndices; }
     void SetActiveLiveStreamIdx(int i) { m_ActiveLiveStreamIdx = i; }
     void SetActiveNodeGraphIdx(int i)  { m_ActiveNodeGraphIdx  = i; }
-    void SetActiveCommIdx(int i)       { m_ActiveCommIdx       = i; }
+    void SetActiveCommIndices(const std::vector<int>& v) { m_ActiveCommIndices = v; }
 
 private:
 
-    // 连接状态（RobotStatus 独占）
-    std::shared_ptr<RobotAPI>           m_RobotAPI;
-    bool                                m_IsLinked = false;
+    // 多连接池（RobotStatus 独占）—— 方案 B：一个节点图 → 广播到所有已连接机器人
+    std::vector<ConnectionEntry>        m_Connections;
 
     // 外部 Manager 引用（用于同步 active 选择到实际行为）
     NodeGraphManager*       m_NodeGraphManager        = nullptr;
@@ -129,8 +163,11 @@ private:
     // 标记：下次 DrawWindow 时需要同步 NodeGraph
     bool m_NeedsNodeGraphSync = true;  // 初始为 true，首次 Draw 时同步
 
-    // 跟踪上次同步协议配置的 item，切换时自动推送
-    const RobotMode* m_LastSyncedProtocolItem = nullptr;
+    // 跟踪上次同步协议配置的连接集合，切换时自动推送
+    std::string m_LastSyncedProtocolKey;
+
+    // 自动从 NodeGraph CommRefs 同步连接池
+    void SyncConnectionsFromGraph();
 
     // live sync：RobotSettingPanel 打开时，evaluator 实时跟随 Manager 选中图
     bool m_LiveSyncToManager = false;

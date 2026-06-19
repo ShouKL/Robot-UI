@@ -41,8 +41,10 @@ Robot_UI_Layer::Robot_UI_Layer()
         auto& items = compMgr.GetComponents();
         int idx = compMgr.GetSelectedIndex();
         if (idx >= 0 && idx < (int)items.size()) {
-            m_RobotStatus->SetActiveMode(&items[idx].component);
-            m_RobotStatus->LoadGraph(items[idx].component.gamepad_mapping_Mode);
+            m_RobotStatus->SetActiveMode(items[idx]);
+            auto* gpMapper = rsp->GetGamepadMapperManager().GetSelectedMapper();
+            if (gpMapper)
+                m_RobotStatus->LoadGraph(gpMapper->name);
         }
 
         auto* gpMapper = rsp->GetGamepadMapperManager().GetSelectedMapper();
@@ -56,6 +58,7 @@ Robot_UI_Layer::Robot_UI_Layer()
         rsp->GetNodeGraphManager().SetRobotComponentManager(&compMgr);
         rsp->GetNodeGraphManager().SetGamepadMapperManager(&gpMgr);
         rsp->GetNodeGraphManager().SetRobotCommManager(commMgr);
+        rsp->GetNodeGraphManager().SetShortcutManager(&m_ShortcutManager);
     }
 
     rsp->SetRobotStatus(m_RobotStatus.get());
@@ -70,6 +73,24 @@ Robot_UI_Layer::Robot_UI_Layer()
     m_GamepadThread = std::thread(&Robot_UI_Layer::GamepadRoutine, this);
     WL_INFO_TAG("APP", "Gamepad thread started");
 
+    // ---- 快捷键系统初始化（在加载文件之前设置默认值） ----
+    m_ShortcutManager.SetRobotStatus(m_RobotStatus.get());
+    m_ShortcutManager.SetRobotSettingPanel(m_RobotSettingPanel.get());
+    m_ShortcutManager.SetFileManager(m_FileManager.get());
+    m_ShortcutManager.SetFileCallbacks(
+        [this]() { FileOpen(); },
+        [this]() { FileSave(); },
+        [this]() { FileSaveAs(); });
+    m_ShortcutManager.InitPanelRefs(
+        &m_OptionOpen,
+        &m_RobotStatusOpen,
+        &m_RobotSettingOpen,
+        &m_TerminalOpen,
+        &m_MonitorWallOpen,
+        &m_ThrustCurveEditorOpen,
+        &m_AboutOpen);
+    m_OptionPanel->SetShortcutManager(&m_ShortcutManager);
+
     LoadKernelFile(m_FileManager->DeriveKernelPath());
 
     std::string robotPath;
@@ -80,6 +101,9 @@ Robot_UI_Layer::Robot_UI_Layer()
 
     WL_INFO_TAG("APP", "Loading component: {}", robotPath);
     LoadRobotFile(robotPath);
+
+    // 启动后强制断开所有连接（兜底保护）
+    if (m_RobotStatus) m_RobotStatus->UnlinkAll();
 
     WL_INFO_TAG("APP", "Robot UI initialized successfully");
 }
@@ -113,6 +137,7 @@ void Robot_UI_Layer::LoadRobotFile(const std::string& path)
     std::map<std::string, std::string> graphMap;
     std::vector<GraphItem> graphItems;
     std::string error;
+    std::string robotShortcutsYaml;
 
     if (!ConfigSerializer::Load(
             path,
@@ -138,9 +163,10 @@ void Robot_UI_Layer::LoadRobotFile(const std::string& path)
     m_FileManager->MarkRobotClean();
     m_FileManager->AddRecentFile(path);
 
-    if (m_RobotStatus) m_RobotStatus->Unlink();
+    if (m_RobotStatus) m_RobotStatus->UnlinkAll();
     if (liveStreamMgr && !streams.empty())
         liveStreamMgr->LoadItems(streams);
+
     auto* commMgr = m_RobotSettingPanel->GetRobotCommManager();
     if (commMgr && !commConfigs.empty())
         commMgr->LoadItems(commConfigs);
@@ -151,8 +177,10 @@ void Robot_UI_Layer::LoadRobotFile(const std::string& path)
         auto& items = compMgr.GetComponents();
         int idx = compMgr.GetSelectedIndex();
         if (idx >= 0 && idx < (int)items.size()) {
-            m_RobotStatus->SetActiveMode(&items[idx].component);
-            m_RobotStatus->LoadGraph(items[idx].component.gamepad_mapping_Mode);
+            m_RobotStatus->SetActiveMode(items[idx]);
+            auto* gpMapper2 = m_RobotSettingPanel->GetGamepadMapperManager().GetSelectedMapper();
+            if (gpMapper2)
+                m_RobotStatus->LoadGraph(gpMapper2->name);
         }
         auto* gpMapper = m_RobotSettingPanel->GetGamepadMapperManager().GetSelectedMapper();
         if (gpMapper)
@@ -169,8 +197,10 @@ void Robot_UI_Layer::LoadRobotFile(const std::string& path)
         auto& compMgr = m_RobotSettingPanel->GetRobotComponentManager();
         auto& items = compMgr.GetComponents();
         int idx = compMgr.GetSelectedIndex();
-        std::string robotModeName = (idx >= 0 && idx < (int)items.size()) ? std::string(items[idx].component.name) : "";
-        std::string gamepadModeName = (idx >= 0 && idx < (int)items.size()) ? items[idx].component.gamepad_mapping_Mode : "";
+        std::string robotModeName = (idx >= 0 && idx < (int)items.size()) ? std::string(items[idx].name) : "";
+        std::string gamepadModeName;
+        auto* gm = m_RobotSettingPanel->GetGamepadMapperManager().GetSelectedMapper();
+        if (gm) gamepadModeName = gm->name;
 
         m_RobotSettingPanel->GetNodeGraph()->SetGraphMap(graphMap);
         m_RobotSettingPanel->GetNodeGraph()->SetCurrentModePair(robotModeName, gamepadModeName);
@@ -248,6 +278,9 @@ void Robot_UI_Layer::LoadKernelFile(const std::string& path)
 
     m_FileManager->MarkKernelClean();
     ApplyUIState(uiState);
+    // 恢复软件 UI 快捷键绑定
+    if (!uiState.software_shortcuts_yaml.empty())
+        m_ShortcutManager.LoadSoftwareBindingsFromYaml(uiState.software_shortcuts_yaml);
     WL_INFO_TAG("APP", "Kernel loaded: {}", path);
 }
 
@@ -279,6 +312,9 @@ void Robot_UI_Layer::SaveKernelFile(const std::string& path)
     uiState.recent_files.clear();
     for (const auto& f : m_FileManager->GetRecentFiles())
         uiState.recent_files.push_back(FileManager::ToRelativePath(f));
+
+    // 软件 UI 快捷键绑定
+    uiState.software_shortcuts_yaml = m_ShortcutManager.GetSoftwareBindingsYaml();
 
     std::string error;
     if (!ConfigSerializer::SaveKernel(path, m_OptionPanel->GetImGuiStyleManager(), uiState, &error))
@@ -364,32 +400,41 @@ void Robot_UI_Layer::GamepadRoutine()
 
         if (m_RobotStatus && m_RobotStatus->IsLinked())
         {
-            ActuatorConfig data;
-
-            if (m_RobotStatus) {
-                data = m_RobotStatus->GetAppliedActuator();
-            }
-
             auto* gpMapper = m_RobotStatus ? m_RobotStatus->GetActiveGamepadPtr() : nullptr;
-            if (gpMapper) {
-                if (m_RobotStatus && m_RobotStatus->HasGraphEvaluator()) {
-                    std::map<std::string, float> keyValues;
-                    auto boundKeys = gpMapper->GetActiveModeBoundKeyNames();
-                    for (const auto& keyName : boundKeys) {
-                        keyValues[keyName] = gpMapper->GetKeyValue(keyName);
-                    }
+            if (gpMapper && m_RobotStatus->HasGraphEvaluator()) {
+                std::map<std::string, float> keyValues;
+                auto boundKeys = gpMapper->GetActiveModeBoundKeyNames();
+                for (const auto& keyName : boundKeys) {
+                    keyValues[keyName] = gpMapper->GetKeyValue(keyName);
+                }
 
-                    m_RobotStatus->EvaluateIntoActuator(keyValues, data);
+                std::vector<ActuatorConfig> dataVec;
+                int connCount = m_RobotStatus->GetConnectionCount();
+                ActuatorConfig baseCfg = m_RobotStatus->GetAppliedActuator();
+                dataVec.assign(connCount, baseCfg);
+                std::set<int> writtenIndices;
+                m_RobotStatus->EvaluateIntoActuators(keyValues, dataVec, &writtenIndices);
+
+                for (int i = 0; i < connCount; ++i) {
+                    auto* conn = m_RobotStatus->GetConnection(i);
+                    if (!conn || !conn->isLinked) continue;
+                    // 只发送有节点图输出对应的连接槽
+                    if (!writtenIndices.empty() && writtenIndices.count(i) == 0)
+                        continue;
+                    ActuatorConfig& data = (i < (int)dataVec.size()) ? dataVec[i] : dataVec[0];
+                    conn->hw->SendActuatorData(data);
+                    if (!conn->hw->IsConnected()) {
+                        WL_ERROR_TAG("GAMEPAD", "Connection lost: {} ({})", conn->config.name, conn->config.host_ip);
+                    }
+                }
+
+                // 更新 UI 显示（用第一台机器人的数据）
+                if (!dataVec.empty()) {
+                    auto cmdPtr = std::make_shared<const ActuatorConfig>(dataVec[0]);
+                    m_CurrentCommand.store(cmdPtr, std::memory_order_release);
+                    m_RobotStatus->UpdateCommandData(cmdPtr);
                 }
             }
-
-            auto cmdPtr = std::make_shared<const ActuatorConfig>(data);
-            m_CurrentCommand.store(cmdPtr, std::memory_order_release);
-
-            if (m_RobotStatus)
-                m_RobotStatus->UpdateCommandData(cmdPtr);
-
-            m_RobotStatus->SendActuatorData(data);
         }
         int freqHz = m_RobotStatus ? m_RobotStatus->GetSendFreqHz() : 100;
         if (freqHz < 1) freqHz = 1;
@@ -398,8 +443,26 @@ void Robot_UI_Layer::GamepadRoutine()
     WL_INFO_TAG("GAMEPAD", "Gamepad routine stopped");
 }
 
+// ==================== 快捷键处理（委托给 ShortcutManager） ====================
+
+// 快捷键系统已提取到 ShortcutManager.h / .cpp
+// m_ShortcutManager 在构造函数中注入依赖
+
 void Robot_UI_Layer::OnUIRender()
 {
+    m_ShortcutManager.Process();
+
+    // 每帧将 SendAction 回调注入编辑器图，供 ShortcutTrigger 节点使用
+    if (m_RobotSettingPanel && m_RobotStatus) {
+        auto& mgr = m_RobotSettingPanel->GetNodeGraphManager();
+        mgr.SetSendActionCb([this](int flatIdx, bool toggle, bool oneShot) {
+            if (oneShot) m_RobotStatus->OneShotSendFrame(flatIdx);
+            else        m_RobotStatus->ToggleSendFrame(flatIdx);
+        });
+        mgr.SetShortcutManager(&m_ShortcutManager);
+        m_RobotStatus->SetNodeGraphManager(&mgr);
+    }
+
     auto* liveStreamMgr = m_RobotSettingPanel->GetLiveStreamManager();
 
     if (m_RobotSettingPanel) {
@@ -632,11 +695,15 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
                     }
                     ImGui::EndMenu();
                 }
-                if (ImGui::MenuItem("Save"))
+                if (ImGui::MenuItem("Open File", "Ctrl+O"))
+                {
+                    uiLayer->FileOpen();
+                }
+                if (ImGui::MenuItem("Save", "Ctrl+S"))
                 {
                     uiLayer->FileSave();
                 }
-                if (ImGui::MenuItem("Save As"))
+                if (ImGui::MenuItem("Save As", "Ctrl+Shift+S"))
                 {
                     uiLayer->FileSaveAs();
                 }
@@ -650,7 +717,7 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 
             if (ImGui::BeginMenu("Edit"))
             {
-                if (ImGui::MenuItem("Robot Setting"))
+                if (ImGui::MenuItem("Robot Setting", "Ctrl+E"))
                 {
                     uiLayer->ShowRobotSetting();
                 }
@@ -659,20 +726,20 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 
             if (ImGui::BeginMenu("View"))
             {
-                ImGui::MenuItem("Robot Status", nullptr, &uiLayer->GetShowRobotStatus());
-                ImGui::MenuItem("Monitor Wall", nullptr, &uiLayer->GetShowMonitorWall());
-                ImGui::MenuItem("Terminal", nullptr, &uiLayer->GetShowTerminal());
+                ImGui::MenuItem("Robot Status", "Ctrl+Shift+P", &uiLayer->GetShowRobotStatus());
+                ImGui::MenuItem("Monitor Wall", "Ctrl+M", &uiLayer->GetShowMonitorWall());
+                ImGui::MenuItem("Terminal", "Ctrl+T", &uiLayer->GetShowTerminal());
                 
                 ImGui::EndMenu();
             }
 
             if (ImGui::BeginMenu("Tool"))
             {
-                if (ImGui::MenuItem("Thrust Curve Editor"))
+                if (ImGui::MenuItem("Thrust Curve Editor", "Ctrl+U"))
                 {
                     uiLayer->ShowThrustCurveEditor();
                 }
-                if (ImGui::MenuItem("Option"))
+                if (ImGui::MenuItem("Option", "Ctrl+Shift+O"))
                 {
                     uiLayer->ShowOption();
                 }
@@ -681,7 +748,7 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 
             if (ImGui::BeginMenu("Help"))
             {
-                if (ImGui::MenuItem("About"))
+                if (ImGui::MenuItem("About", "Ctrl+Shift+A"))
                 {
                     uiLayer->ShowAbout();
                 }

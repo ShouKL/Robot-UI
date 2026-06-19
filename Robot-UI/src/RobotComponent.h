@@ -12,17 +12,11 @@ class RobotComponent
 public:
     int  id = 0;
     bool isSelected = false;
-    RobotMode component;
+
+    // ---- Direct fields ----
+    char             name[64] = "";
+    ActuatorConfig   actuator_config;
+    SensorConfig     sensor_config;
 
     void DrawConfigPanel();
-};
-
-// ============================================================================
-// RobotNode — 纯数据（不含行为），用于序列化/传递
-// ============================================================================
-struct RobotNode
-{
-    int        id         = 0;
-    bool       isSelected = false;
-    RobotMode  component;
 };

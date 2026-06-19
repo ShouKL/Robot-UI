@@ -10,7 +10,7 @@ RobotSettingPanel::RobotSettingPanel()
     m_RobotComponentManager = std::make_unique<RobotComponentManager>();
     m_GamepadMapperManager  = std::make_unique<GamepadMapperManager>();
     m_NodeGraphManager      = std::make_unique<NodeGraphManager>();
-    m_LiveStreamManager  = std::make_unique<LiveStreamManager>();
+    m_LiveStreamManager     = std::make_unique<LiveStreamManager>();
     m_RobotCommManager   = std::make_unique<RobotCommManager>();
     WL_INFO_TAG("APP", "RobotSettingPanel created");
 }
@@ -248,7 +248,7 @@ void RobotSettingPanel::SyncActiveItems(int tabId)
         {
             auto* comp = m_RobotComponentManager->GetSelectedComponent();
             if (comp)
-                m_RobotStatus->SetActiveMode(&comp->component);
+                m_RobotStatus->SetActiveMode(*comp);
         }
         break;
 
@@ -257,14 +257,6 @@ void RobotSettingPanel::SyncActiveItems(int tabId)
             auto* gm = m_GamepadMapperManager->GetSelectedMapper();
             if (gm) {
                 m_RobotStatus->SetActiveGamepad(gm);
-                // 跨组件：RobotComponent Active = gamepad_mapping_Mode 匹配项
-                auto& comps = m_RobotComponentManager->GetComponents();
-                for (auto& c : comps) {
-                    if (std::strcmp(c.component.gamepad_mapping_Mode.c_str(), gm->name) == 0) {
-                        m_RobotStatus->SetActiveMode(&c.component);
-                        break;
-                    }
-                }
             }
         }
         break;
@@ -291,13 +283,17 @@ void RobotSettingPanel::SyncActiveItems(int tabId)
         {
             for (int i = 0; i < m_RobotCommManager->GetItemCount(); ++i)
                 if (m_RobotCommManager->IsItemSelected(i)) {
-                    m_RobotStatus->SetActiveCommIdx(i);
+                    m_RobotStatus->SetActiveCommIndices({i});
                     break;
                 }
-            // 跨组件：RobotComponent Active = RobotComm 界面选择的 Component
-            auto* comp = m_RobotComponentManager->GetSelectedComponent();
-            if (comp)
-                m_RobotStatus->SetActiveMode(&comp->component);
+            // 跨组件：RobotComponent Active = 当前选中 comm 节点自己存的 component 选择
+            auto* node = m_RobotCommManager->GetSelectedNode();
+            if (node) {
+                auto& comps = m_RobotComponentManager->GetComponents();
+                int compIdx = node->component.active_component_idx;
+                if (compIdx >= 0 && compIdx < (int)comps.size())
+                    m_RobotStatus->SetActiveMode(comps[compIdx]);
+            }
         }
         break;
     }

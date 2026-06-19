@@ -125,6 +125,7 @@ struct SendField {
     bool visible = true;
     bool fix = false;
     double fix_value = 0.0;   // fix=true 时使用此固定值，不从 ActuatorConfig 读取
+    std::vector<uint8_t> raw_data;  // 非空时：直接输出原始字节，忽略 field_path / fix / encoding
 };
 
 struct ReceiveField {
@@ -138,7 +139,7 @@ struct ReceiveField {
 
 struct ProtocolReceiveConfig {
     char    name[32] = "Receive";  // 帧名称（用户自定义）
-    uint8_t command_byte = 0x00;   // 帧类型字节：与发送端对应，用于匹配帧类型
+    std::vector<uint8_t> command_bytes;  // 帧类型字节(支持多字节)：与发送端对应，用于匹配帧类型
     std::vector<uint8_t> header;
     std::vector<uint8_t> tail;
     ChecksumType checksum = ChecksumType::Sum8;
@@ -149,7 +150,7 @@ struct ProtocolReceiveConfig {
 
 struct ProtocolSendConfig {
     char    name[32] = "Send";     // 帧名称（用户自定义）
-    uint8_t command_byte = 0x00;   // 帧类型字节：标识帧类型，接收端用于区分不同数据帧
+    std::vector<uint8_t> command_bytes;  // 帧类型字节(支持多字节)：标识帧类型，接收端用于区分不同数据帧
     bool    enabled = true;        // 是否发送此帧（RobotStatus 可控制）
     std::vector<uint8_t> header;
     std::vector<uint8_t> tail;
@@ -526,9 +527,21 @@ inline std::vector<uint8_t> BuildPayload(const ActuatorConfig& data, const std::
     };
 
     for (const auto& f : fields) {
+        // 原始数据模式：直接输出固定字节
+        if (!f.raw_data.empty()) {
+            payload.insert(payload.end(), f.raw_data.begin(), f.raw_data.end());
+            continue;
+        }
+
         double val;
-        
-        if (!GetActuatorField(data, f.field_path, val)) continue;
+        // fix 模式：从 ActuatorConfig 取 Component 的初始值，节点图不改它
+        // fix_value 仅在 GetActuatorField 失败时作为兜底
+        if (f.fix) {
+            if (!GetActuatorField(data, f.field_path, val))
+                val = f.fix_value;
+        } else {
+            if (!GetActuatorField(data, f.field_path, val)) continue;
+        }
 
         switch (f.encoding) {
         case DataEncoding::Float32: {
@@ -621,7 +634,7 @@ inline uint16_t ComputeChecksum(ChecksumType type, const uint8_t* data, size_t l
 }
 
 /// 根据 ProtocolSendConfig 将 ActuatorConfig 序列化为完整帧
-/// 帧结构: [Header] [Command Byte] [Optional: Length LE] [Payload] [Optional: Checksum] [Tail]
+/// 帧结构: [Header] [Command Bytes] [Optional: Length LE] [Payload] [Optional: Checksum] [Tail]
 inline std::vector<uint8_t> BuildFrame(const ActuatorConfig& data, const ProtocolSendConfig& cfg) {
     std::vector<uint8_t> payload = BuildPayload(data, cfg.fields, cfg.big_endian);
 
@@ -630,8 +643,8 @@ inline std::vector<uint8_t> BuildFrame(const ActuatorConfig& data, const Protoco
     // 帧头
     frame.insert(frame.end(), cfg.header.begin(), cfg.header.end());
 
-    // 命令位（1 字节）
-    frame.push_back(cfg.command_byte);
+    // 命令位（支持多字节）
+    frame.insert(frame.end(), cfg.command_bytes.begin(), cfg.command_bytes.end());
 
     // 长度字段（2 字节小端）
     if (cfg.include_length) {
@@ -768,7 +781,8 @@ inline SensorData ParseSensorFrame(const std::vector<uint8_t>& raw_data, const P
     }
 
     // === 带帧协议模式 ===
-    size_t minSize = cfg.header.size() + (cfg.include_length ? 2 : 0) + 1; // header + len + command_byte
+    size_t cmdSize = cfg.command_bytes.size();
+    size_t minSize = cfg.header.size() + (cfg.include_length ? 2 : 0) + cmdSize; // header + len + command_bytes
     if (raw_data.size() < minSize) return data;
 
     // 检查帧头
@@ -781,16 +795,19 @@ inline SensorData ParseSensorFrame(const std::vector<uint8_t>& raw_data, const P
         payloadLen = static_cast<uint16_t>(raw_data[offset]) | static_cast<uint16_t>(static_cast<unsigned>(raw_data[offset + 1]) << 8);
         offset += 2;
     } else {
-        payloadLen = static_cast<uint16_t>(raw_data.size() - offset - csBytes - cfg.tail.size() - 1); // -1 = command_byte
+        payloadLen = static_cast<uint16_t>(raw_data.size() - offset - csBytes - cfg.tail.size() - cmdSize);
     }
 
     // 检查总长度
-    size_t totalNeeded = offset + 1 + payloadLen + csBytes + cfg.tail.size(); // +1 = command_byte
+    size_t totalNeeded = offset + cmdSize + payloadLen + csBytes + cfg.tail.size();
     if (raw_data.size() != totalNeeded) return data;
 
-    // 验证 command_byte
-    uint8_t cmdByte = raw_data[offset++];
-    if (cmdByte != cfg.command_byte) return data;
+    // 验证 command_bytes（支持多字节）
+    if (cmdSize > 0) {
+        for (size_t i = 0; i < cmdSize; ++i)
+            if (raw_data[offset + i] != cfg.command_bytes[i]) return data;
+        offset += cmdSize;
+    }
 
     // 校验（对帧头之后、帧尾之前的所有数据计算：可选length + cmd_byte + payload）
     if (cfg.checksum != ChecksumType::None) {

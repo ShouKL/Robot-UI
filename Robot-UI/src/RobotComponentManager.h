@@ -26,7 +26,7 @@ public:
 
     int    GetItemCount() const override { return (int)m_Components.size(); }
     int    GetItemId(int index) const override { return m_Components[index].id; }
-    char*  GetItemNameBuf(int index) override { return m_Components[index].component.name; }
+    char*  GetItemNameBuf(int index) override { return m_Components[index].name; }
     int    GetSelectedIndex() const override { return m_SelectedIndex; }
     void   SelectItem(int index) override { SetSelectedIndex(index); }
 

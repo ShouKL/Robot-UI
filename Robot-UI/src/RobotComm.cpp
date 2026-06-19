@@ -12,8 +12,8 @@ static void HexEdit(const char* label, std::vector<uint8_t>& bytes) {
     char buf[256] = {};
     strncpy(buf, hexStr.c_str(), sizeof(buf) - 1);
     ImGui::PushItemWidth(-1);
-    if (ImGui::InputText(label, buf, sizeof(buf))) {
-        bytes.clear();
+    if (ImGui::InputText(label, buf, sizeof(buf), ImGuiInputTextFlags_EnterReturnsTrue)) {
+        std::vector<uint8_t> newBytes;
         std::string s(buf);
         size_t pos = 0;
         while (pos < s.size()) {
@@ -21,195 +21,12 @@ static void HexEdit(const char* label, std::vector<uint8_t>& bytes) {
             if (pos >= s.size()) break;
             char* end = nullptr;
             unsigned long val = strtoul(s.c_str() + pos, &end, 16);
-            if (val <= 0xFF) bytes.push_back((uint8_t)val);
+            if (val <= 0xFF) newBytes.push_back((uint8_t)val);
             pos = end - s.c_str();
         }
+        if (newBytes != bytes) bytes = std::move(newBytes);
     }
     ImGui::PopItemWidth();
-}
-
-// ==================== 主窗口 ====================
-void RobotComm::DrawWindow(std::vector<ProtocolSendConfig>& sendCfgs, std::vector<ProtocolReceiveConfig>& recvCfgs,
-                                ActuatorConfig& actuator, const SensorConfig& sensor) {
-    if (!m_Open) return;
-
-    ImGui::SetNextWindowSize(ImVec2(700, 500), ImGuiCond_FirstUseEver);
-    if (!ImGui::Begin("Protocol Field Configuration", &m_Open)) {
-        ImGui::End();
-        return;
-    }
-
-    if (ImGui::BeginTabBar("ProtoTabs")) {
-        if (ImGui::BeginTabItem("Send Frames")) {
-            m_TabIndex = 0;
-            ImGui::Text("Send Frames (%zu):", sendCfgs.size());
-            ImGui::SameLine();
-            if (ImGui::Button("+ Add Frame")) {
-                ProtocolSendConfig newCfg;
-                newCfg.command_byte = (uint8_t)sendCfgs.size();
-                sendCfgs.push_back(newCfg);
-            }
-
-            if (ImGui::BeginChild("SendFramesListWin", ImVec2(0, 100), true)) {
-                int delIdx = -1;
-                for (int i = 0; i < (int)sendCfgs.size(); ++i) {
-                    auto& sendCfg = sendCfgs[i];
-                    ImGui::PushID(i);
-                    if (m_EditingSendName == i) {
-                        ImGui::SetNextItemWidth(-1);
-                        if (ImGui::InputText("##sendRename", sendCfg.name, sizeof(sendCfg.name),
-                                ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll))
-                            m_EditingSendName = -1;
-                        if (ImGui::IsItemDeactivatedAfterEdit())
-                            m_EditingSendName = -1;
-                    } else {
-                        char label[64];
-                        snprintf(label, sizeof(label), "%s  [0x%02X] %zu fields", sendCfg.name, sendCfg.command_byte, sendCfg.fields.size());
-                        if (ImGui::Selectable(label, m_ActiveSendCfgIdx == i)) {
-                            m_ActiveSendCfgIdx = i;
-                            if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-                                m_EditingSendName = i;
-                        }
-                        if (ImGui::BeginPopupContextItem()) {
-                            if (ImGui::MenuItem("Rename")) m_EditingSendName = i;
-                            if (ImGui::MenuItem("Delete Frame")) delIdx = i;
-                            ImGui::EndPopup();
-                        }
-                    }
-                    ImGui::PopID();
-                }
-                if (delIdx >= 0 && delIdx < (int)sendCfgs.size()) {
-                    sendCfgs.erase(sendCfgs.begin() + delIdx);
-                    if (m_ActiveSendCfgIdx >= (int)sendCfgs.size())
-                        m_ActiveSendCfgIdx = std::max(0, (int)sendCfgs.size() - 1);
-                }
-            }
-            ImGui::EndChild();
-
-            ImGui::Separator();
-            if (m_ActiveSendCfgIdx >= 0 && m_ActiveSendCfgIdx < (int)sendCfgs.size()) {
-                DrawSendFieldConfig(sendCfgs[m_ActiveSendCfgIdx], actuator);
-            } else {
-                ImGui::TextDisabled("No send frame selected.");
-            }
-            ImGui::EndTabItem();
-        }
-        if (ImGui::BeginTabItem("Receive Frames")) {
-            m_TabIndex = 1;
-            ImGui::Text("Receive Frames (%zu):", recvCfgs.size());
-            ImGui::SameLine();
-            if (ImGui::Button("+ Add Frame##W")) {
-                ProtocolReceiveConfig newCfg;
-                newCfg.command_byte = (uint8_t)recvCfgs.size();
-                recvCfgs.push_back(newCfg);
-            }
-
-            if (ImGui::BeginChild("RecvFramesListWin", ImVec2(0, 100), true)) {
-                int delIdx = -1;
-                for (int i = 0; i < (int)recvCfgs.size(); ++i) {
-                    auto& rc = recvCfgs[i];
-                    ImGui::PushID(i + 1000);
-                    if (m_EditingRecvName == i) {
-                        ImGui::SetNextItemWidth(-1);
-                        if (ImGui::InputText("##recvRename", rc.name, sizeof(rc.name),
-                                ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll))
-                            m_EditingRecvName = -1;
-                        if (ImGui::IsItemDeactivatedAfterEdit())
-                            m_EditingRecvName = -1;
-                    } else {
-                        char label[64];
-                        snprintf(label, sizeof(label), "%s  [0x%02X] %zu fields", rc.name, rc.command_byte, rc.fields.size());
-                        if (ImGui::Selectable(label, m_ActiveRecvCfgIdx == i)) {
-                            m_ActiveRecvCfgIdx = i;
-                            if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-                                m_EditingRecvName = i;
-                        }
-                        if (ImGui::BeginPopupContextItem()) {
-                            if (ImGui::MenuItem("Rename")) m_EditingRecvName = i;
-                            if (ImGui::MenuItem("Delete Frame")) delIdx = i;
-                            ImGui::EndPopup();
-                        }
-                    }
-                    ImGui::PopID();
-                }
-                if (delIdx >= 0 && delIdx < (int)recvCfgs.size()) {
-                    recvCfgs.erase(recvCfgs.begin() + delIdx);
-                    if (m_ActiveRecvCfgIdx >= (int)recvCfgs.size())
-                        m_ActiveRecvCfgIdx = std::max(0, (int)recvCfgs.size() - 1);
-                }
-            }
-            ImGui::EndChild();
-
-            ImGui::Separator();
-            if (m_ActiveRecvCfgIdx >= 0 && m_ActiveRecvCfgIdx < (int)recvCfgs.size()) {
-                ImGui::Text("Editing: %s", recvCfgs[m_ActiveRecvCfgIdx].name);
-                DrawReceiveFieldConfig(recvCfgs[m_ActiveRecvCfgIdx], sensor);
-            } else {
-                ImGui::TextDisabled("No receive frame selected.");
-            }
-            ImGui::EndTabItem();
-        }
-        ImGui::EndTabBar();
-    }
-
-    // 帧预览
-    ImGui::Spacing();
-    ImGui::Separator();
-    if (m_TabIndex == 0) {
-        if (ImGui::CollapsingHeader("Send Frame Preview", ImGuiTreeNodeFlags_DefaultOpen)) {
-            if (sendCfgs.empty()) {
-                ImGui::TextDisabled("No send frames configured.");
-            } else {
-                for (size_t fi = 0; fi < sendCfgs.size(); ++fi) {
-                    const ProtocolSendConfig& sendCfg = sendCfgs[fi];
-                    auto preview = BuildFrame(actuator, sendCfg);
-                    std::string hexPreview;
-                    for (size_t i = 0; i < preview.size(); ++i) {
-                        char b[8];
-                        snprintf(b, sizeof(b), i ? " %02X" : "%02X", preview[i]);
-                        hexPreview += b;
-                    }
-                    ImGui::TextColored(ImVec4(1, 1, 0, 1), "%s  [0x%02X] (%zu bytes):", sendCfg.name, sendCfg.command_byte, preview.size());
-                    ImGui::TextWrapped("%s", hexPreview.c_str());
-                    for (const auto& f : sendCfg.fields) {
-                        double val = 0;
-                        if (GetActuatorField(actuator, f.field_path, val)) {
-                            ImGui::Text("  %s (%s) = %.3f", f.name.c_str(), f.field_path.c_str(), val);
-                        } else {
-                            ImGui::TextColored(ImVec4(1, 0.3f, 0.3f, 1), "  %s (%s) = NOT FOUND", f.name.c_str(), f.field_path.c_str());
-                        }
-                    }
-                    if (fi < sendCfgs.size() - 1) ImGui::Separator();
-                }
-            }
-        }
-    } else {
-        if (ImGui::CollapsingHeader("Receive Frame Preview", ImGuiTreeNodeFlags_DefaultOpen)) {
-            if (recvCfgs.empty()) {
-                ImGui::TextDisabled("No receive frames configured.");
-            } else {
-                for (size_t fi = 0; fi < recvCfgs.size(); ++fi) {
-                    const auto& rc = recvCfgs[fi];
-                    int totalBytes = 0;
-                    for (const auto& f : rc.fields)
-                        totalBytes += GetEncodingByteSize(f.encoding);
-
-                    ImGui::TextColored(ImVec4(1, 1, 0, 1), "%s  [0x%02X] — Payload: %d bytes (%zu fields):",
-                        rc.name, rc.command_byte, totalBytes, rc.fields.size());
-                    for (const auto& f : rc.fields) {
-                        int sz = GetEncodingByteSize(f.encoding);
-                        ImGui::Text("  %s (%s)  [%s, %d bytes]", f.name.c_str(), f.field_path.c_str(),
-                            GetEncodingNames()[EncodingToIndex(f.encoding)], sz);
-                    }
-                    if (!rc.include_length)
-                        ImGui::TextColored(ImVec4(1, 0.6f, 0, 1), "  Note: Payload length field is disabled.");
-                    if (fi < recvCfgs.size() - 1) ImGui::Separator();
-                }
-            }
-        }
-    }
-
-    ImGui::End();
 }
 
 // ==================== 发送协议字段配置 ====================
@@ -219,9 +36,7 @@ void RobotComm::DrawSendFieldConfig(ProtocolSendConfig& cfg, ActuatorConfig& act
 
     if (ImGui::CollapsingHeader("Frame Format", ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::InputText("Name", cfg.name, sizeof(cfg.name));
-        int cmdByte = cfg.command_byte;
-        ImGui::InputInt("Frame Type (0-255)", &cmdByte);
-        if (cmdByte >= 0 && cmdByte <= 255) cfg.command_byte = (uint8_t)cmdByte;
+        ImGui::Text("Command Bytes:"); HexEdit("##SendCmd", cfg.command_bytes);
 
         ImGui::Text("Header:"); HexEdit("##SendHeader", cfg.header);
         ImGui::Text("Tail:");   HexEdit("##SendTail", cfg.tail);
@@ -239,27 +54,37 @@ void RobotComm::DrawSendFieldConfig(ProtocolSendConfig& cfg, ActuatorConfig& act
     ImGui::Separator();
 
     ImGui::Text("Send Fields");
-    ImGui::SameLine();
-    if (ImGui::Button("+ Add Field")) {
-        SendField f;
-        f.name = "new_field";
-        fields.push_back(f);
-    }
 
     auto components = GetSendComponents(actuator, SensorConfig{});
 
     if (ImGui::BeginChild("SendFieldsScroll", ImVec2(0, 260), true)) {
-        if (ImGui::BeginTable("SendFieldsTable", 8,
+        // 右键空白区域弹出添加菜单
+        if (ImGui::BeginPopupContextWindow("SendFieldsCtx", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
+            if (ImGui::MenuItem("Add Field")) {
+                SendField f;
+                f.name = "new_field";
+                fields.push_back(f);
+            }
+            if (ImGui::MenuItem("Add Raw Data")) {
+                SendField f;
+                f.name = "raw";
+                f.raw_data.push_back(0x00);
+                fields.push_back(f);
+            }
+            ImGui::EndPopup();
+        }
+        if (ImGui::BeginTable("SendFieldsTable", 9,
             ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable))
         {
             ImGui::TableSetupColumn("##drag", ImGuiTableColumnFlags_WidthFixed, 20);
             ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch);
-            ImGui::TableSetupColumn("Path", ImGuiTableColumnFlags_WidthFixed, 210);
-            ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 100);
-            ImGui::TableSetupColumn("Group", ImGuiTableColumnFlags_WidthFixed, 85);
-            ImGui::TableSetupColumn("Visible", ImGuiTableColumnFlags_WidthFixed, 50);
-            ImGui::TableSetupColumn("Fix", ImGuiTableColumnFlags_WidthFixed, 40);
-            ImGui::TableSetupColumn("Fix Val", ImGuiTableColumnFlags_WidthFixed, 70);
+            ImGui::TableSetupColumn("Path", ImGuiTableColumnFlags_WidthFixed, 180);
+            ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed, 90);
+            ImGui::TableSetupColumn("Group", ImGuiTableColumnFlags_WidthFixed, 70);
+            ImGui::TableSetupColumn("Visible", ImGuiTableColumnFlags_WidthFixed, 45);
+            ImGui::TableSetupColumn("Fix", ImGuiTableColumnFlags_WidthFixed, 35);
+            ImGui::TableSetupColumn("Fix Val", ImGuiTableColumnFlags_WidthFixed, 65);
+            ImGui::TableSetupColumn("Raw Data", ImGuiTableColumnFlags_WidthFixed, 90);
             ImGui::TableHeadersRow();
 
             int delIdx = -1;
@@ -292,22 +117,39 @@ void RobotComm::DrawSendFieldConfig(ProtocolSendConfig& cfg, ActuatorConfig& act
                 ImGui::PopStyleColor(3);
 
                 if (ImGui::BeginPopupContextItem("SendFieldCtx")) {
+                    if (ImGui::MenuItem("Rename")) m_EditingSendField = i;
                     if (ImGui::MenuItem("Delete")) delIdx = i;
                     ImGui::EndPopup();
                 }
 
                 ImGui::TableSetColumnIndex(1);
-                char nameBuf[128] = {};
-                strncpy(nameBuf, f.name.c_str(), sizeof(nameBuf) - 1);
-                ImGui::PushItemWidth(-1);
-                if (ImGui::InputText("##name", nameBuf, sizeof(nameBuf)))
-                    f.name = nameBuf;
-                ImGui::PopItemWidth();
+                bool isRaw = !f.raw_data.empty();
+                if (m_EditingSendField == i) {
+                    char nameBuf[128] = {};
+                    strncpy(nameBuf, f.name.c_str(), sizeof(nameBuf) - 1);
+                    ImGui::PushItemWidth(-1);
+                    ImGui::SetKeyboardFocusHere();
+                    if (ImGui::InputText("##sendname", nameBuf, sizeof(nameBuf),
+                            ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll))
+                        { f.name = nameBuf; m_EditingSendField = -1; }
+                    if (ImGui::IsItemDeactivatedAfterEdit())
+                        { f.name = nameBuf; m_EditingSendField = -1; }
+                    ImGui::PopItemWidth();
+                } else {
+                    if (ImGui::Selectable(isRaw ? f.name.c_str() : (f.name.empty() ? "##" : f.name.c_str()), false,
+                            ImGuiSelectableFlags_AllowDoubleClick)) {
+                        if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+                            m_EditingSendField = i;
+                    }
+                }
 
                 std::string curCompId = ResolveComponentId(f.field_path);
                 std::string curSub = ResolveSubField(f.field_path);
 
                 ImGui::TableSetColumnIndex(2);
+                if (isRaw) {
+                    ImGui::TextDisabled("-");
+                } else {
                 ImGui::PushItemWidth(-1);
                 std::string pathLabel = "---";
                 for (auto& c : components) {
@@ -340,40 +182,64 @@ void RobotComm::DrawSendFieldConfig(ProtocolSendConfig& cfg, ActuatorConfig& act
                     ImGui::EndCombo();
                 }
                 ImGui::PopItemWidth();
+                }
 
                 ImGui::TableSetColumnIndex(3);
+                if (isRaw) {
+                    ImGui::TextDisabled("-");
+                } else {
                 ImGui::PushItemWidth(-1);
                 int encIdx = EncodingToIndex(f.encoding);
                 if (ImGui::Combo("##sendtype", &encIdx, encodingNames.data(), (int)encodingNames.size()))
                     f.encoding = IndexToEncoding(encIdx);
                 ImGui::PopItemWidth();
+                }
 
                 ImGui::TableSetColumnIndex(4);
+                if (isRaw) {
+                    ImGui::TextDisabled("-");
+                } else {
                 char groupBuf[64] = {};
                 strncpy(groupBuf, f.group.c_str(), sizeof(groupBuf) - 1);
                 ImGui::PushItemWidth(-1);
                 if (ImGui::InputText("##sendgroup", groupBuf, sizeof(groupBuf)))
                     f.group = groupBuf;
                 ImGui::PopItemWidth();
+                }
 
                 ImGui::TableSetColumnIndex(5);
+                if (isRaw) {
+                    ImGui::TextDisabled("-");
+                } else {
                 ImGui::Checkbox("##sendvis", &f.visible);
+                }
 
                 ImGui::TableSetColumnIndex(6);
+                if (isRaw) {
+                    ImGui::TextDisabled("-");
+                } else {
                 if (ImGui::Checkbox("##sendfix", &f.fix)) {
                     // 勾选 fix 时，从执行器当前值自动填充 fix_value
                     if (f.fix) {
                         double curVal = 0.0;
-                        if (GetActuatorField(actuator, f.field_path, curVal))
-                            f.fix_value = curVal;
+                        GetActuatorField(actuator, f.field_path, curVal);
+                        f.fix_value = curVal;
                     }
+                }
                 }
 
                 ImGui::TableSetColumnIndex(7);
-                if (f.fix) {
-                    ImGui::PushItemWidth(-1);
-                    ImGui::InputDouble("##sendfixval", &f.fix_value, 0.0, 0.0, "%.4f");
-                    ImGui::PopItemWidth();
+                if (isRaw) {
+                    ImGui::TextDisabled("-");
+                } else if (f.fix) {
+                    ImGui::Text("%.4f", f.fix_value);
+                } else {
+                    ImGui::TextDisabled("-");
+                }
+
+                ImGui::TableSetColumnIndex(8);
+                if (isRaw) {
+                    HexEdit("##sendraw", f.raw_data);
                 } else {
                     ImGui::TextDisabled("-");
                 }
@@ -397,7 +263,7 @@ void RobotComm::DrawSendFieldConfig(ProtocolSendConfig& cfg, ActuatorConfig& act
     ImGui::EndChild();
 
     ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f),
-        "Drag handle to reorder. Right-click to delete.");
+        "Right-click empty to add. Double-click name to rename. Drag to reorder.");
 
     // 发送帧格式（根据当前配置动态生成）
     if (ImGui::TreeNode("Send Frame Format")) {
@@ -423,7 +289,7 @@ void RobotComm::DrawSendFieldConfig(ProtocolSendConfig& cfg, ActuatorConfig& act
         };
 
         addBlock("Header", (int)cfg.header.size());
-        addBlock("CMD", 1);
+        addBlock("CMD", (int)cfg.command_bytes.size());
         if (cfg.include_length)
             addBlock("Len(LE)", 2);
         addBlock("Payload", payloadBytes);
@@ -442,17 +308,26 @@ void RobotComm::DrawSendFieldConfig(ProtocolSendConfig& cfg, ActuatorConfig& act
             ImGui::Text("  [%2d-%2d] Header (%zu bytes)", offset, offset + (int)cfg.header.size() - 1, cfg.header.size());
             offset += (int)cfg.header.size();
         }
-        ImGui::Text("  [%2d    ] Command Byte = 0x%02X", offset, cfg.command_byte);
-        offset += 1;
+        if (!cfg.command_bytes.empty()) {
+            ImGui::Text("  [%2d-%2d] Command (%zu bytes)", offset, offset + (int)cfg.command_bytes.size() - 1, cfg.command_bytes.size());
+            offset += (int)cfg.command_bytes.size();
+        }
         if (cfg.include_length) {
             ImGui::Text("  [%2d-%2d] Payload Length (LE)", offset, offset + 1);
             offset += 2;
         }
         int fieldStart = offset;
         for (const auto& f : cfg.fields) {
-            int sz = GetEncodingByteSize(f.encoding);
-            const char* encName = GetEncodingNames()[EncodingToIndex(f.encoding)];
-            ImGui::Text("  [%2d-%2d] %-24s [%s, %d bytes]", offset, offset + sz - 1, f.name.c_str(), encName, sz);
+            int sz;
+            const char* typeLabel;
+            if (!f.raw_data.empty()) {
+                sz = (int)f.raw_data.size();
+                typeLabel = "raw";
+            } else {
+                sz = GetEncodingByteSize(f.encoding);
+                typeLabel = GetEncodingNames()[EncodingToIndex(f.encoding)];
+            }
+            ImGui::Text("  [%2d-%2d] %-24s [%s, %d bytes]", offset, offset + sz - 1, f.name.c_str(), typeLabel, sz);
             offset += sz;
         }
         if (offset > fieldStart && csBytes > 0) {
@@ -488,23 +363,24 @@ void RobotComm::DrawReceiveFieldConfig(ProtocolReceiveConfig& cfg, const SensorC
         ImGui::Checkbox("Include Payload Length (2 bytes LE)", &cfg.include_length);
         ImGui::Checkbox("Big Endian (network byte order)", &cfg.big_endian);
 
-        int cmdByte = cfg.command_byte;
-        ImGui::InputInt("Frame Type (0-255)", &cmdByte);
-        if (cmdByte >= 0 && cmdByte <= 255) cfg.command_byte = (uint8_t)cmdByte;
+        ImGui::Text("Command Bytes:"); HexEdit("##RecvCmd", cfg.command_bytes);
     }
 
     ImGui::Spacing();
     ImGui::Separator();
 
     ImGui::Text("Receive Fields");
-    ImGui::SameLine();
-    if (ImGui::Button("+ Add Field")) {
-        ReceiveField f;
-        f.name = "new_sensor";
-        fields.push_back(f);
-    }
 
     if (ImGui::BeginChild("RecvFieldsScroll", ImVec2(0, 260), true)) {
+        // 右键空白区域弹出添加菜单
+        if (ImGui::BeginPopupContextWindow("RecvFieldsCtx", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems)) {
+            if (ImGui::MenuItem("Add Field")) {
+                ReceiveField f;
+                f.name = "new_sensor";
+                fields.push_back(f);
+            }
+            ImGui::EndPopup();
+        }
         if (ImGui::BeginTable("RecvFieldsTable", 7,
             ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable))
         {
@@ -546,17 +422,30 @@ void RobotComm::DrawReceiveFieldConfig(ProtocolReceiveConfig& cfg, const SensorC
                 }
                 ImGui::PopStyleColor(3);
                 if (ImGui::BeginPopupContextItem("RecvFieldCtx")) {
+                    if (ImGui::MenuItem("Rename")) m_EditingRecvField = i;
                     if (ImGui::MenuItem("Delete")) delIdx = i;
                     ImGui::EndPopup();
                 }
 
                 ImGui::TableSetColumnIndex(1);
-                char nameBuf[128] = {};
-                strncpy(nameBuf, f.name.c_str(), sizeof(nameBuf) - 1);
-                ImGui::PushItemWidth(-1);
-                if (ImGui::InputText("##name", nameBuf, sizeof(nameBuf)))
-                    f.name = nameBuf;
-                ImGui::PopItemWidth();
+                if (m_EditingRecvField == i) {
+                    char nameBuf[128] = {};
+                    strncpy(nameBuf, f.name.c_str(), sizeof(nameBuf) - 1);
+                    ImGui::PushItemWidth(-1);
+                    ImGui::SetKeyboardFocusHere();
+                    if (ImGui::InputText("##recvname", nameBuf, sizeof(nameBuf),
+                            ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll))
+                        { f.name = nameBuf; m_EditingRecvField = -1; }
+                    if (ImGui::IsItemDeactivatedAfterEdit())
+                        { f.name = nameBuf; m_EditingRecvField = -1; }
+                    ImGui::PopItemWidth();
+                } else {
+                    if (ImGui::Selectable(f.name.empty() ? "##" : f.name.c_str(), false,
+                            ImGuiSelectableFlags_AllowDoubleClick)) {
+                        if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+                            m_EditingRecvField = i;
+                    }
+                }
 
                 std::string curCompId = ResolveComponentId(f.field_path);
                 std::string curSub = ResolveSubField(f.field_path);
@@ -635,7 +524,7 @@ void RobotComm::DrawReceiveFieldConfig(ProtocolReceiveConfig& cfg, const SensorC
     ImGui::EndChild();
 
     ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f),
-        "Drag handle to reorder. Right-click to delete.");
+        "Right-click empty to add. Double-click name to rename. Drag to reorder.");
 
     // 接收帧格式（根据当前配置动态生成）
     if (ImGui::TreeNode("Receive Frame Format")) {
@@ -667,7 +556,7 @@ void RobotComm::DrawReceiveFieldConfig(ProtocolReceiveConfig& cfg, const SensorC
             addBlock("Payload", payloadBytes);
         } else {
             addBlock("Header", (int)cfg.header.size());
-            addBlock("MsgType", 1);
+            addBlock("CMD", (int)cfg.command_bytes.size());
             if (cfg.include_length)
                 addBlock("Len(LE)", 2);
             addBlock("Payload", payloadBytes);
@@ -696,8 +585,10 @@ void RobotComm::DrawReceiveFieldConfig(ProtocolReceiveConfig& cfg, const SensorC
                 ImGui::Text("  [%2d-%2d] Header (%zu bytes)", offset, offset + (int)cfg.header.size() - 1, cfg.header.size());
                 offset += (int)cfg.header.size();
             }
-            ImGui::Text("  [%2d    ] Command Byte = 0x%02X", offset, cfg.command_byte);
-            offset += 1;
+            if (!cfg.command_bytes.empty()) {
+                ImGui::Text("  [%2d-%2d] Command (%zu bytes)", offset, offset + (int)cfg.command_bytes.size() - 1, cfg.command_bytes.size());
+                offset += (int)cfg.command_bytes.size();
+            }
             if (cfg.include_length) {
                 ImGui::Text("  [%2d-%2d] Payload Length (LE)", offset, offset + 1);
                 offset += 2;
@@ -728,18 +619,19 @@ void RobotComm::DrawReceiveFieldConfig(ProtocolReceiveConfig& cfg, const SensorC
 // ==================== 控制面板 ====================
 void RobotComm::DrawControlPanel(RobotCommConfig& cfg,
                                   RobotComponentManager* robotMgr) {
-    // 当前使用的机器人模式
+    // 当前使用的机器人模式（每个 comm 节点独立存储自己的 component 选择）
     if (ImGui::CollapsingHeader("Robot Component", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (robotMgr) {
             auto& comps = robotMgr->GetComponents();
-            int activeIdx = robotMgr->GetSelectedIndex();
-            if (!comps.empty() && activeIdx >= 0 && activeIdx < (int)comps.size()) {
-                std::string preview = comps[activeIdx].component.name;
+            if (cfg.active_component_idx < 0 || cfg.active_component_idx >= (int)comps.size())
+                cfg.active_component_idx = 0;
+            if (!comps.empty()) {
+                std::string preview = comps[cfg.active_component_idx].name;
                 if (ImGui::BeginCombo("##RobotModeSelect", preview.c_str())) {
                     for (int i = 0; i < (int)comps.size(); ++i) {
-                        bool isSelected = (i == activeIdx);
-                        if (ImGui::Selectable(comps[i].component.name, isSelected)) {
-                            robotMgr->SetSelectedIndex(i);
+                        bool isSelected = (i == cfg.active_component_idx);
+                        if (ImGui::Selectable(comps[i].name, isSelected)) {
+                            cfg.active_component_idx = i;
                         }
                         if (isSelected) ImGui::SetItemDefaultFocus();
                     }
@@ -768,23 +660,24 @@ void RobotComm::DrawControlPanel(RobotCommConfig& cfg,
     if (ImGui::CollapsingHeader("Protocol Fields", ImGuiTreeNodeFlags_DefaultOpen)) {
         if (robotMgr) {
             auto& comps = robotMgr->GetComponents();
-            int idx = robotMgr->GetSelectedIndex();
-            if (idx >= 0 && idx < (int)comps.size()) {
-                auto& mode = comps[idx].component;
+            if (cfg.active_component_idx < 0 || cfg.active_component_idx >= (int)comps.size())
+                cfg.active_component_idx = 0;
+            if (cfg.active_component_idx >= 0 && cfg.active_component_idx < (int)comps.size()) {
+                auto& mode = comps[cfg.active_component_idx];
                 if (ImGui::BeginTabBar("ProtoSubTabs")) {
                     if (ImGui::BeginTabItem("Send Frames")) {
-                        ImGui::Text("Send Frames (%zu):", mode.protocol_send.size());
+                        ImGui::Text("Send Frames (%zu):", cfg.protocol_send.size());
                         ImGui::SameLine();
                         if (ImGui::Button("+ Add Frame")) {
                             ProtocolSendConfig newCfg;
-                            newCfg.command_byte = (uint8_t)mode.protocol_send.size();
-                            mode.protocol_send.push_back(newCfg);
+                            newCfg.command_bytes.push_back((uint8_t)cfg.protocol_send.size());
+                            cfg.protocol_send.push_back(newCfg);
                         }
 
                         if (ImGui::BeginChild("SendFramesList", ImVec2(0, 120), true)) {
                             int delIdx = -1;
-                            for (int i = 0; i < (int)mode.protocol_send.size(); ++i) {
-                                auto& sendCfg = mode.protocol_send[i];
+                            for (int i = 0; i < (int)cfg.protocol_send.size(); ++i) {
+                                auto& sendCfg = cfg.protocol_send[i];
                                 ImGui::PushID(i + 2000);
                                 if (m_EditingSendName == i) {
                                     ImGui::SetNextItemWidth(-1);
@@ -795,7 +688,10 @@ void RobotComm::DrawControlPanel(RobotCommConfig& cfg,
                                         m_EditingSendName = -1;
                                 } else {
                                     char label[64];
-                                    snprintf(label, sizeof(label), "%s  [0x%02X] %zu fields", sendCfg.name, sendCfg.command_byte, sendCfg.fields.size());
+                                    if (sendCfg.command_bytes.size() == 1)
+                                        snprintf(label, sizeof(label), "%s  [0x%02X] %zu fields", sendCfg.name, sendCfg.command_bytes[0], sendCfg.fields.size());
+                                    else
+                                        snprintf(label, sizeof(label), "%s  [cmd:%zub] %zu fields", sendCfg.name, sendCfg.command_bytes.size(), sendCfg.fields.size());
                                     if (ImGui::Selectable(label, m_ActiveSendCfgIdx == i)) {
                                         m_ActiveSendCfgIdx = i;
                                         if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
@@ -809,36 +705,40 @@ void RobotComm::DrawControlPanel(RobotCommConfig& cfg,
                                 }
                                 ImGui::PopID();
                             }
-                            if (delIdx >= 0 && delIdx < (int)mode.protocol_send.size()) {
-                                mode.protocol_send.erase(mode.protocol_send.begin() + delIdx);
-                                if (m_ActiveSendCfgIdx >= (int)mode.protocol_send.size())
-                                    m_ActiveSendCfgIdx = std::max(0, (int)mode.protocol_send.size() - 1);
+                            if (delIdx >= 0 && delIdx < (int)cfg.protocol_send.size()) {
+                                cfg.protocol_send.erase(cfg.protocol_send.begin() + delIdx);
+                                if (m_ActiveSendCfgIdx >= (int)cfg.protocol_send.size())
+                                    m_ActiveSendCfgIdx = std::max(0, (int)cfg.protocol_send.size() - 1);
                             }
                         }
                         ImGui::EndChild();
 
                         ImGui::Separator();
-                        if (m_ActiveSendCfgIdx >= 0 && m_ActiveSendCfgIdx < (int)mode.protocol_send.size()) {
-                            ImGui::Text("Editing Frame [0x%02X]:", mode.protocol_send[m_ActiveSendCfgIdx].command_byte);
-                            DrawSendFieldConfig(mode.protocol_send[m_ActiveSendCfgIdx], mode.actuator_config);
+                        if (m_ActiveSendCfgIdx >= 0 && m_ActiveSendCfgIdx < (int)cfg.protocol_send.size()) {
+                            auto& activeCmd = cfg.protocol_send[m_ActiveSendCfgIdx].command_bytes;
+                            if (activeCmd.size() == 1)
+                                ImGui::Text("Editing Frame [0x%02X]:", activeCmd[0]);
+                            else
+                                ImGui::Text("Editing Frame [cmd:%zub]:", activeCmd.size());
+                            DrawSendFieldConfig(cfg.protocol_send[m_ActiveSendCfgIdx], mode.actuator_config);
                         } else {
                             ImGui::TextDisabled("No send frame selected. Click '+' to add one.");
                         }
                         ImGui::EndTabItem();
                     }
                     if (ImGui::BeginTabItem("Receive Frames")) {
-                        ImGui::Text("Receive Frames (%zu):", mode.protocol_receive.size());
+                        ImGui::Text("Receive Frames (%zu):", cfg.protocol_receive.size());
                         ImGui::SameLine();
                         if (ImGui::Button("+ Add Frame")) {
                             ProtocolReceiveConfig newCfg;
-                            newCfg.command_byte = (uint8_t)mode.protocol_receive.size();
-                            mode.protocol_receive.push_back(newCfg);
+                            newCfg.command_bytes.push_back((uint8_t)cfg.protocol_receive.size());
+                            cfg.protocol_receive.push_back(newCfg);
                         }
 
                         if (ImGui::BeginChild("RecvFramesList", ImVec2(0, 100), true)) {
                             int delIdx = -1;
-                            for (int i = 0; i < (int)mode.protocol_receive.size(); ++i) {
-                                auto& recvCfg = mode.protocol_receive[i];
+                            for (int i = 0; i < (int)cfg.protocol_receive.size(); ++i) {
+                                auto& recvCfg = cfg.protocol_receive[i];
                                 ImGui::PushID(i + 3000);
                                 if (m_EditingRecvName == i) {
                                     ImGui::SetNextItemWidth(-1);
@@ -849,7 +749,10 @@ void RobotComm::DrawControlPanel(RobotCommConfig& cfg,
                                         m_EditingRecvName = -1;
                                 } else {
                                     char label[64];
-                                    snprintf(label, sizeof(label), "%s  [0x%02X] %zu fields", recvCfg.name, recvCfg.command_byte, recvCfg.fields.size());
+                                    if (recvCfg.command_bytes.size() == 1)
+                                        snprintf(label, sizeof(label), "%s  [0x%02X] %zu fields", recvCfg.name, recvCfg.command_bytes[0], recvCfg.fields.size());
+                                    else
+                                        snprintf(label, sizeof(label), "%s  [cmd:%zub] %zu fields", recvCfg.name, recvCfg.command_bytes.size(), recvCfg.fields.size());
                                     if (ImGui::Selectable(label, m_ActiveRecvCfgIdx == i)) {
                                         m_ActiveRecvCfgIdx = i;
                                         if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
@@ -863,18 +766,18 @@ void RobotComm::DrawControlPanel(RobotCommConfig& cfg,
                                 }
                                 ImGui::PopID();
                             }
-                            if (delIdx >= 0 && delIdx < (int)mode.protocol_receive.size()) {
-                                mode.protocol_receive.erase(mode.protocol_receive.begin() + delIdx);
-                                if (m_ActiveRecvCfgIdx >= (int)mode.protocol_receive.size())
-                                    m_ActiveRecvCfgIdx = std::max(0, (int)mode.protocol_receive.size() - 1);
+                            if (delIdx >= 0 && delIdx < (int)cfg.protocol_receive.size()) {
+                                cfg.protocol_receive.erase(cfg.protocol_receive.begin() + delIdx);
+                                if (m_ActiveRecvCfgIdx >= (int)cfg.protocol_receive.size())
+                                    m_ActiveRecvCfgIdx = std::max(0, (int)cfg.protocol_receive.size() - 1);
                             }
                         }
                         ImGui::EndChild();
 
                         ImGui::Separator();
-                        if (m_ActiveRecvCfgIdx >= 0 && m_ActiveRecvCfgIdx < (int)mode.protocol_receive.size()) {
-                            ImGui::Text("Editing: %s", mode.protocol_receive[m_ActiveRecvCfgIdx].name);
-                            DrawReceiveFieldConfig(mode.protocol_receive[m_ActiveRecvCfgIdx], mode.sensor_config);
+                        if (m_ActiveRecvCfgIdx >= 0 && m_ActiveRecvCfgIdx < (int)cfg.protocol_receive.size()) {
+                            ImGui::Text("Editing: %s", cfg.protocol_receive[m_ActiveRecvCfgIdx].name);
+                            DrawReceiveFieldConfig(cfg.protocol_receive[m_ActiveRecvCfgIdx], mode.sensor_config);
                         } else {
                             ImGui::TextDisabled("No receive frame selected.");
                         }

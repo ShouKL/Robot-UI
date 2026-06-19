@@ -128,6 +128,7 @@ enum class NodeType
     ConstValue = 45,
     CustomOutput = 46,
     LookupTable = 47,  // Mode → Value mapping
+    ShortcutTrigger = 48,  // Keyboard shortcut → float (1.0 when held)
 };
 
 // ============================================================================
@@ -155,8 +156,14 @@ struct EditorNode
     // ---- Identifier ----
     std::string              KeyName;       // KeySource: bound gamepad key
     std::string              OutputTarget;  // CustomOutput: actuator field path
+    int                      CommIndex   = 0;  // CustomOutput: target RobotComm index (0=default)
     int                      GlobalVarId = -1; // GlobalRead/Write: stable variable ID
     std::vector<std::string> ModeLabels;    // Counter: mode label list
+
+    // ---- ShortcutTrigger: action selection ----
+    int  ShortcutActionIndex = -1;  // -1=none; 0..N = ShortcutManager::Action (panel toggle)
+    int  ShortcutSendIndex   = -1;  // -1=none; 0..N = flat send frame index (from RobotComm)
+    int  ShortcutSendMode    = 0;   // 0=Toggle, 1=One-Shot
 
     // ---- Internal runtime state (for memory/logic nodes) ----
     float StateF[4]   = {};      // Float state

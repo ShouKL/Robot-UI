@@ -31,6 +31,9 @@ struct UIState
     float node_left_side_width  = 180.0f;
     float node_right_side_width = 200.0f;
 
+    // ---- 软件 UI 快捷键键值（.kernel 持久化） ----
+    std::string software_shortcuts_yaml;
+
     // ---- FileManager 状态（.kernel 中持久化） ----
     std::string robot_path;
     bool robot_dirty  = false;
@@ -89,6 +92,8 @@ private:
     static void EmitEditorCurve(YAML::Emitter& out, const ThrustCurve& curve);
     static void EmitRobotComm(YAML::Emitter& out, const std::vector<RobotCommConfig>& configs);
     static void EmitGraphItems(YAML::Emitter& out, const std::vector<GraphItem>& items);
+    static void EmitSoftwareShortcuts(YAML::Emitter& out, const std::string& swYaml);
+    static bool ApplySoftwareShortcuts(const YAML::Node& node, std::string& outYaml, std::string* outError);
 
     // ======================== YAML 读取（基于 yaml-cpp） ========================
     static bool ApplyRobotConfig(const YAML::Node& node, RobotComponentManager& robotMgr, std::string* outError);
