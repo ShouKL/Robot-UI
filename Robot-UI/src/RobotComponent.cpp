@@ -65,6 +65,8 @@ void RobotComponent::DrawConfigPanel() {
                 }
                 float fv = (float)m.target_speed.value;
                 ImGui::InputFloat("target_speed", &fv); m.target_speed.value = fv;
+                float fp = (float)m.target_position.value;
+                ImGui::InputFloat("target_position", &fp); m.target_position.value = fp;
                 ImGui::TreePop();
             }
             ImGui::PopID();

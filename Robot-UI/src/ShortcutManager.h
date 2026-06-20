@@ -60,6 +60,7 @@ public:
         ACT_TOGGLE_MONITORWALL,
         ACT_TOGGLE_THRUSTCURVE,
         ACT_TOGGLE_ABOUT,
+        ACT_SCREENSHOT,
         ACT_COUNT
     };
 
@@ -73,6 +74,7 @@ public:
         m_FileSaveCb  = std::move(save);
         m_FileSaveAsCb = std::move(saveAs);
     }
+    void SetScreenshotCallback(std::function<void()> cb) { m_ScreenshotCb = std::move(cb); }
 
     // ---- 绑定访问 ----
     ShortcutBinding&       GetBinding(int action)       { return m_Bindings[action]; }
@@ -116,6 +118,7 @@ private:
     std::function<void()> m_FileOpenCb;
     std::function<void()> m_FileSaveCb;
     std::function<void()> m_FileSaveAsCb;
+    std::function<void()> m_ScreenshotCb;
 
     bool* m_pOptionOpen        = nullptr;
     bool* m_pStatusOpen        = nullptr;

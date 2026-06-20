@@ -2254,7 +2254,8 @@ void WriteOutputToActuator(const std::string& target, float val, ActuatorConfig&
         for (auto& motor : data.brushlessmotor) {
             std::string fb = std::string("Motor_") + std::to_string(motor.id);
             if (motor.name != motorName && fb != motorName && motor.id != fallbackId) continue;
-            if (segs[2] == "target_speed") { motor.target_speed = val; return; }
+            if (segs[2] == "target_speed")    { motor.target_speed    = val; return; }
+            if (segs[2] == "target_position") { motor.target_position = val; return; }
             if (segs[2] == "curve" && segs.size() == 4) {
                 if      (segs[3] == "np_mid") motor.curve.np_mid = val;
                 else if (segs[3] == "np_ini") motor.curve.np_ini = val;

@@ -1,7 +1,11 @@
 #include "OptionPanel.h"
+#include "Screenshot.h"
 #include "Walnut/Core/Log.h"
+#include "FileManager.h"
 #include "imgui.h"
 #include <algorithm>
+#include <windows.h>
+#include <shlobj.h>
 
 OptionPanel::OptionPanel()
 {
@@ -39,7 +43,7 @@ void OptionPanel::DrawOptionPanel(bool* p_open)
             if (!IsEditing())
                 BeginEdit();
 
-            const char* items[] = { "Shortcuts", "Style" };
+            const char* items[] = { "Shortcuts", "Style", "Screenshot" };
             for (int i = 0; i < IM_ARRAYSIZE(items); i++) {
                 ImGui::PushID(i);
                 if (ImGui::Selectable(items[i], m_SelectedId == i, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0, 30))) {
@@ -63,6 +67,8 @@ void OptionPanel::DrawOptionPanel(bool* p_open)
                 }
             } else if (m_SelectedId == 0) {
                 DrawShortcutsPanel();
+            } else if (m_SelectedId == 2) {
+                DrawScreenshotPanel();
             }
 
             ImGui::Unindent(10.0f);
@@ -118,6 +124,8 @@ void OptionPanel::CancelEdit()
         m_ImGuiStyleManager->ApplyImGuiStyle(
             m_StyleSnapshot_Theme, m_StyleSnapshot_Invert, m_StyleSnapshot_Alpha);
     }
+    m_ScreenshotScope = m_ScreenshotScopeSnapshot;
+    m_ScreenshotPath  = m_ScreenshotPathSnapshot;
 
     EditDraftBase::CancelEdit();
 }
@@ -129,6 +137,8 @@ void OptionPanel::TakeSnapshots()
         m_StyleSnapshot_Invert = m_ImGuiStyleManager->GetInvert();
         m_StyleSnapshot_Alpha  = m_ImGuiStyleManager->GetAlpha();
     }
+    m_ScreenshotScopeSnapshot = m_ScreenshotScope;
+    m_ScreenshotPathSnapshot  = m_ScreenshotPath;
 }
 
 // ==================== 快捷键面板（只读参考）====================
@@ -181,5 +191,86 @@ void OptionPanel::DrawShortcutsPanel()
         ImGui::EndTable();
     }
 
+    ImGui::Spacing();
+}
+
+// ==================== 截图设置面板 ====================
+
+void OptionPanel::DrawScreenshotPanel()
+{
+    ImGui::Spacing();
+    ImGui::TextColored(ImVec4(0.3f, 0.7f, 1.0f, 1.0f), "Screenshot Settings");
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    // ---- 截图范围 ----
+    ImGui::TextUnformatted("Capture Scope");
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(200.0f);
+    const char* const* scopeItems = Screenshot::GetWindowNames();
+    int scopeCount = Screenshot::COUNT;
+    if (ImGui::Combo("##Scope", &m_ScreenshotScope, scopeItems, scopeCount))
+    {
+    }
+    ImGui::Spacing();
+
+    // ---- 保存路径 ----
+    ImGui::TextUnformatted("Save Path");
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(200.0f);
+
+    char pathBuf[512];
+    strncpy(pathBuf, m_ScreenshotPath.c_str(), sizeof(pathBuf) - 1);
+    pathBuf[sizeof(pathBuf) - 1] = '\0';
+
+    float inputWidth = ImGui::GetContentRegionAvail().x - 90.0f;
+    ImGui::PushItemWidth(inputWidth);
+    if (ImGui::InputText("##Path", pathBuf, sizeof(pathBuf)))
+        m_ScreenshotPath = pathBuf;
+    ImGui::PopItemWidth();
+
+    ImGui::SameLine();
+    if (ImGui::Button("Browse..."))
+    {
+        BROWSEINFOW bi = {};
+        bi.lpszTitle = L"Select Screenshot Folder";
+        bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+        LPITEMIDLIST pidl = SHBrowseForFolderW(&bi);
+        if (pidl)
+        {
+            wchar_t folderPath[MAX_PATH];
+            if (SHGetPathFromIDListW(pidl, folderPath))
+            {
+                int len = WideCharToMultiByte(CP_UTF8, 0, folderPath, -1, nullptr, 0, nullptr, nullptr);
+                std::string path(len - 1, '\0');
+                WideCharToMultiByte(CP_UTF8, 0, folderPath, -1, &path[0], len, nullptr, nullptr);
+                m_ScreenshotPath = path;
+            }
+            CoTaskMemFree(pidl);
+        }
+    }
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f),
+        "Main Client: client area  |  Full Window: with title bar  |  Entire Screen: all monitors");
+    ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f),
+        "Panel options capture individual ImGui windows");
+    ImGui::Spacing();
+
+    // 显示当前实际保存路径
+    std::string actualPath = m_ScreenshotPath.empty()
+        ? FileManager::GetExeDir() + "..\\..\\asset\\screenshots\\"
+        : m_ScreenshotPath;
+    if (!actualPath.empty() && actualPath.back() != '\\')
+        actualPath += '\\';
+    ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Default (empty): asset/screenshots/");
+    ImGui::TextDisabled("Files will be saved to: %s", actualPath.c_str());
+
+    ImGui::Spacing();
+    ImGui::TextColored(ImVec4(0.5f, 0.8f, 0.5f, 1.0f), "Press Ctrl+Shift+X to take a screenshot");
     ImGui::Spacing();
 }

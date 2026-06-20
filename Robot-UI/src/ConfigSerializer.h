@@ -39,6 +39,10 @@ struct UIState
     bool robot_dirty  = false;
     bool kernel_dirty = false;
     std::vector<std::string> recent_files;
+
+    // ---- 截图设置（.kernel 持久化） ----
+    int         screenshot_scope = 0;     // 0=客户区, 1=完整窗口, 2=全屏, 3+=子面板
+    std::string screenshot_path;          // 保存路径（空=exe 同级的 screenshots/）
 };
 
 class ConfigSerializer

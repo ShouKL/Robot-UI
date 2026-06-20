@@ -226,6 +226,29 @@ void HardwareInterface::SendActuatorData(const ActuatorConfig& data) {
     std::lock_guard<std::mutex> lock(m_DataMutex);
     m_CurrentActuatorData = data;
 
+    // DEBUG: write per-connection ActuatorConfig to file
+    static int s_DbgOnce[2] = {0, 0};
+    static int s_ConnIdx = 0;
+    if (s_ConnIdx < 2 && s_DbgOnce[s_ConnIdx] == 0) {
+        s_DbgOnce[s_ConnIdx] = 1;
+        FILE* f = fopen("C:\\Users\\29164\\Desktop\\Robot-UI\\hw_debug.txt", "a");
+        if (f) {
+            fprintf(f, "\n=== Conn %d ===\n", s_ConnIdx);
+            fprintf(f, "protoCfgs=%d\n", (int)m_ProtocolCfgs.size());
+            fprintf(f, "motion: x=%.2f y=%.2f z=%.2f rz=%.2f\n",
+                (double)data.motion.x, (double)data.motion.y,
+                (double)data.motion.z, (double)data.motion.rz);
+            for (auto& m : data.brushlessmotor)
+                fprintf(f, "  motor '%s' id=%d spd=%.2f np_mid=%.2f\n",
+                    m.name.c_str(), m.id, (double)m.target_speed, (double)m.curve.np_mid);
+            for (auto& s : data.servo)
+                fprintf(f, "  servo '%s' id=%d angle=%.2f\n",
+                    s.name.c_str(), s.id, (double)s.angle);
+            fclose(f);
+        }
+        s_ConnIdx++;
+    }
+
 #if defined(_WIN32) || defined(_WIN64)
     if (m_Socket == INVALID_SOCKET) return;
 

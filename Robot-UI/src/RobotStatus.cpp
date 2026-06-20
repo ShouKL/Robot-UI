@@ -289,29 +289,27 @@ void RobotStatus::ToggleSendFrame(int index)
     if (!m_RobotCommManager) return;
     auto& nodes = m_RobotCommManager->GetNodes();
 
-    std::vector<ProtocolSendConfig*> configs;
-    {
-        std::shared_lock lock(m_StatusMutex);
-        fprintf(stderr, "[TRACE] ToggleSendFrame index=%d activeCommIndices=%d\n", index, (int)m_ActiveCommIndices.size());
-        for (int ci : m_ActiveCommIndices) {
-            if (ci < 0 || ci >= (int)nodes.size()) continue;
-            for (auto& sc : nodes[ci].component.protocol_send)
-                configs.push_back(&sc);
-        }
+    // 每个 active comm 的 protocol_send 指针和时间归属映射
+    struct Slot { int connIdx; ProtocolSendConfig* cfg; };
+    std::vector<Slot> slots;
+    for (int i = 0; i < (int)m_Connections.size(); ++i) {
+        int ci = (i < (int)m_ActiveCommIndices.size()) ? m_ActiveCommIndices[i] : -1;
+        if (ci < 0 || ci >= (int)nodes.size()) continue;
+        for (auto& sc : nodes[ci].component.protocol_send)
+            slots.push_back({i, &sc});
     }
 
-    fprintf(stderr, "[TRACE] ToggleSendFrame collectedConfigs=%d\n", (int)configs.size());
-    if (index < 0 || index >= (int)configs.size()) return;
-    bool was = configs[index]->enabled;
-    configs[index]->enabled = !configs[index]->enabled;
-    fprintf(stderr, "[TRACE] ToggleSendFrame[%d] '%s' %d->%d linkedConns=%d\n",
-        index, configs[index]->name, was, configs[index]->enabled, (int)m_Connections.size());
+    if (index < 0 || index >= (int)slots.size()) return;
+    bool was = slots[index].cfg->enabled;
+    slots[index].cfg->enabled = !was;
 
-    for (auto& conn : m_Connections) {
+    // 只推对应连接的协议配置
+    for (int i = 0; i < (int)m_Connections.size(); ++i) {
+        auto& conn = m_Connections[i];
         if (!conn.isLinked) continue;
-        std::vector<ProtocolSendConfig> sendCopy;
-        for (auto* sc : configs) sendCopy.push_back(*sc);
-        conn.hw->SetProtocolConfig(sendCopy);
+        int ci = (i < (int)m_ActiveCommIndices.size()) ? m_ActiveCommIndices[i] : -1;
+        if (ci < 0 || ci >= (int)nodes.size()) continue;
+        conn.hw->SetProtocolConfig(nodes[ci].component.protocol_send);
     }
 }
 
@@ -320,45 +318,45 @@ void RobotStatus::OneShotSendFrame(int index)
     if (!m_RobotCommManager) return;
     auto& nodes = m_RobotCommManager->GetNodes();
 
-    std::vector<ProtocolSendConfig*> configs;
-    {
-        std::shared_lock lock(m_StatusMutex);
-        for (int ci : m_ActiveCommIndices) {
-            if (ci < 0 || ci >= (int)nodes.size()) continue;
-            for (auto& sc : nodes[ci].component.protocol_send)
-                configs.push_back(&sc);
-        }
+    struct Slot { int connIdx; ProtocolSendConfig* cfg; };
+    std::vector<Slot> slots;
+    for (int i = 0; i < (int)m_Connections.size(); ++i) {
+        int ci = (i < (int)m_ActiveCommIndices.size()) ? m_ActiveCommIndices[i] : -1;
+        if (ci < 0 || ci >= (int)nodes.size()) continue;
+        for (auto& sc : nodes[ci].component.protocol_send)
+            slots.push_back({i, &sc});
     }
 
-    if (index < 0 || index >= (int)configs.size()) return;
+    if (index < 0 || index >= (int)slots.size()) return;
+    int owner = slots[index].connIdx;
 
-    // 保存原始状态，临时启用，发一次，恢复
-    bool wasEnabled = configs[index]->enabled;
-    configs[index]->enabled = true;
+    // 临时启用
+    bool wasEnabled = slots[index].cfg->enabled;
+    slots[index].cfg->enabled = true;
 
-    for (auto& conn : m_Connections) {
+    // 只推对应连接的协议配置
+    for (int i = 0; i < (int)m_Connections.size(); ++i) {
+        auto& conn = m_Connections[i];
         if (!conn.isLinked) continue;
-        std::vector<ProtocolSendConfig> sendCopy;
-        for (auto* sc : configs) sendCopy.push_back(*sc);
-        conn.hw->SetProtocolConfig(sendCopy);
+        int ci = (i < (int)m_ActiveCommIndices.size()) ? m_ActiveCommIndices[i] : -1;
+        if (ci < 0 || ci >= (int)nodes.size()) continue;
+        conn.hw->SetProtocolConfig(nodes[ci].component.protocol_send);
     }
 
-    // 发送一次当前命令
-    {
-        std::shared_lock lock(m_StatusMutex);
-        ActuatorConfig cmd;
-        if (m_CurrentCommand) cmd = *m_CurrentCommand;
-        for (auto& conn : m_Connections)
-            if (conn.isLinked) conn.hw->SendActuatorData(cmd);
+    // 发一次
+    if (owner >= 0 && owner < (int)m_Connections.size() && m_Connections[owner].isLinked) {
+        auto cmdPtr = GetCurrentCommand();
+        if (cmdPtr) m_Connections[owner].hw->SendActuatorData(*cmdPtr);
     }
 
-    // 恢复原来状态
-    configs[index]->enabled = wasEnabled;
-    for (auto& conn : m_Connections) {
+    // 恢复
+    slots[index].cfg->enabled = wasEnabled;
+    for (int i = 0; i < (int)m_Connections.size(); ++i) {
+        auto& conn = m_Connections[i];
         if (!conn.isLinked) continue;
-        std::vector<ProtocolSendConfig> sendCopy;
-        for (auto* sc : configs) sendCopy.push_back(*sc);
-        conn.hw->SetProtocolConfig(sendCopy);
+        int ci = (i < (int)m_ActiveCommIndices.size()) ? m_ActiveCommIndices[i] : -1;
+        if (ci < 0 || ci >= (int)nodes.size()) continue;
+        conn.hw->SetProtocolConfig(nodes[ci].component.protocol_send);
     }
 }
 
@@ -367,30 +365,30 @@ void RobotStatus::ToggleAllSendFrames()
     if (!m_RobotCommManager) return;
     auto& nodes = m_RobotCommManager->GetNodes();
 
-    std::vector<ProtocolSendConfig*> configs;
-    {
-        std::shared_lock lock(m_StatusMutex);
-        for (int ci : m_ActiveCommIndices) {
-            if (ci < 0 || ci >= (int)nodes.size()) continue;
-            for (auto& sc : nodes[ci].component.protocol_send)
-                configs.push_back(&sc);
-        }
+    // 收集所有 active comm 的 protocol_send
+    struct Slot { int connIdx; ProtocolSendConfig* cfg; };
+    std::vector<Slot> slots;
+    for (int i = 0; i < (int)m_Connections.size(); ++i) {
+        int ci = (i < (int)m_ActiveCommIndices.size()) ? m_ActiveCommIndices[i] : -1;
+        if (ci < 0 || ci >= (int)nodes.size()) continue;
+        for (auto& sc : nodes[ci].component.protocol_send)
+            slots.push_back({i, &sc});
     }
 
-    // 判断当前状态：全开则全关；否则全开
-    bool allOn = !configs.empty();
-    for (auto* sc : configs)
-        if (!sc->enabled) { allOn = false; break; }
+    // 全开/全关
+    bool allOn = !slots.empty();
+    for (auto& s : slots)
+        if (!s.cfg->enabled) { allOn = false; break; }
+    for (auto& s : slots)
+        s.cfg->enabled = !allOn;
 
-    for (auto* sc : configs)
-        sc->enabled = !allOn;
-
-    // 推送更新
-    for (auto& conn : m_Connections) {
+    // 只推各自连接的协议配置
+    for (int i = 0; i < (int)m_Connections.size(); ++i) {
+        auto& conn = m_Connections[i];
         if (!conn.isLinked) continue;
-        std::vector<ProtocolSendConfig> sendCopy;
-        for (auto* sc : configs) sendCopy.push_back(*sc);
-        conn.hw->SetProtocolConfig(sendCopy);
+        int ci = (i < (int)m_ActiveCommIndices.size()) ? m_ActiveCommIndices[i] : -1;
+        if (ci < 0 || ci >= (int)nodes.size()) continue;
+        conn.hw->SetProtocolConfig(nodes[ci].component.protocol_send);
     }
 }
 const SensorConfig&          RobotStatus::GetSensorConfig()      const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode.sensor_config; }

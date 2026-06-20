@@ -82,6 +82,7 @@ struct BrushlessMotor {
     std::string name;
     ThrustCurve curve;
     EncodedValue target_speed{0, DataEncoding::Float32};
+    EncodedValue target_position{0, DataEncoding::Float32};
 };
 
 struct Servo {
@@ -112,7 +113,15 @@ enum class ChecksumType : uint8_t {
     None  = 0,
     Sum8  = 1,
     XOR8  = 2,
-    CRC16 = 3,
+    CRC16 = 3,       // CRC-16/MODBUS
+    CRC16_XMODEM = 4, // CRC-16/XMODEM
+};
+
+enum class ChecksumRange : uint8_t {
+    AfterHeader = 0,  // 从 Header 之后到 Payload 末尾（默认，现行为）
+    FromCommand = 1,  // 从 Command Bytes 到 Payload 末尾
+    PayloadOnly = 2,  // 仅 Payload
+    EntireFrame = 3,  // 从帧头到 Payload 末尾（含 Header）
 };
 
 // ================== 字段/协议结构体（必须在 inline 函数之前） ==================
@@ -143,6 +152,7 @@ struct ProtocolReceiveConfig {
     std::vector<uint8_t> header;
     std::vector<uint8_t> tail;
     ChecksumType checksum = ChecksumType::Sum8;
+    ChecksumRange checksum_range = ChecksumRange::AfterHeader;
     bool include_length = true;
     bool big_endian = false;   // false=小端(LE), true=大端(BE/网络序)
     std::vector<ReceiveField> fields;
@@ -155,6 +165,7 @@ struct ProtocolSendConfig {
     std::vector<uint8_t> header;
     std::vector<uint8_t> tail;
     ChecksumType checksum = ChecksumType::Sum8;
+    ChecksumRange checksum_range = ChecksumRange::AfterHeader;
     bool include_length = true;
     bool big_endian = false;   // false=小端(LE), true=大端(BE/网络序)
     std::vector<SendField> fields;
@@ -335,8 +346,9 @@ inline std::vector<FieldSubField> GetSubFields(const FieldComponent& comp) {
     }
     if (comp.path_prefix.rfind("brushlessmotor.", 0) == 0) { // motor
         return {
-            {"id",           "ID"},
-            {"target_speed", "Target Speed"},
+            {"id",              "ID"},
+            {"target_speed",    "Target Speed"},
+            {"target_position", "Target Position"},
             {"curve.np_mid", "Curve np_mid"},
             {"curve.np_ini", "Curve np_ini"},
             {"curve.pp_ini", "Curve pp_ini"},
@@ -468,6 +480,9 @@ inline bool GetActuatorField(const ActuatorConfig& data, const std::string& path
             if (segs[2] == "target_speed" && segs.size() == 3) {
                 out = motor.target_speed; return true;
             }
+            if (segs[2] == "target_position" && segs.size() == 3) {
+                out = motor.target_position; return true;
+            }
             if (segs[2] == "curve" && segs.size() == 4) {
                 const ThrustCurve& c = motor.curve;
                 if      (segs[3] == "np_mid") { out = c.np_mid; return true; }
@@ -534,13 +549,14 @@ inline std::vector<uint8_t> BuildPayload(const ActuatorConfig& data, const std::
         }
 
         double val;
-        // fix 模式：从 ActuatorConfig 取 Component 的初始值，节点图不改它
-        // fix_value 仅在 GetActuatorField 失败时作为兜底
+        // fix 模式：从 ActuatorConfig 取 Component 的初始值
+        // 非 fix 模式：节点图写入的动态值，读失败时用 fix_value 兜底（即 Component 初始值）
         if (f.fix) {
             if (!GetActuatorField(data, f.field_path, val))
                 val = f.fix_value;
         } else {
-            if (!GetActuatorField(data, f.field_path, val)) continue;
+            if (!GetActuatorField(data, f.field_path, val))
+                val = f.fix_value;
         }
 
         switch (f.encoding) {
@@ -628,6 +644,17 @@ inline uint16_t ComputeChecksum(ChecksumType type, const uint8_t* data, size_t l
         }
         return crc;
     }
+    case ChecksumType::CRC16_XMODEM: {
+        uint16_t crc = 0x0000;
+        for (size_t i = 0; i < len; ++i) {
+            crc ^= static_cast<uint16_t>(data[i]) << 8;
+            for (int j = 0; j < 8; ++j) {
+                if (crc & 0x8000) crc = (crc << 1) ^ 0x1021;
+                else              crc <<= 1;
+            }
+        }
+        return crc;
+    }
     default:
         return 0;
     }
@@ -656,12 +683,19 @@ inline std::vector<uint8_t> BuildFrame(const ActuatorConfig& data, const Protoco
     // 负载
     frame.insert(frame.end(), payload.begin(), payload.end());
 
-    // 校验（对帧头之后、帧尾之前的所有数据计算：cmd_byte + 可选length + payload）
+    // 校验
     if (cfg.checksum != ChecksumType::None) {
-        size_t dataStart = cfg.header.size();
-        size_t dataLen   = frame.size() - dataStart;
+        size_t dataStart = 0;
+        size_t dataLen   = frame.size();
+        switch (cfg.checksum_range) {
+        case ChecksumRange::AfterHeader: dataStart = cfg.header.size();               break;
+        case ChecksumRange::FromCommand: dataStart = cfg.header.size();               break;
+        case ChecksumRange::PayloadOnly: dataStart = frame.size() - payload.size();   break;
+        case ChecksumRange::EntireFrame: dataStart = 0;                               break;
+        }
+        dataLen = frame.size() - dataStart;
         uint16_t cs = ComputeChecksum(cfg.checksum, frame.data() + dataStart, dataLen);
-        if (cfg.checksum == ChecksumType::CRC16) {
+        if (cfg.checksum == ChecksumType::CRC16 || cfg.checksum == ChecksumType::CRC16_XMODEM) {
             frame.push_back(static_cast<uint8_t>(cs & 0xFF));
             frame.push_back(static_cast<uint8_t>((cs >> 8) & 0xFF));
         } else {
@@ -699,7 +733,7 @@ inline SensorData ParseSensorFrame(const std::vector<uint8_t>& raw_data, const P
     SensorData data;
     data.is_valid = false;
 
-    int csBytes = (cfg.checksum != ChecksumType::None) ? (cfg.checksum == ChecksumType::CRC16 ? 2 : 1) : 0;
+    int csBytes = (cfg.checksum != ChecksumType::None) ? ((cfg.checksum == ChecksumType::CRC16 || cfg.checksum == ChecksumType::CRC16_XMODEM) ? 2 : 1) : 0;
 
     // Helper：从 buf 读取多字节值（默认 LE；若 big_endian 则反转）
     auto readNum = [&](const uint8_t* buf, DataEncoding enc) -> double {
@@ -809,14 +843,21 @@ inline SensorData ParseSensorFrame(const std::vector<uint8_t>& raw_data, const P
         offset += cmdSize;
     }
 
-    // 校验（对帧头之后、帧尾之前的所有数据计算：可选length + cmd_byte + payload）
+    // 校验
     if (cfg.checksum != ChecksumType::None) {
-        size_t checkStart = cfg.header.size();
+        size_t checkStart = 0;
         size_t checkLen   = offset - checkStart + payloadLen;
+        switch (cfg.checksum_range) {
+        case ChecksumRange::AfterHeader: checkStart = cfg.header.size(); break;
+        case ChecksumRange::FromCommand: checkStart = cfg.header.size(); break;
+        case ChecksumRange::PayloadOnly: checkStart = offset;            break; // offset 已指向 payload 起始
+        case ChecksumRange::EntireFrame: checkStart = 0;                 break;
+        }
+        checkLen = offset + payloadLen - checkStart;
         uint16_t calc = ComputeChecksum(cfg.checksum, raw_data.data() + checkStart, checkLen);
         size_t csOffset = offset + payloadLen;
         uint16_t expected = static_cast<uint16_t>(raw_data[csOffset]);
-        if (cfg.checksum == ChecksumType::CRC16)
+        if (cfg.checksum == ChecksumType::CRC16 || cfg.checksum == ChecksumType::CRC16_XMODEM)
             expected |= static_cast<uint16_t>(static_cast<unsigned>(raw_data[csOffset + 1]) << 8);
         if (calc != expected) return data;
     }

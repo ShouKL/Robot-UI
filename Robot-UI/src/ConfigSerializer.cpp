@@ -321,6 +321,8 @@ void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const RobotComponentM
                 out << YAML::Key << "name" << YAML::Value << m.name;
             out << YAML::Key << "target_speed" << YAML::Value << m.target_speed;
             out << YAML::Key << "target_speed_enc" << YAML::Value << static_cast<int>(m.target_speed.encoding);
+            out << YAML::Key << "target_position" << YAML::Value << m.target_position;
+            out << YAML::Key << "target_position_enc" << YAML::Value << static_cast<int>(m.target_position.encoding);
             out << YAML::Key << "np_mid" << YAML::Value << m.curve.np_mid;
             out << YAML::Key << "np_mid_enc" << YAML::Value << static_cast<int>(m.curve.np_mid.encoding);
             out << YAML::Key << "np_ini" << YAML::Value << m.curve.np_ini;
@@ -568,6 +570,7 @@ bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, RobotCompon
                 if (const YAML::Node& n = cfgNode["include_length"]; n.IsDefined()) p.include_length = n.as<bool>();
                 if (const YAML::Node& n = cfgNode["checksum"]; n.IsDefined()) p.checksum = static_cast<ChecksumType>(n.as<int>());
                 if (const YAML::Node& n = cfgNode["big_endian"]; n.IsDefined()) p.big_endian = n.as<bool>();
+                if (const YAML::Node& n = cfgNode["checksum_range"]; n.IsDefined()) p.checksum_range = static_cast<ChecksumRange>(n.as<int>());
                 p.header = readBytes(cfgNode["header"]);
                 p.tail   = readBytes(cfgNode["tail"]);
                 const YAML::Node& fieldsNode = cfgNode["fields"];
@@ -614,6 +617,7 @@ bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, RobotCompon
                 if (const YAML::Node& n = cfgNode["include_length"]; n.IsDefined()) rc.include_length = n.as<bool>();
                 if (const YAML::Node& n = cfgNode["checksum"]; n.IsDefined()) rc.checksum = static_cast<ChecksumType>(n.as<int>());
                 if (const YAML::Node& n = cfgNode["big_endian"]; n.IsDefined()) rc.big_endian = n.as<bool>();
+                if (const YAML::Node& n = cfgNode["checksum_range"]; n.IsDefined()) rc.checksum_range = static_cast<ChecksumRange>(n.as<int>());
                 rc.header = readBytes(cfgNode["header"]);
                 rc.tail   = readBytes(cfgNode["tail"]);
                 const YAML::Node& fieldsNode = cfgNode["fields"];
@@ -646,6 +650,8 @@ bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, RobotCompon
                 if (const YAML::Node& n = mItem["name"]; n.IsDefined())         bm.name = n.as<std::string>();
                 if (const YAML::Node& n = mItem["target_speed"]; n.IsDefined())  bm.target_speed = n.as<double>();
                 if (const YAML::Node& n = mItem["target_speed_enc"]; n.IsDefined()) bm.target_speed.encoding = static_cast<DataEncoding>(n.as<int>());
+                if (const YAML::Node& n = mItem["target_position"]; n.IsDefined())  bm.target_position = n.as<double>();
+                if (const YAML::Node& n = mItem["target_position_enc"]; n.IsDefined()) bm.target_position.encoding = static_cast<DataEncoding>(n.as<int>());
                 if (const YAML::Node& n = mItem["np_mid"]; n.IsDefined())  bm.curve.np_mid = n.as<double>();
                 if (const YAML::Node& n = mItem["np_mid_enc"]; n.IsDefined()) bm.curve.np_mid.encoding = static_cast<DataEncoding>(n.as<int>());
                 if (const YAML::Node& n = mItem["np_ini"]; n.IsDefined())  bm.curve.np_ini = n.as<double>();
@@ -953,6 +959,10 @@ void ConfigSerializer::EmitUIState(YAML::Emitter& out, const UIState& uiState)
         out << f;
     out << YAML::EndSeq;
 
+    // 截图设置
+    out << YAML::Key << "screenshot_scope" << YAML::Value << uiState.screenshot_scope;
+    out << YAML::Key << "screenshot_path" << YAML::Value << uiState.screenshot_path;
+
     out << YAML::EndMap;  // ui_state
 }
 
@@ -984,6 +994,10 @@ bool ConfigSerializer::ApplyUIState(const YAML::Node& node, UIState& uiState, st
         for (const auto& item : n)
             uiState.recent_files.push_back(item.as<std::string>());
     }
+
+    // 截图设置
+    if (const YAML::Node& n = node["screenshot_scope"]; n.IsDefined()) uiState.screenshot_scope = n.as<int>();
+    if (const YAML::Node& n = node["screenshot_path"]; n.IsDefined()) uiState.screenshot_path = n.as<std::string>();
 
     return true;
 }
@@ -1078,6 +1092,7 @@ void ConfigSerializer::EmitRobotComm(YAML::Emitter& out,
             out << YAML::Key << "include_length" << YAML::Value << p.include_length;
             out << YAML::Key << "checksum" << YAML::Value << static_cast<int>(p.checksum);
             out << YAML::Key << "big_endian" << YAML::Value << p.big_endian;
+            out << YAML::Key << "checksum_range" << YAML::Value << static_cast<int>(p.checksum_range);
             emitBytes("header", p.header);
             emitBytes("tail", p.tail);
             out << YAML::Key << "fields" << YAML::Value << YAML::BeginSeq;
@@ -1116,6 +1131,7 @@ void ConfigSerializer::EmitRobotComm(YAML::Emitter& out,
             out << YAML::Key << "include_length" << YAML::Value << pr.include_length;
             out << YAML::Key << "checksum" << YAML::Value << static_cast<int>(pr.checksum);
             out << YAML::Key << "big_endian" << YAML::Value << pr.big_endian;
+            out << YAML::Key << "checksum_range" << YAML::Value << static_cast<int>(pr.checksum_range);
             emitBytes2("header", pr.header);
             emitBytes2("tail", pr.tail);
             out << YAML::Key << "fields" << YAML::Value << YAML::BeginSeq;
@@ -1193,6 +1209,8 @@ bool ConfigSerializer::ApplyRobotComm(const YAML::Node& node,
                         p.include_length = n.as<bool>();
                     if (const YAML::Node& n = cfgNode["checksum"]; n.IsDefined())
                         p.checksum = static_cast<ChecksumType>(n.as<int>());
+                    if (const YAML::Node& n = cfgNode["checksum_range"]; n.IsDefined())
+                        p.checksum_range = static_cast<ChecksumRange>(n.as<int>());
                     if (const YAML::Node& n = cfgNode["big_endian"]; n.IsDefined())
                         p.big_endian = n.as<bool>();
                     p.header = readBytes(cfgNode["header"]);
@@ -1258,6 +1276,8 @@ bool ConfigSerializer::ApplyRobotComm(const YAML::Node& node,
                         rc.include_length = n.as<bool>();
                     if (const YAML::Node& n = cfgNode["checksum"]; n.IsDefined())
                         rc.checksum = static_cast<ChecksumType>(n.as<int>());
+                    if (const YAML::Node& n = cfgNode["checksum_range"]; n.IsDefined())
+                        rc.checksum_range = static_cast<ChecksumRange>(n.as<int>());
                     if (const YAML::Node& n = cfgNode["big_endian"]; n.IsDefined())
                         rc.big_endian = n.as<bool>();
                     rc.header = readBytes(cfgNode["header"]);

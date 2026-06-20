@@ -6,13 +6,18 @@
 #include "FileManager.h"
 #include "OptionPanel.h"
 #include "RobotSettingPanel.h"
+#include "Screenshot.h"
 #include <imgui_node_editor.h>
 #include <implot.h>
 #include <GLFW/glfw3.h>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
 #include <vulkan/vulkan.h>
 #include <chrono>
 #include <cmath>
+#include <ctime>
 #include <filesystem>
+#include <fstream>
 #include <shellapi.h>
 
 Robot_UI_Layer::Robot_UI_Layer()
@@ -81,6 +86,8 @@ Robot_UI_Layer::Robot_UI_Layer()
         [this]() { FileOpen(); },
         [this]() { FileSave(); },
         [this]() { FileSaveAs(); });
+    m_ShortcutManager.SetScreenshotCallback(
+        [this]() { TakeScreenshot(); });
     m_ShortcutManager.InitPanelRefs(
         &m_OptionOpen,
         &m_RobotStatusOpen,
@@ -281,6 +288,11 @@ void Robot_UI_Layer::LoadKernelFile(const std::string& path)
     // 恢复软件 UI 快捷键绑定
     if (!uiState.software_shortcuts_yaml.empty())
         m_ShortcutManager.LoadSoftwareBindingsFromYaml(uiState.software_shortcuts_yaml);
+
+    // 恢复截图设置
+    m_OptionPanel->SetScreenshotScope(uiState.screenshot_scope);
+    m_OptionPanel->SetScreenshotPath(uiState.screenshot_path);
+
     WL_INFO_TAG("APP", "Kernel loaded: {}", path);
 }
 
@@ -315,6 +327,10 @@ void Robot_UI_Layer::SaveKernelFile(const std::string& path)
 
     // 软件 UI 快捷键绑定
     uiState.software_shortcuts_yaml = m_ShortcutManager.GetSoftwareBindingsYaml();
+
+    // 截图设置
+    uiState.screenshot_scope = m_OptionPanel->GetScreenshotScope();
+    uiState.screenshot_path  = m_OptionPanel->GetScreenshotPath();
 
     std::string error;
     if (!ConfigSerializer::SaveKernel(path, m_OptionPanel->GetImGuiStyleManager(), uiState, &error))
@@ -353,6 +369,37 @@ void Robot_UI_Layer::FileSaveAs()
     SaveRobotFile(path);
     MessageBoxA(GetActiveWindow(), ("Configuration saved to:\n" + path).c_str(),
                 "Save Success", MB_OK | MB_ICONINFORMATION);
+}
+
+// ==================== 截图功能 ====================
+
+void Robot_UI_Layer::TakeScreenshot()
+{
+    int scope = m_OptionPanel ? m_OptionPanel->GetScreenshotScope() : 0;
+
+    std::string dir = m_OptionPanel ? m_OptionPanel->GetScreenshotPath() : "";
+    if (dir.empty())
+        dir = FileManager::GetExeDir() + "..\\..\\..\\asset\\screenshots";
+    if (!dir.empty() && dir.back() != '\\' && dir.back() != '/')
+        dir += '\\';
+    std::filesystem::create_directories(dir);
+
+    auto now = std::chrono::system_clock::now();
+    std::time_t t = std::chrono::system_clock::to_time_t(now);
+    std::tm tm_now;
+    localtime_s(&tm_now, &t);
+
+    const char* name = (scope >= 0 && scope < Screenshot::COUNT)
+        ? Screenshot::GetWindowNames()[scope] : "";
+
+    char filename[512];
+    snprintf(filename, sizeof(filename), "%s%s_%04d%02d%02d_%02d%02d%02d.bmp",
+        dir.c_str(), name,
+        tm_now.tm_year + 1900, tm_now.tm_mon + 1, tm_now.tm_mday,
+        tm_now.tm_hour, tm_now.tm_min, tm_now.tm_sec);
+
+    if (Screenshot::Capture(scope, dir, filename))
+        WL_INFO_TAG("APP", "Screenshot saved: {} ({}x{})", filename, 0, 0);
 }
 
 void Robot_UI_Layer::ApplyUIState(const UIState& st)
@@ -410,17 +457,23 @@ void Robot_UI_Layer::GamepadRoutine()
 
                 std::vector<ActuatorConfig> dataVec;
                 int connCount = m_RobotStatus->GetConnectionCount();
-                ActuatorConfig baseCfg = m_RobotStatus->GetAppliedActuator();
-                dataVec.assign(connCount, baseCfg);
+                {
+                    auto& comps = m_RobotSettingPanel->GetRobotComponentManager().GetComponents();
+                    for (int i = 0; i < connCount; ++i) {
+                        auto* conn = m_RobotStatus->GetConnection(i);
+                        int cIdx = conn ? conn->config.active_component_idx : 0;
+                        if (cIdx >= 0 && cIdx < (int)comps.size())
+                            dataVec.push_back(comps[cIdx].actuator_config);
+                        else
+                            dataVec.push_back(m_RobotStatus->GetAppliedActuator());
+                    }
+                }
                 std::set<int> writtenIndices;
                 m_RobotStatus->EvaluateIntoActuators(keyValues, dataVec, &writtenIndices);
 
                 for (int i = 0; i < connCount; ++i) {
                     auto* conn = m_RobotStatus->GetConnection(i);
                     if (!conn || !conn->isLinked) continue;
-                    // 只发送有节点图输出对应的连接槽
-                    if (!writtenIndices.empty() && writtenIndices.count(i) == 0)
-                        continue;
                     ActuatorConfig& data = (i < (int)dataVec.size()) ? dataVec[i] : dataVec[0];
                     conn->hw->SendActuatorData(data);
                     if (!conn->hw->IsConnected()) {
@@ -742,6 +795,11 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
                 if (ImGui::MenuItem("Option", "Ctrl+Shift+O"))
                 {
                     uiLayer->ShowOption();
+                }
+                ImGui::Separator();
+                if (ImGui::MenuItem("Screenshot", "Ctrl+Shift+X"))
+                {
+                    uiLayer->TakeScreenshot();
                 }
                 ImGui::EndMenu();
             }

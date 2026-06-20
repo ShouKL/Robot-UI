@@ -41,10 +41,16 @@ void RobotComm::DrawSendFieldConfig(ProtocolSendConfig& cfg, ActuatorConfig& act
         ImGui::Text("Header:"); HexEdit("##SendHeader", cfg.header);
         ImGui::Text("Tail:");   HexEdit("##SendTail", cfg.tail);
 
-        const char* checksumItems[] = { "None", "Sum8", "XOR8", "CRC16" };
+        const char* checksumItems[] = { "None", "Sum8", "XOR8", "CRC16", "CRC16-X" };
         int csIdx = (int)cfg.checksum;
         if (ImGui::Combo("Checksum", &csIdx, checksumItems, IM_ARRAYSIZE(checksumItems)))
             cfg.checksum = (ChecksumType)csIdx;
+        if (cfg.checksum != ChecksumType::None) {
+            const char* rangeItems[] = { "AfterHeader", "FromCommand", "PayloadOnly", "EntireFrame" };
+            int rIdx = (int)cfg.checksum_range;
+            if (ImGui::Combo("Range", &rIdx, rangeItems, IM_ARRAYSIZE(rangeItems)))
+                cfg.checksum_range = (ChecksumRange)rIdx;
+        }
 
         ImGui::Checkbox("Include Payload Length (2 bytes LE)", &cfg.include_length);
         ImGui::Checkbox("Big Endian (network byte order)", &cfg.big_endian);
@@ -267,8 +273,8 @@ void RobotComm::DrawSendFieldConfig(ProtocolSendConfig& cfg, ActuatorConfig& act
 
     // 发送帧格式（根据当前配置动态生成）
     if (ImGui::TreeNode("Send Frame Format")) {
-        const char* csNames[] = { "None", "Sum8", "XOR8", "CRC16" };
-        int csBytes = (cfg.checksum == ChecksumType::CRC16) ? 2 : (cfg.checksum != ChecksumType::None ? 1 : 0);
+        const char* csNames[] = { "None", "Sum8", "XOR8", "CRC16", "CRC16-X" };
+        int csBytes = (cfg.checksum == ChecksumType::CRC16 || cfg.checksum == ChecksumType::CRC16_XMODEM) ? 2 : (cfg.checksum != ChecksumType::None ? 1 : 0);
 
         // 统计 payload 大小
         int payloadBytes = 0;
@@ -355,10 +361,16 @@ void RobotComm::DrawReceiveFieldConfig(ProtocolReceiveConfig& cfg, const SensorC
         ImGui::Text("Header:"); HexEdit("##RecvHeader", cfg.header);
         ImGui::Text("Tail:");   HexEdit("##RecvTail", cfg.tail);
 
-        const char* checksumItems[] = { "None", "Sum8", "XOR8", "CRC16" };
+        const char* checksumItems[] = { "None", "Sum8", "XOR8", "CRC16", "CRC16-X" };
         int csIdx = (int)cfg.checksum;
         if (ImGui::Combo("Checksum", &csIdx, checksumItems, IM_ARRAYSIZE(checksumItems)))
             cfg.checksum = (ChecksumType)csIdx;
+        if (cfg.checksum != ChecksumType::None) {
+            const char* rangeItems[] = { "AfterHeader", "FromCommand", "PayloadOnly", "EntireFrame" };
+            int rIdx = (int)cfg.checksum_range;
+            if (ImGui::Combo("Range", &rIdx, rangeItems, IM_ARRAYSIZE(rangeItems)))
+                cfg.checksum_range = (ChecksumRange)rIdx;
+        }
 
         ImGui::Checkbox("Include Payload Length (2 bytes LE)", &cfg.include_length);
         ImGui::Checkbox("Big Endian (network byte order)", &cfg.big_endian);
@@ -528,8 +540,8 @@ void RobotComm::DrawReceiveFieldConfig(ProtocolReceiveConfig& cfg, const SensorC
 
     // 接收帧格式（根据当前配置动态生成）
     if (ImGui::TreeNode("Receive Frame Format")) {
-        const char* csNames[] = { "None", "Sum8", "XOR8", "CRC16" };
-        int csBytes = (cfg.checksum == ChecksumType::CRC16) ? 2 : (cfg.checksum != ChecksumType::None ? 1 : 0);
+        const char* csNames[] = { "None", "Sum8", "XOR8", "CRC16", "CRC16-X" };
+        int csBytes = (cfg.checksum == ChecksumType::CRC16 || cfg.checksum == ChecksumType::CRC16_XMODEM) ? 2 : (cfg.checksum != ChecksumType::None ? 1 : 0);
 
         bool bRawMode = (cfg.header.empty() && cfg.tail.empty() && !cfg.include_length
                          && cfg.checksum == ChecksumType::None);

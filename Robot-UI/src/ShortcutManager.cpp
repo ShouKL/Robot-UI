@@ -106,6 +106,7 @@ ShortcutBinding ShortcutManager::GetDefaultBinding(int action)
         {ImGuiKey_M, true,  false, false},  // ACT_TOGGLE_MONITORWALL   Ctrl+M
         {ImGuiKey_U, true,  false, false},  // ACT_TOGGLE_THRUSTCURVE   Ctrl+U
         {ImGuiKey_A, true,  true,  false},  // ACT_TOGGLE_ABOUT         Ctrl+Shift+A
+        {ImGuiKey_X, true,  true,  false},  // ACT_SCREENSHOT           Ctrl+Shift+X
     };
     if (action >= 0 && action < (int)(sizeof(defaults) / sizeof(defaults[0])))
         return defaults[action];
@@ -135,6 +136,7 @@ const char* ShortcutManager::GetActionCategory(int action)
     case ACT_TOGGLE_MONITORWALL:
     case ACT_TOGGLE_THRUSTCURVE:
     case ACT_TOGGLE_ABOUT:         return "Navigation";
+    case ACT_SCREENSHOT:           return "Tool";
     default:                       return "";
     }
 }
@@ -152,6 +154,7 @@ const char* ShortcutManager::GetActionLabel(int action)
     case ACT_TOGGLE_MONITORWALL:   return "Toggle Monitor Wall";
     case ACT_TOGGLE_THRUSTCURVE:   return "Toggle Thrust Curve Editor";
     case ACT_TOGGLE_ABOUT:         return "Toggle About";
+    case ACT_SCREENSHOT:           return "Screenshot";
     default:                       return "";
     }
 }
@@ -208,6 +211,7 @@ void ShortcutManager::Process()
     ONESHOT(ACT_FILE_OPEN,   m_FileOpenCb)
     ONESHOT(ACT_FILE_SAVE,   m_FileSaveCb)
     ONESHOT(ACT_FILE_SAVEAS, m_FileSaveAsCb)
+    ONESHOT(ACT_SCREENSHOT,  m_ScreenshotCb)
 
     TOGGLE_EDGE(ACT_TOGGLE_OPTION,       m_pOptionOpen)
     TOGGLE_EDGE(ACT_TOGGLE_STATUS,       m_pStatusOpen)
@@ -237,6 +241,7 @@ void ShortcutManager::ExecuteAction(int action)
     case ACT_TOGGLE_MONITORWALL:  if (m_pMonitorWallOpen)  *m_pMonitorWallOpen  = !*m_pMonitorWallOpen;  break;
     case ACT_TOGGLE_THRUSTCURVE:  if (m_pThrustCurveOpen)  *m_pThrustCurveOpen  = !*m_pThrustCurveOpen;  break;
     case ACT_TOGGLE_ABOUT:        if (m_pAboutOpen)        *m_pAboutOpen        = !*m_pAboutOpen;        break;
+    case ACT_SCREENSHOT:         if (m_ScreenshotCb)       m_ScreenshotCb();                              break;
     default: break;
     }
 }

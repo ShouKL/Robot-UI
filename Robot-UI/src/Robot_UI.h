@@ -57,6 +57,7 @@ public:
     void FileSave();
     void FileSaveAs();
     void LoadRobotFile(const std::string& path);   // 菜单中直接加载最近文件
+    void TakeScreenshot();                           // 截图功能
 
 private:
     void SaveRobotFile(const std::string& path);
@@ -89,4 +90,5 @@ private:
     std::thread m_GamepadThread;
     std::atomic<bool> m_Running;
     std::atomic<std::shared_ptr<const ActuatorConfig>> m_CurrentCommand;
+
 };
