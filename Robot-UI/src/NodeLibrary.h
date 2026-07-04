@@ -24,6 +24,7 @@ enum class PinType
     Float,
     Bool,
     Int,
+    Enum,      // int value mapped to a label string; labels stored in node/global
 };
 
 // ============================================================================
@@ -129,6 +130,7 @@ enum class NodeType
     CustomOutput = 46,
     LookupTable = 47,  // Mode → Value mapping
     ShortcutTrigger = 48,  // Keyboard shortcut → float (1.0 when held)
+    TriggerTable = 49,     // Multi-slot triggers + value table: first active trigger → output ModeLabels[n]
 };
 
 // ============================================================================

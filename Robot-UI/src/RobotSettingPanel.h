@@ -1,25 +1,10 @@
 #pragma once
 
-#if defined(_WIN32) || defined(_WIN64)
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <winsock2.h>
-#include <windows.h>
-#endif
-
+#include "core.h"
 #include "EditDraftBase.h"
-#include "GamepadMapperManager.h"
 #include "LiveStreamManager.h"
 #include "NodeGraphManager.h"
-#include "RobotCommManager.h"
-#include "RobotComponentManager.h"
-#include "LiveStream.h"
-#include "Robot_API/robot_api.h"
-#include <memory>
-#include <vector>
-
-class RobotStatus;
+#include "RobotStatus.h"
 
 // ============================================================================
 // RobotSettingPanel — 机器人设置面板
@@ -44,6 +29,9 @@ public:
 
     // ---- 标签页切换 ----
     void SelectTab(int tabId) { m_selected_id = tabId; }
+
+    // ---- 暖机模式：透明渲染，用于预上传 GPU 纹理（避免首次打开闪烁） ----
+    void SetWarmupMode(bool warmup) { m_WarmupMode = warmup; }
 
     // ---- 调试：设置 RobotStatus 指针（由 Robot_UI 注入） ----
     void SetRobotStatus(RobotStatus* rs) { m_RobotStatus = rs; }
@@ -75,6 +63,7 @@ private:
     std::unique_ptr<RobotCommManager>      m_RobotCommManager;
 
     int  m_selected_id = 0;  // 0=Component, 1=GamepadMapper, 2=NodeGraph, 3=LiveStream, 4=RobotComm
+    bool m_WarmupMode  = false;  // 暖机模式：透明渲染窗口，仅上传 GPU 资源
 
     RobotStatus* m_RobotStatus = nullptr;
 
@@ -84,9 +73,9 @@ private:
     // 快照
     std::vector<RobotMode>        m_ComponentSnapshot;
     std::vector<GamepadMapper>    m_GamepadSnapshot;
-    std::vector<StreamConfig>     m_StreamSnapshot;
-    std::vector<RobotCommConfig>  m_CommSnapshot;
-    std::vector<GraphItem>        m_NodeGraphSnapshot;
+    std::vector<LiveStream>     m_StreamSnapshot;
+    std::vector<RobotComm>  m_CommSnapshot;
+    std::vector<NodeGraph>  m_NodeGraphSnapshot;
 
     // 调试：追踪 GamepadMapper 选中项变化
     int m_LastGamepadIndex = -1;

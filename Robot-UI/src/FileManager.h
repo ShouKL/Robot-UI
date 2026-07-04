@@ -1,16 +1,8 @@
 #pragma once
 
-#if defined(_WIN32) || defined(_WIN64)
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <winsock2.h>
-#include <windows.h>
+#include "core.h"
 #include <commdlg.h>
-#endif
-
-#include <string>
-#include <vector>
+#include <filesystem>
 
 // ============================================================================
 // FileManager — 纯工具类，无业务耦合

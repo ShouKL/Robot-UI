@@ -1,10 +1,6 @@
 #pragma once
 
-#include <algorithm>   // workaround: ImTerm misc.hpp uses std::transform without including <algorithm>
-#include <memory>
-#include <mutex>
-#include <string>
-#include <vector>
+#include "core.h"
 #include "imterm/terminal.hpp"
 #include "imterm/terminal_helpers.hpp"
 

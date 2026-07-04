@@ -1,13 +1,6 @@
 #pragma once
-#include <string>
-#include <vector>
-#include <map>
-#include <memory>
-#include <mutex>
-#include <imgui.h>
+#include "core.h"
 #include <GLFW/glfw3.h>
-#include <algorithm>
-#include <cstring>
 #include "Walnut/Image.h"
 
 enum class GamepadType { Xbox, Custom };
@@ -54,9 +47,11 @@ public:
     GamepadMapper();
     ~GamepadMapper();
 
-    // 显式拷贝：mutex 不可拷贝，需手动实现
+    // 显式拷贝/移动：mutex 不可拷贝/移动，需手动实现
     GamepadMapper(const GamepadMapper& other);
     GamepadMapper& operator=(const GamepadMapper& other);
+    GamepadMapper(GamepadMapper&& other);
+    GamepadMapper& operator=(GamepadMapper&& other);
 
     void UpdateGamepadState();
     float GetKeyValue(const std::string& keyName);
@@ -73,22 +68,40 @@ public:
     int GetSelectedIndex() const { return 0; }
     void SetSelectedIndex(int) {}
 
-    void DrawGamepadMapper();
+    // ---- Canvas drawing data accessors (used by GamepadMapperManager) ----
+    const std::shared_ptr<Walnut::Image>& GetGamepadImage() const { return m_GamepadImage; }
+    std::shared_ptr<Walnut::Image>& GetGamepadImageRef()          { return m_GamepadImage; }
+    const std::vector<KeyInfo>& GetXboxPhysicalKeys() const       { return m_Keys; }
+    const std::vector<KeyInfo>& GetCustomPhysicalKeys() const     { return m_CustomPhysicalKeys; }
+    float GetRawKeyValue(const std::string& name) const;
+    const std::map<std::string, std::vector<std::string>>& GetKeyBoundActions() const { return m_KeyBoundActions; }
 
-private:
-    void DrawXboxCanvas();
-    void DrawCustomCanvas();
-
-    const std::vector<KeyInfo>& GetActivePhysicalKeys() const;
-    void UpdateRawJoystickState();
-    void RebuildCustomKeys();
-    void UpdateAllKeyValues();
-    void BindKey();
+    // ---- Expose for canvas drawing ----
     void UnbindKey(const std::string&);
+    float CalcActivation(const KeyInfo& key, float rawVal) const;
+    void RebuildCustomKeys();
     void RefreshBoundKeys();
 
+    // ---- UI state accessors (used by GamepadMapperManager for key-grid drawing) ----
+    const std::string& GetSelectedKey() const             { return m_SelectedKey; }
+    void SetSelectedKey(const std::string& k)              { m_SelectedKey = k; }
+    void ClearSelectedKey()                                { m_SelectedKey.clear(); }
+    int  GetPendingDeleteKeyId() const                     { return m_PendingDeleteKeyId; }
+    void SetPendingDeleteKeyId(int id)                     { m_PendingDeleteKeyId = id; }
+    void ProcessPendingDeletes();
+    // Inline rename state
+    bool IsRenaming(int keyId) const                       { return m_Renaming && m_RenamingKeyId == keyId; }
+    char* GetRenameBuffer()                                { return m_RenameBuffer; }
+    void BeginRename(int keyId, const std::string& keyName);
+    void EndRename(bool confirmed);
+
+private:
+    const std::vector<KeyInfo>& GetActivePhysicalKeys() const;
+    void UpdateRawJoystickState();
+    void UpdateAllKeyValues();
+    void BindKey();
+
     float CalcRawValue(const KeyInfo&, const GLFWgamepadstate&);
-    float CalcActivation(const KeyInfo&, float) const;
 
     std::shared_ptr<Walnut::Image> m_GamepadImage;
     std::map<std::string, float> m_KeyValues;
@@ -118,17 +131,4 @@ private:
     mutable std::mutex m_RawKeyValuesMutex;
 
     GLFWgamepadstate m_LastState;
-};
-
-// ============================================================================
-// GamepadNode — 纯数据（不含手柄状态/mutex/纹理），用于序列化/传递
-// ============================================================================
-struct GamepadNode
-{
-    int id = 0;
-    bool isSelected = false;
-    char name[64] = "Default";
-    GamepadType gamepad_type = GamepadType::Xbox;
-    std::vector<GamepadKey> keys;
-    std::vector<KeyMapping> mappings;
 };

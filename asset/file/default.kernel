@@ -6,7 +6,7 @@ robot_ui_kernel:
     alpha: 1
   ui_state:
     about_open: false
-    option_open: false
+    option_open: true
     simulation_open: false
     live_streamer_open: false
     robot_status_open: true
@@ -27,15 +27,17 @@ robot_ui_kernel:
       - ..\..\..\asset\file\default.rbt
     screenshot_scope: 5
     screenshot_path: ""
+    conn_retry_count: 5
+    camera_retry_count: 2
   software_shortcuts:
     File Open: {key: 560, ctrl: true, shift: false, alt: false}
     File Save: {key: 564, ctrl: true, shift: false, alt: false}
     File Save As: {key: 564, ctrl: true, shift: true, alt: false}
-    Toggle Option Panel: {key: 560, ctrl: true, shift: false, alt: false}
-    Toggle Status Panel: {key: 564, ctrl: true, shift: false, alt: false}
+    Toggle Option Panel: {key: 562, ctrl: true, shift: false, alt: false}
+    Toggle Status Panel: {key: 557, ctrl: true, shift: false, alt: false}
     Toggle Robot Setting Panel: {key: 550, ctrl: true, shift: false, alt: false}
-    Toggle Terminal Panel: {key: 565, ctrl: true, shift: false, alt: false}
-    Toggle Monitor Wall: {key: 558, ctrl: true, shift: false, alt: false}
-    Toggle Thrust Curve Editor: {key: 566, ctrl: true, shift: false, alt: false}
+    Toggle Terminal Panel: {key: 566, ctrl: true, shift: false, alt: false}
+    Toggle Monitor Wall: {key: 551, ctrl: true, shift: false, alt: false}
+    Toggle Thrust Curve Editor: {key: 554, ctrl: true, shift: false, alt: false}
     Toggle About: {key: 546, ctrl: true, shift: true, alt: false}
     Screenshot: {key: 569, ctrl: true, shift: true, alt: false}

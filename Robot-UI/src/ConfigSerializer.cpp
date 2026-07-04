@@ -1,30 +1,15 @@
 #include "ConfigSerializer.h"
-#include "RobotComponentManager.h"
-#include "RobotComponent.h"
-#include "RobotComm.h"
-#include "GamepadMapperManager.h"
-#include "GamepadMapper.h"
-#include "NodeGraphManager.h"
-#include "imgui_style.h"
-#include "LiveStream.h"
-#include "Walnut/Core/Log.h"
-
-#include <fstream>
-#include <cstring>
-#include <cstdlib>
-#include <windows.h>
-#include <commdlg.h>
 
 bool ConfigSerializer::Save(const std::string& filepath,
                             const RobotComponentManager& robotMgr,
                             const GamepadMapperManager& gamepadMgr,
                             const ImGuiStyleManager& styleManager,
-                            const std::vector<StreamConfig>& streams,
+                            const std::vector<LiveStream>& streams,
                             const UIState& uiState,
                             const ThrustCurve* editorCurve,
-                            const std::vector<RobotCommConfig>& commConfigs,
+                            const std::vector<RobotComm>& commConfigs,
                             const std::map<std::string, std::string>* graphMap,
-                            const std::vector<GraphItem>* graphItems,
+                            const std::vector<NodeGraph>* graphItems,
                             std::string* outError)
 {
     try
@@ -192,12 +177,12 @@ bool ConfigSerializer::Load(const std::string& filepath,
                             RobotComponentManager& robotMgr,
                             GamepadMapperManager& gamepadMgr,
                             ImGuiStyleManager& styleManager,
-                            std::vector<StreamConfig>& streams,
+                            std::vector<LiveStream>& streams,
                             UIState& uiState,
                             ThrustCurve* editorCurve,
-                            std::vector<RobotCommConfig>* commConfigs,
+                            std::vector<RobotComm>* commConfigs,
                             std::map<std::string, std::string>* graphMap,
-                            std::vector<GraphItem>* graphItems,
+                            std::vector<NodeGraph>* graphItems,
                             std::string* outError)
 {
     try
@@ -304,8 +289,8 @@ void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const RobotComponentM
         // gamepad_mapping 已移至 GamepadMapper 独立管理，不在 Component 中存储
         // host_ip / port / protocol_type 已移至 RobotCommConfig
 
-        // Motion 组件
-        out << YAML::Key << "has_motion" << YAML::Value << comp.actuator_config.has_motion;
+        // Motion 组件 — now in motions vector above
+        (void)comp;
 
         // Sensor 组件
         out << YAML::Key << "has_temperature" << YAML::Value << comp.sensor_config.has_temperature;
@@ -363,10 +348,26 @@ void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const RobotComponentM
         }
         out << YAML::EndSeq;  // servos
 
-        // Motion 数据
-        if (comp.actuator_config.has_motion) {
-            const auto& mc = comp.actuator_config.motion;
-            out << YAML::Key << "motion" << YAML::Value << YAML::BeginMap;
+        // GPIO Pins
+        out << YAML::Key << "gpio_pins" << YAML::Value << YAML::BeginSeq;
+        for (const auto& gpio : comp.actuator_config.gpio_pins)
+        {
+            out << YAML::BeginMap;
+            out << YAML::Key << "id" << YAML::Value << gpio.id;
+            if (!gpio.name.empty())
+                out << YAML::Key << "name" << YAML::Value << gpio.name;
+            out << YAML::Key << "pin_number" << YAML::Value << gpio.pin_number;
+            out << YAML::Key << "value" << YAML::Value << gpio.value;
+            out << YAML::EndMap;
+        }
+        out << YAML::EndSeq;  // gpio_pins
+
+        // Motion 组件（向量）
+        out << YAML::Key << "motions" << YAML::Value << YAML::BeginSeq;
+        for (const auto& mc : comp.actuator_config.motions)
+        {
+            out << YAML::BeginMap;
+            if (!mc.name.empty()) out << YAML::Key << "name" << YAML::Value << mc.name;
             out << YAML::Key << "x"  << YAML::Value << mc.x;  out << YAML::Key << "x_enc"  << YAML::Value << static_cast<int>(mc.x.encoding);
             out << YAML::Key << "y"  << YAML::Value << mc.y;  out << YAML::Key << "y_enc"  << YAML::Value << static_cast<int>(mc.y.encoding);
             out << YAML::Key << "z"  << YAML::Value << mc.z;  out << YAML::Key << "z_enc"  << YAML::Value << static_cast<int>(mc.z.encoding);
@@ -375,6 +376,7 @@ void ConfigSerializer::EmitRobotConfig(YAML::Emitter& out, const RobotComponentM
             out << YAML::Key << "rz" << YAML::Value << mc.rz; out << YAML::Key << "rz_enc" << YAML::Value << static_cast<int>(mc.rz.encoding);
             out << YAML::EndMap;
         }
+        out << YAML::EndSeq;
 
         // 协议发送/接收配置已移至 RobotCommConfig（独立序列化）
 
@@ -440,14 +442,17 @@ void ConfigSerializer::EmitStyle(YAML::Emitter& out, const ImGuiStyleManager& st
     out << YAML::EndMap;
 }
 
-void ConfigSerializer::EmitStreams(YAML::Emitter& out, const std::vector<StreamConfig>& configs)
+void ConfigSerializer::EmitStreams(YAML::Emitter& out, const std::vector<LiveStream>& configs)
 {
     out << YAML::Key << "streams" << YAML::Value << YAML::BeginSeq;
     for (const auto& c : configs)
     {
         out << YAML::BeginMap;
-        out << YAML::Key << "name" << YAML::Value << c.name;
-        out << YAML::Key << "ip" << YAML::Value << c.ip;
+        out << YAML::Key << "id"                 << YAML::Value << c.id;
+        out << YAML::Key << "is_streaming"       << YAML::Value << c.isStreaming;
+        out << YAML::Key << "is_selected"        << YAML::Value << c.isSelected;
+        out << YAML::Key << "name"               << YAML::Value << c.name;
+        out << YAML::Key << "ip"                 << YAML::Value << c.ip;
         out << YAML::Key << "user" << YAML::Value << c.user;
         out << YAML::Key << "pass" << YAML::Value << c.pass;
         out << YAML::Key << "port" << YAML::Value << c.port;
@@ -482,8 +487,7 @@ void ConfigSerializer::EmitStreams(YAML::Emitter& out, const std::vector<StreamC
 static void SafeStrCpy(char* dst, size_t dstSize, const std::string& src)
 {
     if (dstSize == 0) return;
-    strncpy(dst, src.c_str(), dstSize - 1);
-    dst[dstSize - 1] = '\0';
+    strncpy_s(dst, dstSize, src.c_str(), dstSize - 1);
 }
 
 bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, RobotComponentManager& robotMgr, std::string* outError)
@@ -525,10 +529,11 @@ bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, RobotCompon
         if (const YAML::Node& n = modeNode["local_port"]; n.IsDefined())  mode.local_port = n.as<int>();
         if (const YAML::Node& n = modeNode["protocol_type"]; n.IsDefined()) mode.protocol_type = n.as<int>();
 
-        // Motion 组件
-        if (const YAML::Node& n = modeNode["has_motion"]; n.IsDefined())      mode.actuator_config.has_motion = n.as<bool>();
-
-        // Sensor 组件
+        // Motion 组件flag
+        if (const YAML::Node& n = modeNode["has_motion"]; n.IsDefined() && n.as<bool>() && mode.actuator_config.motions.empty()) {
+            MotionControl mc;
+            mode.actuator_config.motions.push_back(mc);
+        }
         if (const YAML::Node& n = modeNode["has_temperature"]; n.IsDefined()) mode.sensor_config.has_temperature = n.as<bool>();
         if (const YAML::Node& n = modeNode["has_humidity"]; n.IsDefined())    mode.sensor_config.has_humidity = n.as<bool>();
         if (const YAML::Node& n = modeNode["has_depth"]; n.IsDefined())       mode.sensor_config.has_depth = n.as<bool>();
@@ -562,7 +567,7 @@ bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, RobotCompon
                         for (const auto& v : seq) bytes.push_back(static_cast<uint8_t>(v.as<int>()));
                     return bytes;
                 };
-                if (const YAML::Node& n = cfgNode["name"]; n.IsDefined()) { std::string nm = n.as<std::string>(); strncpy(p.name, nm.c_str(), sizeof(p.name) - 1); }
+                if (const YAML::Node& n = cfgNode["name"]; n.IsDefined()) { std::string nm = n.as<std::string>(); strncpy_s(p.name, nm.c_str(), sizeof(p.name) - 1); }
                 p.command_bytes = readBytes(cfgNode["command_byte"]);
                 if (p.command_bytes.empty() && cfgNode["command_byte"].IsDefined() && !cfgNode["command_byte"].IsSequence())
                     p.command_bytes.push_back(static_cast<uint8_t>(cfgNode["command_byte"].as<int>()));
@@ -608,7 +613,7 @@ bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, RobotCompon
                         for (const auto& v : seq) bytes.push_back(static_cast<uint8_t>(v.as<int>()));
                     return bytes;
                 };
-                if (const YAML::Node& n = cfgNode["name"]; n.IsDefined()) { std::string nm = n.as<std::string>(); strncpy(rc.name, nm.c_str(), sizeof(rc.name) - 1); }
+                if (const YAML::Node& n = cfgNode["name"]; n.IsDefined()) { std::string nm = n.as<std::string>(); strncpy_s(rc.name, nm.c_str(), sizeof(rc.name) - 1); }
                 rc.command_bytes = readBytes(cfgNode["command_byte"]);
                 if (rc.command_bytes.empty()) {
                     if (const YAML::Node& n = cfgNode["command_byte"]; n.IsDefined() && !n.IsSequence()) rc.command_bytes.push_back(static_cast<uint8_t>(n.as<int>()));
@@ -710,23 +715,63 @@ bool ConfigSerializer::ApplyRobotConfig(const YAML::Node& robotNode, RobotCompon
             }
         }
 
-        // 读取 Motion 数据
-        const YAML::Node& motionNode = modeNode["motion"];
-        if (motionNode.IsDefined() && motionNode.IsMap()) {
-            auto& mc = mode.actuator_config.motion;
-            if (const YAML::Node& n = motionNode["x"]; n.IsDefined())  mc.x = n.as<double>();
-            if (const YAML::Node& n = motionNode["x_enc"]; n.IsDefined())  mc.x.encoding = static_cast<DataEncoding>(n.as<int>());
-            if (const YAML::Node& n = motionNode["y"]; n.IsDefined())  mc.y = n.as<double>();
-            if (const YAML::Node& n = motionNode["y_enc"]; n.IsDefined())  mc.y.encoding = static_cast<DataEncoding>(n.as<int>());
-            if (const YAML::Node& n = motionNode["z"]; n.IsDefined())  mc.z = n.as<double>();
-            if (const YAML::Node& n = motionNode["z_enc"]; n.IsDefined())  mc.z.encoding = static_cast<DataEncoding>(n.as<int>());
-            if (const YAML::Node& n = motionNode["rx"]; n.IsDefined()) mc.rx = n.as<double>();
-            if (const YAML::Node& n = motionNode["rx_enc"]; n.IsDefined()) mc.rx.encoding = static_cast<DataEncoding>(n.as<int>());
-            if (const YAML::Node& n = motionNode["ry"]; n.IsDefined()) mc.ry = n.as<double>();
-            if (const YAML::Node& n = motionNode["ry_enc"]; n.IsDefined()) mc.ry.encoding = static_cast<DataEncoding>(n.as<int>());
-            if (const YAML::Node& n = motionNode["rz"]; n.IsDefined()) mc.rz = n.as<double>();
-            if (const YAML::Node& n = motionNode["rz_enc"]; n.IsDefined()) mc.rz.encoding = static_cast<DataEncoding>(n.as<int>());
+        // 读取 GPIO Pins
+        mode.actuator_config.gpio_pins.clear();
+        const YAML::Node& gpios = modeNode["gpio_pins"];
+        if (gpios.IsDefined() && gpios.IsSequence())
+        {
+            for (const auto& gItem : gpios)
+            {
+                GpioPin gpio;
+                if (const YAML::Node& n = gItem["id"]; n.IsDefined())         gpio.id = n.as<int>();
+                if (const YAML::Node& n = gItem["name"]; n.IsDefined())       gpio.name = n.as<std::string>();
+                if (const YAML::Node& n = gItem["pin_number"]; n.IsDefined()) gpio.pin_number = n.as<int>();
+                if (const YAML::Node& n = gItem["value"]; n.IsDefined())      gpio.value = n.as<int>();
+                mode.actuator_config.gpio_pins.push_back(gpio);
+            }
         }
+
+        // Motion 组件（向量）
+        if (const YAML::Node& motionsNode = modeNode["motions"]; motionsNode.IsDefined() && motionsNode.IsSequence()) {
+            mode.actuator_config.motions.clear();
+            for (const auto& mItem : motionsNode) {
+                MotionControl mc;
+                if (const YAML::Node& n = mItem["name"]; n.IsDefined()) mc.name = n.as<std::string>();
+                if (const YAML::Node& n = mItem["x"]; n.IsDefined())  mc.x = n.as<double>();
+                if (const YAML::Node& n = mItem["x_enc"]; n.IsDefined())  mc.x.encoding = static_cast<DataEncoding>(n.as<int>());
+                if (const YAML::Node& n = mItem["y"]; n.IsDefined())  mc.y = n.as<double>();
+                if (const YAML::Node& n = mItem["y_enc"]; n.IsDefined())  mc.y.encoding = static_cast<DataEncoding>(n.as<int>());
+                if (const YAML::Node& n = mItem["z"]; n.IsDefined())  mc.z = n.as<double>();
+                if (const YAML::Node& n = mItem["z_enc"]; n.IsDefined())  mc.z.encoding = static_cast<DataEncoding>(n.as<int>());
+                if (const YAML::Node& n = mItem["rx"]; n.IsDefined()) mc.rx = n.as<double>();
+                if (const YAML::Node& n = mItem["rx_enc"]; n.IsDefined()) mc.rx.encoding = static_cast<DataEncoding>(n.as<int>());
+                if (const YAML::Node& n = mItem["ry"]; n.IsDefined()) mc.ry = n.as<double>();
+                if (const YAML::Node& n = mItem["ry_enc"]; n.IsDefined()) mc.ry.encoding = static_cast<DataEncoding>(n.as<int>());
+                if (const YAML::Node& n = mItem["rz"]; n.IsDefined()) mc.rz = n.as<double>();
+                if (const YAML::Node& n = mItem["rz_enc"]; n.IsDefined()) mc.rz.encoding = static_cast<DataEncoding>(n.as<int>());
+                mode.actuator_config.motions.push_back(mc);
+            }
+        }
+        // 向后兼容：旧格式 motion（单对象）
+        else if (const YAML::Node& motionNode = modeNode["motion"]; motionNode.IsDefined() && motionNode.IsMap()) {
+            MotionControl mc;
+            auto& mn = motionNode;
+            if (const YAML::Node& n = mn["name"]; n.IsDefined()) mc.name = n.as<std::string>();
+            if (const YAML::Node& n = mn["x"]; n.IsDefined())  mc.x = n.as<double>();
+            if (const YAML::Node& n = mn["x_enc"]; n.IsDefined())  mc.x.encoding = static_cast<DataEncoding>(n.as<int>());
+            if (const YAML::Node& n = mn["y"]; n.IsDefined())  mc.y = n.as<double>();
+            if (const YAML::Node& n = mn["y_enc"]; n.IsDefined())  mc.y.encoding = static_cast<DataEncoding>(n.as<int>());
+            if (const YAML::Node& n = mn["z"]; n.IsDefined())  mc.z = n.as<double>();
+            if (const YAML::Node& n = mn["z_enc"]; n.IsDefined())  mc.z.encoding = static_cast<DataEncoding>(n.as<int>());
+            if (const YAML::Node& n = mn["rx"]; n.IsDefined()) mc.rx = n.as<double>();
+            if (const YAML::Node& n = mn["rx_enc"]; n.IsDefined()) mc.rx.encoding = static_cast<DataEncoding>(n.as<int>());
+            if (const YAML::Node& n = mn["ry"]; n.IsDefined()) mc.ry = n.as<double>();
+            if (const YAML::Node& n = mn["ry_enc"]; n.IsDefined()) mc.ry.encoding = static_cast<DataEncoding>(n.as<int>());
+            if (const YAML::Node& n = mn["rz"]; n.IsDefined()) mc.rz = n.as<double>();
+            if (const YAML::Node& n = mn["rz_enc"]; n.IsDefined()) mc.rz.encoding = static_cast<DataEncoding>(n.as<int>());
+            mode.actuator_config.motions.push_back(mc);
+        }
+        // 读取 Motion 组件flag
 
         loadedModes.push_back(mode);
     }
@@ -874,7 +919,7 @@ bool ConfigSerializer::ApplyStyle(const YAML::Node& styleNode, ImGuiStyleManager
     return true;
 }
 
-bool ConfigSerializer::ApplyStreams(const YAML::Node& streamsNode, std::vector<StreamConfig>& streams, std::string* outError)
+bool ConfigSerializer::ApplyStreams(const YAML::Node& streamsNode, std::vector<LiveStream>& streams, std::string* outError)
 {
     if (!streamsNode.IsSequence())
     {
@@ -885,7 +930,7 @@ bool ConfigSerializer::ApplyStreams(const YAML::Node& streamsNode, std::vector<S
     streams.clear();
     for (const auto& item : streamsNode)
     {
-        StreamConfig cfg;
+        LiveStream cfg;
 
         auto readStr = [&](const char* key, char* dst, size_t dstSize) {
             const YAML::Node& n = item[key];
@@ -893,6 +938,9 @@ bool ConfigSerializer::ApplyStreams(const YAML::Node& streamsNode, std::vector<S
                 SafeStrCpy(dst, dstSize, n.as<std::string>());
         };
 
+        if (const YAML::Node& n = item["id"]; n.IsDefined())           cfg.id          = n.as<int>();
+        if (const YAML::Node& n = item["is_streaming"]; n.IsDefined()) cfg.isStreaming = n.as<bool>();
+        if (const YAML::Node& n = item["is_selected"]; n.IsDefined())  cfg.isSelected  = n.as<bool>();
         readStr("name", cfg.name, sizeof(cfg.name));
         readStr("ip", cfg.ip, sizeof(cfg.ip));
         readStr("user", cfg.user, sizeof(cfg.user));
@@ -963,6 +1011,10 @@ void ConfigSerializer::EmitUIState(YAML::Emitter& out, const UIState& uiState)
     out << YAML::Key << "screenshot_scope" << YAML::Value << uiState.screenshot_scope;
     out << YAML::Key << "screenshot_path" << YAML::Value << uiState.screenshot_path;
 
+    // 连接设置
+    out << YAML::Key << "conn_retry_count" << YAML::Value << uiState.conn_retry_count;
+    out << YAML::Key << "camera_retry_count" << YAML::Value << uiState.camera_retry_count;
+
     out << YAML::EndMap;  // ui_state
 }
 
@@ -998,6 +1050,10 @@ bool ConfigSerializer::ApplyUIState(const YAML::Node& node, UIState& uiState, st
     // 截图设置
     if (const YAML::Node& n = node["screenshot_scope"]; n.IsDefined()) uiState.screenshot_scope = n.as<int>();
     if (const YAML::Node& n = node["screenshot_path"]; n.IsDefined()) uiState.screenshot_path = n.as<std::string>();
+
+    // 连接设置
+    if (const YAML::Node& n = node["conn_retry_count"]; n.IsDefined()) uiState.conn_retry_count = n.as<int>();
+    if (const YAML::Node& n = node["camera_retry_count"]; n.IsDefined()) uiState.camera_retry_count = n.as<int>();
 
     return true;
 }
@@ -1061,7 +1117,7 @@ bool ConfigSerializer::ApplyEditorCurve(const YAML::Node& node, ThrustCurve& cur
 // ============================================================================
 
 void ConfigSerializer::EmitRobotComm(YAML::Emitter& out,
-                                     const std::vector<RobotCommConfig>& configs)
+                                     const std::vector<RobotComm>& configs)
 {
     out << YAML::Key << "robot_comm" << YAML::Value << YAML::BeginMap;
 
@@ -1069,13 +1125,24 @@ void ConfigSerializer::EmitRobotComm(YAML::Emitter& out,
     for (const auto& cfg : configs)
     {
         out << YAML::BeginMap;
-        out << YAML::Key << "name"          << YAML::Value << cfg.name;
+        out << YAML::Key << "id"                << YAML::Value << cfg.id;
+        out << YAML::Key << "is_selected"       << YAML::Value << cfg.isSelected;
+        out << YAML::Key << "is_linked"         << YAML::Value << cfg.isLinked;
+        out << YAML::Key << "name"              << YAML::Value << cfg.name;
         out << YAML::Key << "host_ip"       << YAML::Value << cfg.host_ip;
         out << YAML::Key << "remote_port"   << YAML::Value << cfg.remote_port;
         out << YAML::Key << "local_port"    << YAML::Value << cfg.local_port;
         out << YAML::Key << "transport_type" << YAML::Value << cfg.transport_type;
         out << YAML::Key << "send_freq_hz"   << YAML::Value << cfg.send_freq_hz;
+        out << YAML::Key << "retry_count"    << YAML::Value << cfg.retry_count;
         out << YAML::Key << "active_component_idx" << YAML::Value << cfg.active_component_idx;
+
+        // Serial-specific config
+        out << YAML::Key << "com_port"   << YAML::Value << cfg.com_port_str;
+        out << YAML::Key << "baud_rate"  << YAML::Value << cfg.baud_rate;
+        out << YAML::Key << "data_bits"  << YAML::Value << cfg.data_bits;
+        out << YAML::Key << "stop_bits"  << YAML::Value << cfg.stop_bits;
+        out << YAML::Key << "parity"     << YAML::Value << cfg.parity;
 
         // 协议发送配置（多帧）
         out << YAML::Key << "protocol_send" << YAML::Value << YAML::BeginSeq;
@@ -1157,7 +1224,7 @@ void ConfigSerializer::EmitRobotComm(YAML::Emitter& out,
 }
 
 bool ConfigSerializer::ApplyRobotComm(const YAML::Node& node,
-                                      std::vector<RobotCommConfig>& configs,
+                                      std::vector<RobotComm>& configs,
                                       std::string* outError)
 {
     (void)outError;
@@ -1168,7 +1235,7 @@ bool ConfigSerializer::ApplyRobotComm(const YAML::Node& node,
         configs.clear();
         for (const auto& item : nodesNode)
         {
-            RobotCommConfig cfg;
+            RobotComm cfg;
 
             auto readStr = [&](const char* key, char* dst, size_t dstSize) {
                 const YAML::Node& n = item[key];
@@ -1183,7 +1250,15 @@ bool ConfigSerializer::ApplyRobotComm(const YAML::Node& node,
             if (const YAML::Node& n = item["local_port"];     n.IsDefined()) cfg.local_port     = n.as<int>();
             if (const YAML::Node& n = item["transport_type"]; n.IsDefined()) cfg.transport_type = n.as<int>();
             if (const YAML::Node& n = item["send_freq_hz"];   n.IsDefined()) cfg.send_freq_hz   = n.as<int>();
+            if (const YAML::Node& n = item["retry_count"];    n.IsDefined()) cfg.retry_count    = n.as<int>();
             if (const YAML::Node& n = item["active_component_idx"]; n.IsDefined()) cfg.active_component_idx = n.as<int>();
+
+            // Serial-specific config
+            readStr("com_port",  cfg.com_port_str, sizeof(cfg.com_port_str));
+            if (const YAML::Node& n = item["baud_rate"];  n.IsDefined()) cfg.baud_rate  = n.as<int>();
+            if (const YAML::Node& n = item["data_bits"];  n.IsDefined()) cfg.data_bits  = n.as<int>();
+            if (const YAML::Node& n = item["stop_bits"];  n.IsDefined()) cfg.stop_bits  = n.as<int>();
+            if (const YAML::Node& n = item["parity"];     n.IsDefined()) cfg.parity     = n.as<int>();
 
             // 协议发送配置
             const YAML::Node& ps = item["protocol_send"];
@@ -1198,7 +1273,7 @@ bool ConfigSerializer::ApplyRobotComm(const YAML::Node& node,
                 auto readSendCfg = [&](const YAML::Node& cfgNode, ProtocolSendConfig& p) {
                     if (const YAML::Node& n = cfgNode["name"]; n.IsDefined()) {
                         std::string nm = n.as<std::string>();
-                        strncpy(p.name, nm.c_str(), sizeof(p.name) - 1);
+                        strncpy_s(p.name, nm.c_str(), sizeof(p.name) - 1);
                     }
                     p.command_bytes = readBytes(cfgNode["command_byte"]);
                     if (p.command_bytes.empty() && cfgNode["command_byte"].IsDefined() && !cfgNode["command_byte"].IsSequence())
@@ -1267,7 +1342,7 @@ bool ConfigSerializer::ApplyRobotComm(const YAML::Node& node,
                 auto readRecvCfg = [&](const YAML::Node& cfgNode, ProtocolReceiveConfig& rc) {
                     if (const YAML::Node& n = cfgNode["name"]; n.IsDefined()) {
                         std::string nm = n.as<std::string>();
-                        strncpy(rc.name, nm.c_str(), sizeof(rc.name) - 1);
+                        strncpy_s(rc.name, nm.c_str(), sizeof(rc.name) - 1);
                     }
                     rc.command_bytes = readBytes(cfgNode["command_byte"]);
                     if (rc.command_bytes.empty() && cfgNode["command_byte"].IsDefined() && !cfgNode["command_byte"].IsSequence())
@@ -1324,7 +1399,7 @@ bool ConfigSerializer::ApplyRobotComm(const YAML::Node& node,
 // ============================================================================
 // EmitGraphItems — NodeGraph 编辑项列表
 // ============================================================================
-void ConfigSerializer::EmitGraphItems(YAML::Emitter& out, const std::vector<GraphItem>& items)
+void ConfigSerializer::EmitGraphItems(YAML::Emitter& out, const std::vector<NodeGraph>& items)
 {
     out << YAML::Key << "graph_items" << YAML::Value << YAML::BeginSeq;
     for (const auto& item : items)
@@ -1342,7 +1417,7 @@ void ConfigSerializer::EmitGraphItems(YAML::Emitter& out, const std::vector<Grap
 // ============================================================================
 // ApplyGraphItems — NodeGraph 编辑项列表加载
 // ============================================================================
-bool ConfigSerializer::ApplyGraphItems(const YAML::Node& node, std::vector<GraphItem>& items, std::string* outError)
+bool ConfigSerializer::ApplyGraphItems(const YAML::Node& node, std::vector<NodeGraph>& items, std::string* outError)
 {
     (void)outError;
     items.clear();
@@ -1350,7 +1425,7 @@ bool ConfigSerializer::ApplyGraphItems(const YAML::Node& node, std::vector<Graph
 
     for (const auto& yn : node)
     {
-        GraphItem item;
+        NodeGraph item;
         if (const YAML::Node& n = yn["id"];          n.IsDefined()) item.id          = n.as<int>();
         if (const YAML::Node& n = yn["name"];        n.IsDefined()) strncpy_s(item.name, n.as<std::string>().c_str(), sizeof(item.name) - 1);
         if (const YAML::Node& n = yn["is_selected"]; n.IsDefined()) item.isSelected  = n.as<bool>();

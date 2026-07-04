@@ -1,18 +1,14 @@
 #pragma once
 
-#include <yaml-cpp/yaml.h>
+#include "core.h"
+#include "imgui_style.h"
+#include "RobotComponentManager.h"
+#include "GamepadMapperManager.h"
+#include "NodeGraph.h"
+#include "LiveStream.h"
+#include "RobotComm.h"
+#include "Robot_API/robot_api.h"
 
-#include <string>
-#include <vector>
-
-class RobotComponentManager;
-class GamepadMapperManager;
-class ImGuiStyleManager;
-class NodeGraphManager;
-struct StreamConfig;
-struct ThrustCurve;
-struct RobotCommConfig;
-struct GraphItem;
 struct UIState
 {
     bool about_open            = false;
@@ -43,6 +39,10 @@ struct UIState
     // ---- 截图设置（.kernel 持久化） ----
     int         screenshot_scope = 0;     // 0=客户区, 1=完整窗口, 2=全屏, 3+=子面板
     std::string screenshot_path;          // 保存路径（空=exe 同级的 screenshots/）
+
+    // ---- 连接设置（.kernel 持久化） ----
+    int  conn_retry_count = 6;           // 机器人连接重试总次数（1~20）
+    int  camera_retry_count = 2;         // 摄像头连接重试次数（额外次数，不含初始）
 };
 
 class ConfigSerializer
@@ -52,24 +52,24 @@ public:
                      const RobotComponentManager& robotMgr,
                      const GamepadMapperManager& gamepadMgr,
                      const ImGuiStyleManager& styleManager,
-                     const std::vector<StreamConfig>& streams,
+                     const std::vector<LiveStream>& streams,
                      const UIState& uiState,
                      const ThrustCurve* editorCurve,
-                     const std::vector<RobotCommConfig>& commConfigs = {},
+                     const std::vector<RobotComm>& commConfigs = {},
                      const std::map<std::string, std::string>* graphMap = nullptr,
-                     const std::vector<GraphItem>* graphItems = nullptr,
+                     const std::vector<NodeGraph>* graphItems = nullptr,
                      std::string* outError = nullptr);
 
     static bool Load(const std::string& filepath,
                      RobotComponentManager& robotMgr,
                      GamepadMapperManager& gamepadMgr,
                      ImGuiStyleManager& styleManager,
-                     std::vector<StreamConfig>& streams,
+                     std::vector<LiveStream>& streams,
                      UIState& uiState,
                      ThrustCurve* editorCurve,
-                     std::vector<RobotCommConfig>* commConfigs = nullptr,
+                     std::vector<RobotComm>* commConfigs = nullptr,
                      std::map<std::string, std::string>* graphMap = nullptr,
-                     std::vector<GraphItem>* graphItems = nullptr,
+                     std::vector<NodeGraph>* graphItems = nullptr,
                      std::string* outError = nullptr);
 
     // ---- Kernel 文件（.kernel） — 仅样式 + UI 状态 ----
@@ -91,11 +91,11 @@ private:
     static void EmitRobotConfig(YAML::Emitter& out, const RobotComponentManager& robotMgr);
     static void EmitGamepadMapper(YAML::Emitter& out, const GamepadMapperManager& gamepadMgr);
     static void EmitStyle(YAML::Emitter& out, const ImGuiStyleManager& style);
-    static void EmitStreams(YAML::Emitter& out, const std::vector<StreamConfig>& configs);
+    static void EmitStreams(YAML::Emitter& out, const std::vector<LiveStream>& configs);
     static void EmitUIState(YAML::Emitter& out, const UIState& uiState);
     static void EmitEditorCurve(YAML::Emitter& out, const ThrustCurve& curve);
-    static void EmitRobotComm(YAML::Emitter& out, const std::vector<RobotCommConfig>& configs);
-    static void EmitGraphItems(YAML::Emitter& out, const std::vector<GraphItem>& items);
+    static void EmitRobotComm(YAML::Emitter& out, const std::vector<RobotComm>& configs);
+    static void EmitGraphItems(YAML::Emitter& out, const std::vector<NodeGraph>& items);
     static void EmitSoftwareShortcuts(YAML::Emitter& out, const std::string& swYaml);
     static bool ApplySoftwareShortcuts(const YAML::Node& node, std::string& outYaml, std::string* outError);
 
@@ -103,9 +103,9 @@ private:
     static bool ApplyRobotConfig(const YAML::Node& node, RobotComponentManager& robotMgr, std::string* outError);
     static bool ApplyGamepadMapper(const YAML::Node& node, GamepadMapperManager& gamepadMgr, std::string* outError);
     static bool ApplyStyle(const YAML::Node& node, ImGuiStyleManager& style, std::string* outError);
-    static bool ApplyStreams(const YAML::Node& node, std::vector<StreamConfig>& streams, std::string* outError);
+    static bool ApplyStreams(const YAML::Node& node, std::vector<LiveStream>& streams, std::string* outError);
     static bool ApplyUIState(const YAML::Node& node, UIState& uiState, std::string* outError);
     static bool ApplyEditorCurve(const YAML::Node& node, ThrustCurve& curve, std::string* outError);
-    static bool ApplyRobotComm(const YAML::Node& node, std::vector<RobotCommConfig>& configs, std::string* outError);
-    static bool ApplyGraphItems(const YAML::Node& node, std::vector<GraphItem>& items, std::string* outError);
+    static bool ApplyRobotComm(const YAML::Node& node, std::vector<RobotComm>& configs, std::string* outError);
+    static bool ApplyGraphItems(const YAML::Node& node, std::vector<NodeGraph>& items, std::string* outError);
 };

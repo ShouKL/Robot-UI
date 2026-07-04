@@ -16,6 +16,7 @@ ImColor GetIconColor(PinType type)
     case PinType::Float: return ImColor(147, 226,  74);
     case PinType::Bool:  return ImColor(226, 147,  74);
     case PinType::Int:   return ImColor( 74, 180, 226);
+    case PinType::Enum:  return ImColor(200, 130, 230);
     }
 }
 
@@ -68,6 +69,7 @@ NodeCategory GetNodeCategory(NodeType type)
     case NodeType::DelayOff:
     case NodeType::Timer:
     case NodeType::Pulse:
+    case NodeType::TriggerTable:
         return NodeCategory::Logic;
 
     // Memory
@@ -122,6 +124,7 @@ ImColor GetNodeHeaderColor(NodeType type)
     switch (type)
     {
     case NodeType::ShortcutTrigger: return ImColor(200, 160,  60);
+    case NodeType::TriggerTable:   return ImColor(220, 180,  80);
     default: return cat;
     }
 }
@@ -184,6 +187,7 @@ const char* GetNodeTitle(NodeType type)
     case NodeType::LookupTable:  return "Lookup Table";
     case NodeType::CustomOutput: return "Output";
     case NodeType::ShortcutTrigger: return "Shortcut";
+    case NodeType::TriggerTable:   return "Trigger Table";
 
     default: return "???";
     }
@@ -427,10 +431,27 @@ float ComputeNodeOutput(EditorNode& node,
     case NodeType::RisingEdge:
     {
         bool cur = AsBool(GetPinByIndex(node, pinVals, 0));
-        bool prev = node.StateB[0];
-        node.StateB[0] = cur;
-        if (node.OpMode == 1) return FromBool(!cur && prev);  // Falling
-        return FromBool(cur && !prev);                           // Rising
+        bool prev = (node.StateF[0] >= 0.5f);
+        bool rising  = (node.OpMode == 0) && cur && !prev;
+        bool falling = (node.OpMode == 1) && !cur && prev;
+
+        if (rising || falling) {
+            // Fresh edge: output=1, reset eval counter
+            node.StateF[0] = cur ? 1.0f : 0.0f;
+            node.StateF[1] = 1.0f;
+            node.StateF[2] = 0.0f;
+        } else if (node.StateF[1] >= 0.5f) {
+            // Edge was active last eval: count 1 more, then clear
+            node.StateF[2] += 1.0f;
+            if (node.StateF[2] >= 1.0f) {
+                node.StateF[1] = 0.0f;
+                node.StateF[0] = cur ? 1.0f : 0.0f;
+            }
+        } else {
+            // No edge, fully idle
+            node.StateF[0] = cur ? 1.0f : 0.0f;
+        }
+        return node.StateF[1];
     }
     case NodeType::Toggle:
     {
@@ -648,14 +669,44 @@ float ComputeNodeOutput(EditorNode& node,
     case NodeType::GlobalWrite:
     {
         float in  = GetPinByIndex(node, pinVals, 0);
-        bool trig = AsBool(GetPinByIndex(node, pinVals, 1));
         int idx = node.GlobalVarId;
-        bool prevTrig = (node.StateF[1] >= 0.5f);
-        if (trig && !prevTrig && idx >= 0 && globals && idx < globalsCount)
+        if (idx >= 0 && globals && idx < globalsCount) {
             globals[idx] = in;
-        node.StateF[1] = trig ? 1.0f : 0.0f;
-        if (idx >= 0 && globals && idx < globalsCount) return globals[idx];
+            return in;
+        }
         return 0.0f;
+    }
+
+    // ==================== TRIGGER TABLE ====================
+    case NodeType::TriggerTable:
+    {
+        int cnt = (int)node.ModeLabels.size();
+        int slots = (int)node.Inputs.size();
+
+        // Latch: StateF[0] = output value, StateF[1] = last triggered slot (-1 = not yet)
+        if (node.StateF[1] < 0) {
+            // First frame / never triggered: default to ModeLabels[0]
+            node.StateF[1] = 0.0f;
+            if (cnt > 0) {
+                try { node.StateF[0] = std::stof(node.ModeLabels[0]); } catch (...) { node.StateF[0] = 0.0f; }
+            } else {
+                node.StateF[0] = 0.0f;
+            }
+        }
+
+        // Check for active trigger — first one wins
+        for (int s = 0; s < slots; ++s) {
+            if (AsBool(GetPinByIndex(node, pinVals, s))) {
+                int curLatched = (int)node.StateF[1];
+                if (s != curLatched && s < cnt) {
+                    // New slot triggered: latch its value
+                    try { node.StateF[0] = std::stof(node.ModeLabels[s]); } catch (...) { node.StateF[0] = 0.0f; }
+                    node.StateF[1] = (float)s;
+                }
+                return node.StateF[0];
+            }
+        }
+        return node.StateF[0];
     }
 
     // ==================== LOOKUP ====================
@@ -852,7 +903,7 @@ EditorNode CreateEditorNodeByType(NodeType type, std::function<int()> nextId)
         auto n = N("Global Read"); n.Outputs = {O("Value")};
         return n; }
     case NodeType::GlobalWrite: {
-        auto n = N("Global Write"); n.Inputs = {I("Value"), I("Trig")}; n.Outputs = {O("Out")};
+        auto n = N("Global Write"); n.Inputs = {I("Value")}; n.Outputs = {O("Out")};
         return n; }
 
     // ==================== CONTROL ====================
@@ -877,6 +928,13 @@ EditorNode CreateEditorNodeByType(NodeType type, std::function<int()> nextId)
         auto n = N("Lookup Table"); n.Inputs = {OI("Index")}; n.Outputs = {O("Value")};
         n.ModeLabels = {"0", "1", "2", "3", "4", "5", "6", "7"};
         return n; }
+    case NodeType::TriggerTable: {
+        auto n = N("Trigger Table");
+        n.Inputs = {I("T0"), I("T1"), I("T2"), I("T3"), I("T4"), I("T5"), I("T6"), I("T7")};
+        n.Outputs = {O("Selected")};
+        n.Param[0] = 2.0f;  // default 2 active slots (range 1-8)
+        n.ModeLabels = {"0", "1", "2", "3", "4", "5", "6", "7"};
+        return n; }
     }
     return EditorNode(0, "???", type);
 }
@@ -898,7 +956,7 @@ const NodeType AllNodeTypes[] = {
     NodeType::GlobalRead, NodeType::GlobalWrite,
     NodeType::PID, NodeType::DeadbandComparator,
     NodeType::KeySource, NodeType::ConstValue, NodeType::LookupTable, NodeType::CustomOutput,
-    NodeType::ShortcutTrigger,
+    NodeType::ShortcutTrigger, NodeType::TriggerTable,
 };
 const int AllNodeTypeCount = sizeof(AllNodeTypes) / sizeof(AllNodeTypes[0]);
 
@@ -973,11 +1031,11 @@ const char* GetNodeOpModeLabel(NodeType type, int mode)
 // ============================================================================
 void DrawPinTypeSelector(EditorPin* pin, std::function<void()> onModified)
 {
-    static const char* labels[] = {"Float", "Bool", "Int"};
-    static const PinType types[] = {PinType::Float, PinType::Bool, PinType::Int};
-    static const ImU32 colors[] = {IM_COL32(147,226,74,255), IM_COL32(226,147,74,255), IM_COL32(74,180,226,255)};
+    static const char* labels[] = {"Float", "Bool", "Int", "Enum"};
+    static const PinType types[] = {PinType::Float, PinType::Bool, PinType::Int, PinType::Enum};
+    static const ImU32 colors[] = {IM_COL32(147,226,74,255), IM_COL32(226,147,74,255), IM_COL32(74,180,226,255), IM_COL32(200,130,230,255)};
     int cur = 0;
-    for (int i = 0; i < 3; ++i) if (pin->Type == types[i]) { cur = i; break; }
+    for (int i = 0; i < 4; ++i) if (pin->Type == types[i]) { cur = i; break; }
 
     ImGui::PushID((int)pin->ID.Get());
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 0));
@@ -986,7 +1044,7 @@ void DrawPinTypeSelector(EditorPin* pin, std::function<void()> onModified)
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
     if (ImGui::Button(labels[cur], ImVec2(54, 0)))
     {
-        pin->Type = types[(cur + 1) % 3];
+        pin->Type = types[(cur + 1) % 4];
         if (onModified) onModified();
     }
     ImGui::PopStyleColor(2);
@@ -1023,6 +1081,7 @@ void DrawGenericNodeBody(EditorNode& node,
         switch (type) {
         case PinType::Bool: ShowBool(v); break;
         case PinType::Int:  ImGui::TextDisabled("%d", (int)std::round(v)); break;
+        case PinType::Enum: ImGui::TextDisabled("%d", (int)std::round(v)); break;
         default:            ImGui::TextDisabled("%.3f", v); break;
         }
     };
@@ -1181,6 +1240,7 @@ void DrawGenericNodeBody(EditorNode& node,
             }
             break;
         }
+        // --- Trigger Table (UI handled in DrawNodeContents) ---
         default: break;
         }
         ImGui::PopID();

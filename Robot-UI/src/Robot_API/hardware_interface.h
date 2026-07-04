@@ -32,7 +32,8 @@ public:
     ~HardwareInterface() override;
 
     bool Initialize(const std::string& host_ip, int remote_port, int local_port, int transport_type = 0) override;
-    bool HardwareInit(int max_retries = 3) override;
+    bool InitSerial(const std::string& com_port, int baud_rate, int data_bits, int stop_bits, int parity) override;
+    bool HardwareInit(int max_retries = 3, int start_attempt = 1) override;
     bool IsConnected() const { return m_IsConnected; }
 
     SensorData GetSensorData() override;
@@ -41,22 +42,33 @@ public:
     void SetProtocolConfig(const std::vector<ProtocolSendConfig>& configs) override;
     void SetProtocolReceiveConfig(const std::vector<ProtocolReceiveConfig>& configs) override;
 
+    // ---- 安全关闭（由 RobotStatus::UnlinkConnection 调用） ----
+    void Shutdown();
+
 private:
     SensorData m_CurrentSensorData;
     ActuatorConfig m_CurrentActuatorData;
     std::mutex m_DataMutex;
 
     int m_LocalPort = 0;
-    int m_TransportType = 0;  // 0=UDP, 1=TCP
+    int m_TransportType = 0;  // 0=UDP, 1=TCP, 2=Serial
     bool m_IsConnected = false;
     std::string m_TargetIP;
     int m_TargetPort = 0;
+
+    // Serial-specific
+    std::string m_ComPort;
+    int  m_BaudRate  = 115200;
+    int  m_DataBits  = 8;
+    int  m_StopBits  = 1;
+    int  m_Parity    = 0;
 
     std::vector<ProtocolSendConfig>    m_ProtocolCfgs;   // 用户自定义发送协议（多帧）
     std::vector<ProtocolReceiveConfig> m_ReceiveCfgs;    // 用户自定义接收协议（多帧）
 
 #if defined(_WIN32) || defined(_WIN64)
     SOCKET m_Socket = INVALID_SOCKET;      // TCP/UDP 共用 socket
+    HANDLE m_SerialHandle = INVALID_HANDLE_VALUE; // COM 端口 handle
     sockaddr_in m_RemoteAddr;
 #endif
 

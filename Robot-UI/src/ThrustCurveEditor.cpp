@@ -1,7 +1,4 @@
 #include "ThrustCurveEditor.h"
-#include "Walnut/Core/Log.h"
-#include <cstdio>
-#include <cmath>
 
 // ======== 打开/关闭 ========
 void ThrustCurveEditor::Open(const char* n, ThrustCurve& c) {

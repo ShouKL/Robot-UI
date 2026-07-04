@@ -3,9 +3,6 @@
 
 #include "ManagerBase.h"
 #include "GamepadMapper.h"
-#include <cstring>
-#include <string>
-#include <vector>
 
 class GamepadMapperManager : public ManagerBase
 {
@@ -32,6 +29,16 @@ public:
     void   SelectItem(int index) override { SetSelectedIndex(index); }
 
     void DrawContent() override;
+
+    std::string ClipboardCopySelected() override;
+    void        ClipboardPaste(const std::string& yaml) override;
+
+    // ---- Canvas drawing (moved from GamepadMapper to Manager) ----
+    void DrawXboxCanvas(GamepadMapper& mapper);
+    void DrawCustomCanvas(GamepadMapper& mapper);
+    void DrawKeyGrid(GamepadMapper& mapper, bool analog, float height);
+
+    void ResetToDefault();
 
 private:
     std::vector<GamepadMapper> m_Mappers;

@@ -1,13 +1,7 @@
 #pragma once
 
-#include "imgui.h"
-#include <functional>
-#include <string>
-#include <vector>
-
-class RobotStatus;
-class RobotSettingPanel;
-class FileManager;
+#include "core.h"
+#include "FileManager.h"
 
 // ============================================================================
 // 兼容 ImGui 1.84 — 自实现 ImGuiInputFlags (对齐 ImGui 1.91+ 路由语义)
@@ -50,7 +44,8 @@ class ShortcutManager
 public:
     // ---- 动作 ID 枚举 ----
     enum Action : int {
-        ACT_FILE_OPEN = 0,
+        ACT_FILE_NEW = 0,
+        ACT_FILE_OPEN,
         ACT_FILE_SAVE,
         ACT_FILE_SAVEAS,
         ACT_TOGGLE_OPTION,
@@ -65,11 +60,10 @@ public:
     };
 
     // ---- 依赖注入 ----
-    void SetRobotStatus(RobotStatus* rs)           { m_RobotStatus = rs; }
-    void SetRobotSettingPanel(RobotSettingPanel* rsp) { m_RobotSettingPanel = rsp; }
     void SetFileManager(FileManager* fm)            { m_FileManager = fm; }
-    void SetFileCallbacks(std::function<void()> open, std::function<void()> save, std::function<void()> saveAs)
+    void SetFileCallbacks(std::function<void()> newFile, std::function<void()> open, std::function<void()> save, std::function<void()> saveAs)
     {
+        m_FileNewCb   = std::move(newFile);
         m_FileOpenCb  = std::move(open);
         m_FileSaveCb  = std::move(save);
         m_FileSaveAsCb = std::move(saveAs);
@@ -104,6 +98,7 @@ public:
     // ---- 动作描述（供 UI） ----
     static const char* GetActionCategory(int action);
     static const char* GetActionLabel(int action);
+    std::string GetShortcutHint(int action) const;  // e.g. "Ctrl+N" from current binding
 
     // 序列化：软件 UI 快捷键 → .kernel
     std::string GetSoftwareBindingsYaml() const;
@@ -112,9 +107,8 @@ public:
 private:
     void InitDefaultBindings();
 
-    RobotStatus*        m_RobotStatus        = nullptr;
-    RobotSettingPanel*  m_RobotSettingPanel  = nullptr;
     FileManager*        m_FileManager        = nullptr;
+    std::function<void()> m_FileNewCb;
     std::function<void()> m_FileOpenCb;
     std::function<void()> m_FileSaveCb;
     std::function<void()> m_FileSaveAsCb;

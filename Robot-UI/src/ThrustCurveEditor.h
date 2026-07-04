@@ -1,9 +1,8 @@
 #pragma once
+#include "core.h"
 #include "EditDraftBase.h"
 #include "Robot_API/robot_api.h"
 #include "implot.h"
-#include <vector>
-#include <algorithm>
 
 // X=Thrust, Y=PWM Duty — internal storage (Thrust, PWM)
 // Raw points stored as (Thrust, PWM), displayed as-is.

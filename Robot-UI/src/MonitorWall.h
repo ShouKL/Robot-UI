@@ -1,10 +1,6 @@
 #pragma once
 
-class LiveStreamManager;
-
-#include "imgui.h"
-#include <vector>
-#include <memory>
+#include "LiveStreamManager.h"
 
 // ============================================================================
 // MonitorWall — 监控墙窗口
@@ -30,6 +26,14 @@ public:
     // ---- 由外部注入索引，仅设置显示哪个流，不自动连接 ----
     void SetStreamIndex(int idx) { m_ActiveStreamIdx = idx; }
 
+    // ---- Flip & Rotation (controlled from Option panel) ----
+    bool  GetFlipH() const { return m_FlipH; }
+    bool  GetFlipV() const { return m_FlipV; }
+    float GetRotationAngle() const { return m_RotationAngle; }
+    void  SetFlipH(bool v) { m_FlipH = v; }
+    void  SetFlipV(bool v) { m_FlipV = v; }
+    void  SetRotationAngle(float v) { m_RotationAngle = v; }
+
 private:
     void StartStream();
     void StopStream();
@@ -38,4 +42,9 @@ private:
     LiveStreamManager* m_LiveStreamMgr = nullptr;
     int  m_ActiveStreamIdx = -1;
     bool m_StreamRunning = false;
+
+    // ---- Flip & Rotation ----
+    bool m_FlipH = false;
+    bool m_FlipV = false;
+    float m_RotationAngle = 0.0f;   // degrees
 };

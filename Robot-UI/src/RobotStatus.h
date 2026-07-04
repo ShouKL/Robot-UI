@@ -1,24 +1,12 @@
 #pragma once
 
-class GamepadMapper;
-class GamepadMapperManager;
-class LiveStreamManager;
-class NodeGraphManager;
-class RobotComponentManager;
-class ShortcutManager;
-
+#include "core.h"
 #include "Robot_API/robot_api.h"
 #include "Robot_API/hardware_interface.h"
 #include "RobotCommManager.h"
+#include "NodeGraphManager.h"
+#include "LiveStreamManager.h"
 #include "NodeGraph.h"
-#include "Walnut/Core/Log.h"
-#include <imgui.h>
-#include <cstdlib>
-#include <map>
-#include <memory>
-#include <shared_mutex>
-#include <string>
-#include <vector>
 
 // ============================================================================
 // ConnectionEntry — 单个机器人连接条目
@@ -26,8 +14,19 @@ class ShortcutManager;
 struct ConnectionEntry
 {
     std::shared_ptr<HardwareInterface> hw;
-    RobotCommConfig config;
+    RobotComm config;
     bool isLinked = false;
+};
+
+// ============================================================================
+// ConnectionSnapshot — 线程安全的连接快照（供 GamepadRoutine 使用）
+// ============================================================================
+struct ConnectionSnapshot
+{
+    std::shared_ptr<HardwareInterface> hw;
+    RobotComm config;
+    bool isLinked = false;
+    int commIndex = 0;  // 在 m_ActiveCommIndices 中的索引
 };
 
 // ============================================================================
@@ -35,7 +34,6 @@ struct ConnectionEntry
 // 持有 const RobotMode* 指针指向 RobotComponent 中的活跃模式（不持有拷贝）
 // 支持多机器人广播：一个节点图 → 求值一次 → 发送到所有已连接的机器人
 // ============================================================================
-class RobotComponent;
 
 class RobotStatus
 {
@@ -76,21 +74,25 @@ public:
     void OneShotSendFrame(int index);       // 只发一帧（短暂启用后立即关闭）
 
     // ---- 运行时数据更新 ----
-    void UpdateCommandData(std::shared_ptr<const ActuatorConfig> cmd);
+    void UpdateCommandData(int index, std::shared_ptr<const ActuatorConfig> cmd);
+    void UpdateAllCommandData(const std::vector<std::shared_ptr<const ActuatorConfig>>& cmds);
     void UpdateSensorData(const SensorData& sensor, bool valid);
 
     // ---- 运行时数据访问 ----
-    std::shared_ptr<const ActuatorConfig> GetCurrentCommand() const;
+    std::shared_ptr<const ActuatorConfig> GetCurrentCommand(int index = 0) const;
     SensorData  GetCurrentSensor() const;
     bool        IsSensorValid()    const;
 
     // ---- 多连接（由 NodeGraph 的 CommRefs 决定，不手动管理）----
-    int  GetConnectionCount() const { return (int)m_Connections.size(); }
+    int  GetConnectionCount() const;
     const ConnectionEntry* GetConnection(int index) const;
     bool IsLinked() const;
     bool LinkConnection(int index);
     void UnlinkConnection(int index);
     void UnlinkAll();
+
+    // ---- 线程安全快照（供 GamepadRoutine 等外部线程使用） ----
+    std::vector<ConnectionSnapshot> SnapshotConnections() const;
 
     // ---- 数据收发 ----
     void       SendActuatorData(const ActuatorConfig& data);
@@ -121,6 +123,12 @@ public:
     // ---- 设置 Manager 引用（供 GamepadRoutine 独立同步图数据） ----
     void SetNodeGraphManager(NodeGraphManager* mgr) { m_NodeGraphManager = mgr; }
 
+    // ---- 全局连接重试次数 (由 OptionPanel 设置) ----
+    void SetConnRetryCount(int n) { if (n >= 1 && n <= 20) m_ConnRetryCount = n; }
+    int  GetConnRetryCount() const { return m_ConnRetryCount; }
+    void SetCameraRetryCount(int n) { if (n >= 0 && n <= 10) m_CameraRetryCount = n; }
+    int  GetCameraRetryCount() const { return m_CameraRetryCount; }
+
     // ---- 从编辑器图同步节点/连线/CommRefs 到内部求值器 ----
     void SyncGraphFromEditor(NodeGraph* editor);
 
@@ -130,7 +138,7 @@ private:
     GamepadMapper*                              m_ActiveGamepad = nullptr;
     std::unique_ptr<NodeGraph>                  m_GraphEvaluator;
     std::string                                 m_LastSyncedYaml;  // skip re-sync if unchanged
-    std::shared_ptr<const ActuatorConfig>       m_CurrentCommand;
+    std::vector<std::shared_ptr<const ActuatorConfig>>  m_CurrentCommands;
     SensorData                                  m_CurrentSensor;
     bool                                        m_SensorValid   = false;
 
@@ -153,6 +161,7 @@ private:
 
     // 多连接池（RobotStatus 独占）—— 方案 B：一个节点图 → 广播到所有已连接机器人
     std::vector<ConnectionEntry>        m_Connections;
+    mutable std::shared_mutex           m_ConnMutex;  // 保护 m_Connections 的并发访问
 
     // 外部 Manager 引用（用于同步 active 选择到实际行为）
     NodeGraphManager*       m_NodeGraphManager        = nullptr;
@@ -171,6 +180,9 @@ private:
 
     // live sync：RobotSettingPanel 打开时，evaluator 实时跟随 Manager 选中图
     bool m_LiveSyncToManager = false;
+
+    int  m_ConnRetryCount = 6;   // 全局机器人连接重试次数（1~20）
+    int  m_CameraRetryCount = 2; // 全局摄像头连接重试次数（额外次数，0~10）
 
     mutable std::shared_mutex                   m_StatusMutex;
 };

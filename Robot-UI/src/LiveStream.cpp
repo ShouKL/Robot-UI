@@ -1,5 +1,6 @@
 #include "LiveStream.h"
-#include "Walnut/Core/Log.h"
+#include <thread>
+#include <chrono>
 
 // ======== GStreamer 安全初始化（启动时检测，不延迟）========
 static bool s_gst_available = false;
@@ -54,26 +55,103 @@ static void EnsureGstInit()
     WL_INFO_TAG("GSTREAMER", "GStreamer initialized successfully");
     s_gst_available = true;
 }
-static void DrawPropertyLabel(const char* label) {
-    ImGui::TableNextRow();
-    ImGui::TableNextColumn();
-    ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted(label); //
-    ImGui::TableNextColumn();      //
-    ImGui::SetNextItemWidth(-FLT_MIN);
-}
-
 LiveStream::LiveStream()
 {
     // 启动时检测 GStreamer 环境 — 有 env var 防护不会卡死，失败立即打日志
     EnsureGstInit();
 }
 
-LiveStream::~LiveStream() { Close(); }
+LiveStream::~LiveStream()
+{
+    m_destroying = true;  // 阻止 TryOpen 后台线程继续访问 this
+    // 析构时用较长超时确保 pipeline 释放，但不无限等待
+    CloseInternal(5 * GST_SECOND);
+}
+
+// 显式拷贝：仅拷贝配置字段（跳过 mutex / pipeline / 运行时状态）
+LiveStream::LiveStream(const LiveStream& other)
+{
+    id = other.id;
+    isStreaming = false;  // 拷贝后不保留流状态
+    isSelected  = other.isSelected;
+    strncpy_s(name, other.name, sizeof(name) - 1);
+    strncpy_s(ip, other.ip, sizeof(ip) - 1);
+    strncpy_s(user, other.user, sizeof(user) - 1);
+    strncpy_s(pass, other.pass, sizeof(pass) - 1);
+    port       = other.port;
+    brand      = other.brand;
+    channel    = other.channel;
+    codec      = other.codec;
+    streamType = other.streamType;
+    protocol   = other.protocol;
+    strncpy_s(customPath, other.customPath, sizeof(customPath) - 1);
+    latency       = other.latency;
+    udpBufferSize = other.udpBufferSize;
+    timeout       = other.timeout;
+    dropOnLatency = other.dropOnLatency;
+    ntpSync       = other.ntpSync;
+    bufferMode    = other.bufferMode;
+    decoder       = other.decoder;
+    cpuThreads    = other.cpuThreads;
+    syncToClock   = other.syncToClock;
+    maxBuffers    = other.maxBuffers;
+    lowLatencyMode = other.lowLatencyMode;
+    useBGRA       = other.useBGRA;
+    autoHardwareFallback = other.autoHardwareFallback;
+    // m_mutex: default-constructed (mutex is non-copyable)
+    // m_pipeline, m_pixels, m_image: default (no runtime state)
+}
+
+LiveStream& LiveStream::operator=(const LiveStream& other)
+{
+    if (this == &other) return *this;
+    Close();
+    id = other.id;
+    isStreaming = false;
+    isSelected  = other.isSelected;
+    strncpy_s(name, other.name, sizeof(name) - 1);
+    strncpy_s(ip, other.ip, sizeof(ip) - 1);
+    strncpy_s(user, other.user, sizeof(user) - 1);
+    strncpy_s(pass, other.pass, sizeof(pass) - 1);
+    port       = other.port;
+    brand      = other.brand;
+    channel    = other.channel;
+    codec      = other.codec;
+    streamType = other.streamType;
+    protocol   = other.protocol;
+    strncpy_s(customPath, other.customPath, sizeof(customPath) - 1);
+    latency       = other.latency;
+    udpBufferSize = other.udpBufferSize;
+    timeout       = other.timeout;
+    dropOnLatency = other.dropOnLatency;
+    ntpSync       = other.ntpSync;
+    bufferMode    = other.bufferMode;
+    decoder       = other.decoder;
+    cpuThreads    = other.cpuThreads;
+    syncToClock   = other.syncToClock;
+    maxBuffers    = other.maxBuffers;
+    lowLatencyMode = other.lowLatencyMode;
+    useBGRA       = other.useBGRA;
+    autoHardwareFallback = other.autoHardwareFallback;
+    return *this;
+}
+
+// 显式移动：拷贝配置字段，运行时成员（mutex/pipeline/pixels）默认构造
+LiveStream::LiveStream(LiveStream&& other)
+    : LiveStream()
+{
+    *this = static_cast<const LiveStream&>(other);
+}
+
+LiveStream& LiveStream::operator=(LiveStream&& other)
+{
+    if (this == &other) return *this;
+    return operator=(static_cast<const LiveStream&>(other));
+}
 
 // 返回用于 RTSP URL 路径的 codec 字符串
-static std::string GetCodecUrlStr(const StreamConfig& config) {
-    switch (config.codec) {
+static std::string GetCodecUrlStr(const LiveStream& stream) {
+    switch (stream.codec) {
         case CodecType::H265:       return "h265";
         case CodecType::H265_PLUS:  return "h265+";
         default:                    return "h264";
@@ -81,8 +159,8 @@ static std::string GetCodecUrlStr(const StreamConfig& config) {
 }
 
 // 返回用于 GStreamer 管线元素的 codec 字符串（H.265+ 解码器与 H.265 相同）
-static std::string GetCodecPipelineStr(const StreamConfig& config) {
-    switch (config.codec) {
+static std::string GetCodecPipelineStr(const LiveStream& stream) {
+    switch (stream.codec) {
         case CodecType::H265:
         case CodecType::H265_PLUS:  return "h265";
         default:                    return "h264";
@@ -92,88 +170,88 @@ static std::string GetCodecPipelineStr(const StreamConfig& config) {
 // ======== GStreamer 管线构建 ========
 
 // 构建 rtspsrc 的 RTSP URL 路径
-static std::string BuildRTSPSrcPath(const StreamConfig& config, const std::string& codecStr) {
-    if (config.brand == CameraBrand::HIKVISION) {
-        return "/" + codecStr + "/ch" + std::to_string(config.channel) + "/" +
-            (config.streamType == StreamType::Main ? "main" : "sub") + "/av_stream";
+static std::string BuildRTSPSrcPath(const LiveStream& stream, const std::string& codecStr) {
+    if (stream.brand == CameraBrand::HIKVISION) {
+        return "/" + codecStr + "/ch" + std::to_string(stream.channel) + "/" +
+            (stream.streamType == StreamType::Main ? "main" : "sub") + "/av_stream";
     }
-    else if (config.brand == CameraBrand::DAHUA) {
-        return "/cam/realmonitor?channel=" + std::to_string(config.channel) +
-            "&subtype=" + (config.streamType == StreamType::Main ? "0" : "1");
+    else if (stream.brand == CameraBrand::DAHUA) {
+        return "/cam/realmonitor?channel=" + std::to_string(stream.channel) +
+            "&subtype=" + (stream.streamType == StreamType::Main ? "0" : "1");
     }
     else {
-        std::string path = config.customPath;
+        std::string path = stream.customPath;
         size_t pos;
         while ((pos = path.find("{codec}")) != std::string::npos) path.replace(pos, 7, codecStr);
-        while ((pos = path.find("{channel}")) != std::string::npos) path.replace(pos, 9, std::to_string(config.channel));
-        while ((pos = path.find("{streamType}")) != std::string::npos) path.replace(pos, 12, (config.streamType == StreamType::Main ? "main" : "sub"));
+        while ((pos = path.find("{channel}")) != std::string::npos) path.replace(pos, 9, std::to_string(stream.channel));
+        while ((pos = path.find("{streamType}")) != std::string::npos) path.replace(pos, 12, (stream.streamType == StreamType::Main ? "main" : "sub"));
         return path;
     }
 }
 
 // 构建 rtspsrc 的属性字符串（仅包含非默认值的参数）
-static std::string BuildRTSPSrcProperties(const StreamConfig& config) {
+static std::string BuildRTSPSrcProperties(const LiveStream& stream) {
     std::stringstream ss;
 
     // 基础属性 — 始终输出
-    ss << "protocols=" << (config.protocol == TransportProto::TCP ? "tcp" : "udp");
-    ss << " latency=" << config.latency;
+    ss << "protocols=" << (stream.protocol == TransportProto::TCP ? "tcp" : "udp");
+    ss << " latency=" << stream.latency;
 
     // 可选属性 — 仅在非默认值时输出，让 GStreamer 使用自身默认值
-    if (config.bufferMode != BufferMode::AUTO)
-        ss << " buffer-mode=" << (int)config.bufferMode;
-    if (config.dropOnLatency)
+    if (stream.bufferMode != BufferMode::AUTO)
+        ss << " buffer-mode=" << (int)stream.bufferMode;
+    if (stream.dropOnLatency)
         ss << " drop-on-latency=true";
-    if (config.timeout != 5000000)
-        ss << " timeout=" << config.timeout;
-    if (config.udpBufferSize > 0)
-        ss << " udp-buffer-size=" << config.udpBufferSize;
-    if (config.ntpSync)
+    if (stream.timeout != 5000000)
+        ss << " timeout=" << stream.timeout;
+    if (stream.udpBufferSize > 0)
+        ss << " udp-buffer-size=" << stream.udpBufferSize;
+    if (stream.ntpSync)
         ss << " ntp-sync=true";
 
     return ss.str();
 }
 
 // 构建解码+转换管线（appsink 路径）
-static std::string BuildDecoderPipeline(const StreamConfig& config, const std::string& codecStr) {
+static std::string BuildDecoderPipeline(const LiveStream& stream, const std::string& codecStr) {
     std::stringstream ss;
-    std::string renderFormat = config.useBGRA ? "BGRA" : "RGBA";
+    std::string renderFormat = stream.useBGRA ? "BGRA" : "RGBA";
 
     ss << "rtp" << codecStr << "depay ! " << codecStr << "parse ! ";
 
-    if (config.decoder == DecoderType::D3D11_VA) {
+    if (stream.decoder == DecoderType::D3D11_VA) {
         ss << "d3d11" << codecStr << "dec ! d3d11convert ! video/x-raw(memory:D3D11Memory),format=" << renderFormat << " ! d3d11download ! video/x-raw,format=" << renderFormat << " ! ";
     }
-    else if (config.decoder == DecoderType::NVIDIA_HW) {
+    else if (stream.decoder == DecoderType::NVIDIA_HW) {
         ss << "nv" << codecStr << "dec ! videoconvert ! video/x-raw,format=" << renderFormat << " ! ";
     }
-    else if (config.decoder == DecoderType::INTEL_QSV) {
+    else if (stream.decoder == DecoderType::INTEL_QSV) {
         ss << "qsv" << codecStr << "dec ! videoconvert ! video/x-raw,format=" << renderFormat << " ! ";
     }
     else {
-        ss << "avdec_" << codecStr << " max-threads=" << config.cpuThreads << " ! videoconvert ! video/x-raw,format=" << renderFormat << " ! ";
+        ss << "avdec_" << codecStr << " max-threads=" << stream.cpuThreads << " ! videoconvert ! video/x-raw,format=" << renderFormat << " ! ";
     }
 
     // appsink — 将帧传入 CPU 内存供 ImGui 渲染
     ss << "appsink name=mysink emit-signals=true "
-        << "sync=" << (config.syncToClock ? "true" : "false") << " "
-        << "max-buffers=" << config.maxBuffers << " "
+        << "sync=" << (stream.syncToClock ? "true" : "false") << " "
+        << "max-buffers=" << stream.maxBuffers << " "
         << "drop=true";
     return ss.str();
 }
 
 // 构建直接 GPU 渲染管线（d3d11videosink，用于 CLI 参考）
-static std::string BuildDirectRenderPipeline(const StreamConfig& config, const std::string& codecStr) {
+static std::string BuildDirectRenderPipeline(const LiveStream& stream, const std::string& codecStr) {
     std::stringstream ss;
     ss << "rtp" << codecStr << "depay ! " << codecStr << "parse ! ";
 
-    if (config.decoder == DecoderType::D3D11_VA) {
+    if (stream.decoder == DecoderType::D3D11_VA) {
         ss << "d3d11" << codecStr << "dec ! d3d11videosink sync=false";
     }
-    else if (config.decoder == DecoderType::NVIDIA_HW) {
+    else if (stream.decoder == DecoderType::NVIDIA_HW) {
         ss << "nv" << codecStr << "dec ! d3d11videosink sync=false";
     }
-    else if (config.decoder == DecoderType::INTEL_QSV) {
+    else if (stream.decoder == DecoderType::INTEL_QSV) {
         ss << "qsv" << codecStr << "dec ! d3d11videosink sync=false";
     }
     else {
@@ -182,50 +260,50 @@ static std::string BuildDirectRenderPipeline(const StreamConfig& config, const s
     return ss.str();
 }
 
-std::string LiveStream::BuildPipelineString(const StreamConfig& config) {
-    std::string urlCodecStr    = GetCodecUrlStr(config);
-    std::string pipelineStr    = GetCodecPipelineStr(config);
-    std::string path = BuildRTSPSrcPath(config, urlCodecStr);
+std::string LiveStream::BuildPipelineString() const {
+    std::string urlCodecStr    = GetCodecUrlStr(*this);
+    std::string pipelineStr    = GetCodecPipelineStr(*this);
+    std::string path = BuildRTSPSrcPath(*this, urlCodecStr);
 
     // 认证信息 (user:pass@)
     std::string creds;
-    if (strlen(config.user) > 0) {
-        creds = config.user;
-        if (strlen(config.pass) > 0) creds += ":" + std::string(config.pass);
+    if (strlen(user) > 0) {
+        creds = user;
+        if (strlen(pass) > 0) creds += ":" + std::string(pass);
         creds += "@";
     }
 
     std::stringstream ss;
-    ss << "rtspsrc location=\"rtsp://" << creds << config.ip << ":" << config.port << path << "\" ";
-    ss << BuildRTSPSrcProperties(config);
+    ss << "rtspsrc location=\"rtsp://" << creds << ip << ":" << port << path << "\" ";
+    ss << BuildRTSPSrcProperties(*this);
     ss << " ! ";
-    ss << BuildDecoderPipeline(config, pipelineStr);
+    ss << BuildDecoderPipeline(*this, pipelineStr);
     return ss.str();
 }
 
 // 生成 CLI 参考命令（使用 d3d11videosink 直接渲染，最低延迟）
-std::string LiveStream::BuildCLIReferenceString(const StreamConfig& config) {
-    std::string urlCodecStr    = GetCodecUrlStr(config);
-    std::string pipelineStr    = GetCodecPipelineStr(config);
-    std::string path = BuildRTSPSrcPath(config, urlCodecStr);
+std::string LiveStream::BuildCLIReferenceString() const {
+    std::string urlCodecStr    = GetCodecUrlStr(*this);
+    std::string pipelineStr    = GetCodecPipelineStr(*this);
+    std::string path = BuildRTSPSrcPath(*this, urlCodecStr);
 
     // 认证信息
     std::string creds;
-    if (strlen(config.user) > 0) {
-        creds = config.user;
-        if (strlen(config.pass) > 0) creds += ":" + std::string(config.pass);
+    if (strlen(user) > 0) {
+        creds = user;
+        if (strlen(pass) > 0) creds += ":" + std::string(pass);
         creds += "@";
     }
 
     std::stringstream ss;
-    ss << "gst-launch-1.0.exe -v rtspsrc location=\"rtsp://" << creds << config.ip << ":" << config.port << path << "\" ";
-    ss << BuildRTSPSrcProperties(config);
+    ss << "gst-launch-1.0.exe -v rtspsrc location=\"rtsp://" << creds << ip << ":" << port << path << "\" ";
+    ss << BuildRTSPSrcProperties(*this);
     ss << " ! ";
-    ss << BuildDirectRenderPipeline(config, pipelineStr);
+    ss << BuildDirectRenderPipeline(*this, pipelineStr);
     return ss.str();
 }
 
-bool LiveStream::Open(const StreamConfig& config) {
+bool LiveStream::Open() {
     if (!s_gst_available)
     {
         m_lastErrorMsg = "GStreamer not available (init failed at startup)";
@@ -233,39 +311,147 @@ bool LiveStream::Open(const StreamConfig& config) {
     }
 
     m_lastErrorMsg.clear();
-    std::string fullPipeline = BuildPipelineString(config);
+    std::string fullPipeline = BuildPipelineString();
+
     GError* error = nullptr;
-    m_pipeline = gst_parse_launch(fullPipeline.c_str(), &error);
+    {
+        std::lock_guard<std::mutex> lock(m_pipeMutex);
+        m_pipeline = gst_parse_launch(fullPipeline.c_str(), &error);
+    }
     if (error || !m_pipeline) {
-        //
         if (error) {
             m_lastErrorMsg = error->message;
             g_error_free(error);
         }
         return false;
     }
-    //  OnNewSample
-    GstElement* sink = gst_bin_get_by_name(GST_BIN(m_pipeline), "mysink");
-    if (sink) {
-        g_signal_connect(sink, "new-sample", G_CALLBACK(OnNewSample), this);
-        gst_object_unref(sink);
+
+    // 绑定 appsink 回调
+    {
+        std::lock_guard<std::mutex> lock(m_pipeMutex);
+        GstElement* sink = gst_bin_get_by_name(GST_BIN(m_pipeline), "mysink");
+        if (sink) {
+            g_signal_connect(sink, "new-sample", G_CALLBACK(OnNewSample), this);
+            gst_object_unref(sink);
+        }
     }
-    //
-    GstStateChangeReturn stateRet = gst_element_set_state(m_pipeline, GST_STATE_PLAYING);
+
+    GstStateChangeReturn stateRet;
+    {
+        std::lock_guard<std::mutex> lock(m_pipeMutex);
+        stateRet = gst_element_set_state(m_pipeline, GST_STATE_PLAYING);
+    }
 
     if (stateRet == GST_STATE_CHANGE_FAILURE) {
-        //
+        std::lock_guard<std::mutex> lock(m_pipeMutex);
         gst_element_set_state(m_pipeline, GST_STATE_NULL);
         gst_object_unref(m_pipeline);
         m_pipeline = nullptr;
-        if (config.autoHardwareFallback && config.decoder != DecoderType::SOFTWARE) {
-            StreamConfig fallbackConfig = config;
-            fallbackConfig.decoder = DecoderType::SOFTWARE;
-            return Open(fallbackConfig);
-        }
+        m_lastErrorMsg = "Pipeline state change failed (PLAYING)";
         return false;
     }
-    return true;
+
+    // 等待最多 2.5s（rtspsrc 超时由 timeout 属性控制）
+    {
+        GstBus* bus;
+        {
+            std::lock_guard<std::mutex> lock(m_pipeMutex);
+            bus = gst_pipeline_get_bus(GST_PIPELINE(m_pipeline));
+        }
+        GstMessage* msg = gst_bus_timed_pop_filtered(
+            bus, 2500 * GST_MSECOND,
+            (GstMessageType)(GST_MESSAGE_ERROR | GST_MESSAGE_STATE_CHANGED | GST_MESSAGE_EOS));
+
+        if (msg) {
+            if (GST_MESSAGE_TYPE(msg) == GST_MESSAGE_ERROR) {
+                GError* err = nullptr;
+                gchar* debug = nullptr;
+                gst_message_parse_error(msg, &err, &debug);
+                m_lastErrorMsg = err ? err->message : "Unknown error";
+                if (err) g_error_free(err);
+                if (debug) g_free(debug);
+                gst_message_unref(msg);
+                gst_object_unref(bus);
+                Close();
+                return false;
+            }
+            if (GST_MESSAGE_TYPE(msg) == GST_MESSAGE_EOS) {
+                m_lastErrorMsg = "Unexpected end of stream during connect";
+                gst_message_unref(msg);
+                gst_object_unref(bus);
+                Close();
+                return false;
+            }
+            if (GST_MESSAGE_SRC(msg) == GST_OBJECT(m_pipeline)) {
+                GstState oldState, newState, pendingState;
+                gst_message_parse_state_changed(msg, &oldState, &newState, &pendingState);
+                if (newState == GST_STATE_PLAYING) {
+                    gst_message_unref(msg);
+                    gst_object_unref(bus);
+                    return true;
+                }
+            }
+            gst_message_unref(msg);
+        }
+        gst_object_unref(bus);
+    }
+
+    // 超时无结果
+    WL_ERROR_TAG("LIVESTREAM", "Connect timeout (no response within 2.5s)");
+    Close();
+    m_lastErrorMsg = "Connection timeout — no response from camera";
+    return false;
+}
+
+void LiveStream::TryOpen(int maxRetries, int intervalMs) {
+    if (m_destroying.load(std::memory_order_relaxed)) return;
+
+    // 防止重复连接：如果已有连接线程在运行，直接返回
+    bool expected = false;
+    if (!m_connecting.compare_exchange_strong(expected, true))
+        return;  // 已有连接线程在运行
+
+    std::string capturedIp(ip);
+    int capturedPort = port;
+    int totalAttempts = maxRetries + 1;
+
+    std::thread([this, totalAttempts, intervalMs, capturedIp, capturedPort]() {
+        WL_INFO_TAG("LIVESTREAM", "Connecting to rtsp://{}:{} (max {} attempts)...",
+                     capturedIp, capturedPort, totalAttempts);
+
+        for (int attempt = 1; attempt <= totalAttempts; ++attempt) {
+            if (m_destroying.load(std::memory_order_relaxed)) {
+                m_connecting = false;
+                return;
+            }
+
+            WL_INFO_TAG("LIVESTREAM", "  Attempt {} of {}...", attempt, totalAttempts);
+
+            bool ok = Open();
+            if (m_destroying.load(std::memory_order_relaxed)) {
+                m_connecting = false;
+                return;
+            }
+
+            if (ok) {
+                WL_INFO_TAG("LIVESTREAM", "  Attempt {} of {} OK (pipeline started)", attempt, totalAttempts);
+                isStreaming = true;
+                m_connecting = false;
+                return;
+            }
+
+            WL_ERROR_TAG("LIVESTREAM", "  Attempt {} of {} FAILED: {}", attempt, totalAttempts,
+                         m_lastErrorMsg.empty() ? "no response" : m_lastErrorMsg);
+
+            if (attempt < totalAttempts && !m_destroying.load(std::memory_order_relaxed)) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(intervalMs));
+            }
+        }
+
+        if (!m_destroying.load(std::memory_order_relaxed))
+            WL_ERROR_TAG("LIVESTREAM", "All {} attempts failed.", totalAttempts);
+        m_connecting = false;
+    }).detach();
 }
 
 GstFlowReturn LiveStream::OnNewSample(GstAppSink* sink, gpointer user_data) {
@@ -274,12 +460,16 @@ GstFlowReturn LiveStream::OnNewSample(GstAppSink* sink, gpointer user_data) {
     if (!sample) return GST_FLOW_OK;
     //
     GstCaps* caps = gst_sample_get_caps(sample);
+    if (!caps) { gst_sample_unref(sample); return GST_FLOW_OK; }
     GstStructure* s = gst_caps_get_structure(caps, 0);
     int width = 0, height = 0;
-    gst_structure_get_int(s, "width", &width);
-    gst_structure_get_int(s, "height", &height);
+    if (s) {
+        gst_structure_get_int(s, "width", &width);
+        gst_structure_get_int(s, "height", &height);
+    }
     //
     GstBuffer* buffer = gst_sample_get_buffer(sample);
+    if (!buffer) { gst_sample_unref(sample); return GST_FLOW_OK; }
     GstMapInfo map;
     if (gst_buffer_map(buffer, &map, GST_MAP_READ)) {
         //
@@ -298,6 +488,17 @@ GstFlowReturn LiveStream::OnNewSample(GstAppSink* sink, gpointer user_data) {
 }
 
 void LiveStream::Close() {
+    CancelConnect();
+    CloseInternal(100 * GST_MSECOND);
+}
+
+void LiveStream::CancelConnect() {
+    m_connecting = false;  // 通知后台线程停止
+}
+
+void LiveStream::CloseInternal(GstClockTime timeout) {
+    isStreaming = false;
+    std::lock_guard<std::mutex> lock(m_pipeMutex);
     if (m_pipeline) {
         // 先发信号让 pipeline 停止接收新 buffer
         GstElement* sink = gst_bin_get_by_name(GST_BIN(m_pipeline), "mysink");
@@ -305,10 +506,10 @@ void LiveStream::Close() {
             g_signal_handlers_disconnect_by_data(sink, this);
             gst_object_unref(sink);
         }
-        // 设置 NULL 状态并等待管线完全停止
+        // 设置 NULL 状态，有超时保护
         gst_element_set_state(m_pipeline, GST_STATE_NULL);
         GstState state, pending;
-        gst_element_get_state(m_pipeline, &state, &pending, GST_CLOCK_TIME_NONE);
+        gst_element_get_state(m_pipeline, &state, &pending, timeout);
         gst_object_unref(m_pipeline);
         m_pipeline = nullptr;
     }
@@ -316,6 +517,40 @@ void LiveStream::Close() {
 }
 
 void LiveStream::Update() {
+    // 非阻塞轮询总线，捕获运行时错误
+    GstBus* bus = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(m_pipeMutex);
+        if (!m_pipeline) return;
+        bus = gst_pipeline_get_bus(GST_PIPELINE(m_pipeline));
+    }
+    GstMessage* msg = gst_bus_pop_filtered(bus,
+        (GstMessageType)(GST_MESSAGE_ERROR | GST_MESSAGE_EOS));
+    if (msg) {
+        if (GST_MESSAGE_TYPE(msg) == GST_MESSAGE_ERROR) {
+            GError* err = nullptr;
+            gchar* debug = nullptr;
+            gst_message_parse_error(msg, &err, &debug);
+            WL_ERROR_TAG("LIVESTREAM", "Runtime error: {} (debug: {})",
+                         err ? err->message : "unknown", debug ? debug : "none");
+            m_lastErrorMsg = err ? err->message : "Unknown error";
+            if (err) g_error_free(err);
+            if (debug) g_free(debug);
+        }
+        if (GST_MESSAGE_TYPE(msg) == GST_MESSAGE_EOS) {
+            WL_INFO_TAG("LIVESTREAM", "End of stream");
+        }
+        // 检测到运行时错误 — 仅标记，不阻塞 UI（Update 在 UI 线程）
+        gst_message_unref(msg);
+        isStreaming = false;
+        m_hasError = true;  // 标记错误，让下一帧 Close 在安全时机执行
+    }
+    gst_object_unref(bus);
+
+    // 如果有待处理的错误关闭请求，在锁外执行（Close 现在 100ms 快速拆卸）
+    if (m_hasError.exchange(false))
+        Close();
+
     int w, h;
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -349,152 +584,4 @@ void LiveStream::Update() {
         m_frameCount = 0;
         m_lastFpsTime = time;
     }
-}
-// IP
-void LiveStream::DrawConnectionSettings() {
-    if (ImGui::CollapsingHeader("Connection Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
-        if (ImGui::BeginTable("ConnTable", 2, ImGuiTableFlags_SizingStretchProp)) {
-            DrawPropertyLabel("IP Address");  ImGui::InputText("##IP", m_StreamConfig.ip, IM_ARRAYSIZE(m_StreamConfig.ip));
-            DrawPropertyLabel("Username");    ImGui::InputText("##User", m_StreamConfig.user, IM_ARRAYSIZE(m_StreamConfig.user));
-            DrawPropertyLabel("Password");    ImGui::InputText("##Pass", m_StreamConfig.pass, IM_ARRAYSIZE(m_StreamConfig.pass), ImGuiInputTextFlags_Password);
-            DrawPropertyLabel("Port");        ImGui::InputInt("##Port", &m_StreamConfig.port);
-            ImGui::EndTable();
-        }
-    }
-}
-
-void LiveStream::DrawProtocolCodecSettings() {
-    if (ImGui::CollapsingHeader("Protocol & Codec", ImGuiTreeNodeFlags_DefaultOpen)) {
-        if (ImGui::BeginTable("ProtoTable", 2, ImGuiTableFlags_SizingStretchProp)) {
-            // ---  ---
-            const char* brands[] = { "Hikvision", "Dahua", "Custom" };
-            int current_brand = (int)m_StreamConfig.brand;
-            DrawPropertyLabel("Camera Brand");
-            if (ImGui::Combo("##Brand", &current_brand, brands, IM_ARRAYSIZE(brands)))
-                m_StreamConfig.brand = (CameraBrand)current_brand;
-            // ---  ---
-            DrawPropertyLabel(m_StreamConfig.brand == CameraBrand::CUSTOM ? "Custom Path" : "Channel");
-            if (m_StreamConfig.brand == CameraBrand::CUSTOM) {
-                ImGui::InputText("##CustomPath", m_StreamConfig.customPath, IM_ARRAYSIZE(m_StreamConfig.customPath));
-            }
-            else {
-                ImGui::InputInt("##Channel", &m_StreamConfig.channel);
-            }
-            // ---  (H.264 / H.265 / H.265+) ---
-            const char* codecs[] = { "H264", "H265", "H.265+" };
-            int current_codec = (int)m_StreamConfig.codec;
-            DrawPropertyLabel("Codec");
-            if (ImGui::Combo("##Codec", &current_codec, codecs, IM_ARRAYSIZE(codecs)))
-                m_StreamConfig.codec = (CodecType)current_codec;
-            // ---  ( / ) ---
-            const char* streamTypes[] = { "Main Stream", "Sub Stream" };
-            int current_stream_type = (int)m_StreamConfig.streamType;
-            DrawPropertyLabel("Stream Type");
-            if (ImGui::Combo("##StreamType", &current_stream_type, streamTypes, IM_ARRAYSIZE(streamTypes)))
-                m_StreamConfig.streamType = (StreamType)current_stream_type;
-            // ---  (TCP / UDP) ---
-            const char* protocols[] = { "TCP", "UDP" };
-            int current_proto = (int)m_StreamConfig.protocol;
-            DrawPropertyLabel("Protocol");
-            if (ImGui::Combo("##Protocol", &current_proto, protocols, IM_ARRAYSIZE(protocols)))
-                m_StreamConfig.protocol = (TransportProto)current_proto;
-            ImGui::EndTable();
-        }
-    }
-}
-
-void LiveStream::DrawNetworkBufferSettings() {
-    if (ImGui::CollapsingHeader("Network & Buffer Limits", ImGuiTreeNodeFlags_DefaultOpen)) {
-        if (ImGui::BeginTable("NetBufTable", 2, ImGuiTableFlags_SizingStretchProp)) {
-            // ---  (ms) ---
-            DrawPropertyLabel("Latency (ms)");
-            ImGui::InputInt("##Latency", &m_StreamConfig.latency);
-            // --- UDP  (bytes) ---
-            DrawPropertyLabel("UDP Buffer Size");
-            ImGui::InputInt("##UDPSize", &m_StreamConfig.udpBufferSize);
-            // ---  (us) ---
-            DrawPropertyLabel("Timeout (us)");
-            ImGui::InputInt("##Timeout", &m_StreamConfig.timeout);
-            // ---  ---
-            DrawPropertyLabel("Drop On Latency");
-            ImGui::Checkbox("##DropLatency", &m_StreamConfig.dropOnLatency);
-            // --- NTP  ---
-            DrawPropertyLabel("NTP Sync");
-            ImGui::Checkbox("##NTPSync", &m_StreamConfig.ntpSync);
-            // ---  ---
-            const char* bufferModes[] = { "Auto", "Slave", "Buffer", "Sync" };
-            int current_buf_mode = (int)m_StreamConfig.bufferMode;
-            DrawPropertyLabel("Buffer Mode");
-            if (ImGui::Combo("##BufferMode", &current_buf_mode, bufferModes, IM_ARRAYSIZE(bufferModes))) {
-                m_StreamConfig.bufferMode = (BufferMode)current_buf_mode;
-            }
-            ImGui::EndTable();
-        }
-    }
-}
-//
-void LiveStream::DrawDecoderRenderingSettings() {
-    if (ImGui::CollapsingHeader("Decoder & Rendering", ImGuiTreeNodeFlags_DefaultOpen)) {
-        if (ImGui::BeginTable("DecTable", 2, ImGuiTableFlags_SizingStretchProp)) {
-            const char* decoders[] = { "Software (Safe)", "NVIDIA (CUVID)", "DirectX 11 (D3D11)", "Intel QSV" };
-            int current_decoder = (int)m_StreamConfig.decoder;
-            DrawPropertyLabel("Decoder Type");
-            if (ImGui::Combo("##DecoderMode", &current_decoder, decoders, 4))
-                m_StreamConfig.decoder = (DecoderType)current_decoder;
-            DrawPropertyLabel("Swap Red/Blue");    ImGui::Checkbox("##SwapRB", &m_StreamConfig.useBGRA);
-            ImGui::EndTable();
-            ImGui::Spacing();
-        }
-    }
-}
-
-void LiveStream::DrawNoticePanel() {
-    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.15f, 0.15f, 0.15f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.25f, 0.25f, 0.25f, 1.0f));
-    if (ImGui::CollapsingHeader("Notice", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed)) {
-        ImGui::PopStyleColor(3);
-        ImGui::TextWrapped("Performance Benchmark:");
-        ImGui::BulletText("CLI (Direct GPU Overlay): ~100ms latency.");
-        ImGui::BulletText("Software (AppSink + Texture Upload): ~200ms latency.");
-        ImGui::Spacing();
-        ImGui::PushTextWrapPos(ImGui::GetContentRegionAvail().x - ImGui::GetStyle().WindowPadding.x);
-        ImGui::TextDisabled("Note: The 100ms difference is the physical overhead of copying frames "
-            "from Video Memory back to System RAM for UI synchronization.");
-        ImGui::PopTextWrapPos();
-        ImGui::Spacing();
-        ImGui::Separator();
-        ImGui::Spacing();
-        ImGui::Text("Reference CLI Command (Minimum Latency):");
-        std::string cliCmd = BuildCLIReferenceString(m_StreamConfig);
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
-        ImVec2 textSize = ImGui::CalcTextSize(cliCmd.c_str(), nullptr, false, ImGui::GetContentRegionAvail().x - 20.0f);
-        float childHeight = textSize.y + ImGui::GetStyle().FramePadding.y * 4.0f + 15.0f;
-        if (ImGui::BeginChild("##CLI_Box", ImVec2(-1.0f, childHeight), true, ImGuiWindowFlags_NoScrollbar)) {
-            ImGui::PushTextWrapPos(0.0f);
-            ImGui::TextUnformatted(cliCmd.c_str());
-            ImGui::PopTextWrapPos();
-            if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(0))
-                ImGui::SetClipboardText(cliCmd.c_str());
-        }
-        ImGui::EndChild();
-        ImGui::PopStyleColor();
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("Click to copy text");
-    } else {
-        ImGui::PopStyleColor(3);
-    }
-}
-
-void LiveStream::DrawStreamConfigPanel() {
-    ImGui::PushItemWidth(-1.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4, 4));
-    DrawNoticePanel();
-    ImGui::Spacing();
-    DrawConnectionSettings();
-    DrawProtocolCodecSettings();
-    DrawNetworkBufferSettings();
-    DrawDecoderRenderingSettings();
-    ImGui::PopStyleVar();
-    ImGui::PopItemWidth();
 }

@@ -1,12 +1,4 @@
 #include "TerminalPanel.h"
-#include "Walnut/Core/Log.h"
-#include <array>
-#include <cstdio>
-
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#endif
 
 // ============================================================================
 // TerminalCommands — only built-in commands; everything else → system shell

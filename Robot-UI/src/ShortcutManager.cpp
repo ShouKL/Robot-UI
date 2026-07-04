@@ -1,10 +1,4 @@
 #include "ShortcutManager.h"
-#include "RobotStatus.h"
-#include "RobotSettingPanel.h"
-#include "FileManager.h"
-#include <cstdio>
-#include <yaml-cpp/yaml.h>
-#include <imgui_internal.h>
 
 // ============================================================================
 // Shortcut() — 兼容 ImGui 1.84 的路由式快捷键检测
@@ -80,7 +74,7 @@ const std::vector<ImGuiKey>& ShortcutManager::GetBindableKeys()
         ImGuiKey_F1,  ImGuiKey_F2,  ImGuiKey_F3,  ImGuiKey_F4,
         ImGuiKey_F5,  ImGuiKey_F6,  ImGuiKey_F7,  ImGuiKey_F8,
         ImGuiKey_F9,  ImGuiKey_F10, ImGuiKey_F11, ImGuiKey_F12,
-        ImGuiKey_Space, ImGuiKey_Tab, ImGuiKey_Enter, ImGuiKey_Escape,
+        ImGuiKey_GraveAccent, ImGuiKey_Space, ImGuiKey_Tab, ImGuiKey_Enter, ImGuiKey_Escape,
         ImGuiKey_Backspace, ImGuiKey_Delete,
         ImGuiKey_LeftArrow, ImGuiKey_RightArrow, ImGuiKey_UpArrow, ImGuiKey_DownArrow,
         ImGuiKey_PageUp, ImGuiKey_PageDown, ImGuiKey_Home, ImGuiKey_End,
@@ -96,17 +90,18 @@ const std::vector<ImGuiKey>& ShortcutManager::GetBindableKeys()
 ShortcutBinding ShortcutManager::GetDefaultBinding(int action)
 {
     static const ShortcutBinding defaults[] = {
+        {ImGuiKey_N, true,  false, false},  // ACT_FILE_NEW             Ctrl+N
         {ImGuiKey_O, true,  false, false},  // ACT_FILE_OPEN            Ctrl+O
         {ImGuiKey_S, true,  false, false},  // ACT_FILE_SAVE            Ctrl+S
         {ImGuiKey_S, true,  true,  false},  // ACT_FILE_SAVEAS          Ctrl+Shift+S
-        {ImGuiKey_O, true,  true,  false},  // ACT_TOGGLE_OPTION        Ctrl+Shift+O
-        {ImGuiKey_P, true,  true,  false},  // ACT_TOGGLE_STATUS        Ctrl+Shift+P
-        {ImGuiKey_E, true,  false, false},  // ACT_TOGGLE_ROBOTSETTING  Ctrl+E
-        {ImGuiKey_T, true,  false, false},  // ACT_TOGGLE_TERMINAL      Ctrl+T
-        {ImGuiKey_M, true,  false, false},  // ACT_TOGGLE_MONITORWALL   Ctrl+M
-        {ImGuiKey_U, true,  false, false},  // ACT_TOGGLE_THRUSTCURVE   Ctrl+U
-        {ImGuiKey_A, true,  true,  false},  // ACT_TOGGLE_ABOUT         Ctrl+Shift+A
-        {ImGuiKey_X, true,  true,  false},  // ACT_SCREENSHOT           Ctrl+Shift+X
+        {ImGuiKey_F1, false, false, false},  // ACT_TOGGLE_OPTION        F1
+        {ImGuiKey_F2, false, false, false},  // ACT_TOGGLE_STATUS        F2
+        {ImGuiKey_F3, false, false, false},  // ACT_TOGGLE_ROBOTSETTING  F3
+        {ImGuiKey_F4, false, false, false},  // ACT_TOGGLE_TERMINAL      F4
+        {ImGuiKey_F5, false, false, false},  // ACT_TOGGLE_MONITORWALL   F5
+        {ImGuiKey_F6, false, false, false},  // ACT_TOGGLE_THRUSTCURVE   F6
+        {ImGuiKey_F7, false, false, false},  // ACT_TOGGLE_ABOUT         F7
+        {ImGuiKey_F12,false, false, false},  // ACT_SCREENSHOT           F12
     };
     if (action >= 0 && action < (int)(sizeof(defaults) / sizeof(defaults[0])))
         return defaults[action];
@@ -126,6 +121,7 @@ void ShortcutManager::InitDefaultBindings()
 const char* ShortcutManager::GetActionCategory(int action)
 {
     switch (action) {
+    case ACT_FILE_NEW:
     case ACT_FILE_OPEN:
     case ACT_FILE_SAVE:
     case ACT_FILE_SAVEAS:          return "File";
@@ -144,6 +140,7 @@ const char* ShortcutManager::GetActionCategory(int action)
 const char* ShortcutManager::GetActionLabel(int action)
 {
     switch (action) {
+    case ACT_FILE_NEW:             return "File New";
     case ACT_FILE_OPEN:            return "File Open";
     case ACT_FILE_SAVE:            return "File Save";
     case ACT_FILE_SAVEAS:          return "File Save As";
@@ -157,6 +154,14 @@ const char* ShortcutManager::GetActionLabel(int action)
     case ACT_SCREENSHOT:           return "Screenshot";
     default:                       return "";
     }
+}
+
+std::string ShortcutManager::GetShortcutHint(int action) const
+{
+    if (action < 0 || action >= ACT_COUNT) return "";
+    const auto& b = m_Bindings[action];
+    if (!b.IsValid()) return "";
+    return b.ToString();
 }
 
 // ==================== 初始化 ====================
@@ -208,6 +213,7 @@ void ShortcutManager::Process()
             if (ImGui::IsKeyPressed(b.key, false) && !io.WantTextInput) \
                 { if (cb) cb(); } }
 
+    ONESHOT(ACT_FILE_NEW,    m_FileNewCb)
     ONESHOT(ACT_FILE_OPEN,   m_FileOpenCb)
     ONESHOT(ACT_FILE_SAVE,   m_FileSaveCb)
     ONESHOT(ACT_FILE_SAVEAS, m_FileSaveAsCb)
@@ -231,6 +237,7 @@ void ShortcutManager::Process()
 void ShortcutManager::ExecuteAction(int action)
 {
     switch (action) {
+    case ACT_FILE_NEW:    if (m_FileNewCb)   m_FileNewCb();   break;
     case ACT_FILE_OPEN:   if (m_FileOpenCb)  m_FileOpenCb();  break;
     case ACT_FILE_SAVE:   if (m_FileSaveCb)  m_FileSaveCb();  break;
     case ACT_FILE_SAVEAS: if (m_FileSaveAsCb) m_FileSaveAsCb(); break;

@@ -1,7 +1,6 @@
 #pragma once
 
-#include <string>
-#include <vector>
+#include "core.h"
 
 // ============================================================================
 // Screenshot — 截图工具

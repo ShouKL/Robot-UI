@@ -1,23 +1,11 @@
 #include "Robot_UI.h"
-#include "Robot_API/hardware_interface.h"
 #include "Walnut/EntryPoint.h"
-#include "Walnut/Core/Log.h"
-#include "ConfigSerializer.h"
-#include "FileManager.h"
-#include "OptionPanel.h"
-#include "RobotSettingPanel.h"
 #include "Screenshot.h"
-#include <imgui_node_editor.h>
 #include <implot.h>
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 #include <vulkan/vulkan.h>
-#include <chrono>
-#include <cmath>
-#include <ctime>
-#include <filesystem>
-#include <fstream>
 #include <shellapi.h>
 
 Robot_UI_Layer::Robot_UI_Layer()
@@ -79,10 +67,9 @@ Robot_UI_Layer::Robot_UI_Layer()
     WL_INFO_TAG("APP", "Gamepad thread started");
 
     // ---- 快捷键系统初始化（在加载文件之前设置默认值） ----
-    m_ShortcutManager.SetRobotStatus(m_RobotStatus.get());
-    m_ShortcutManager.SetRobotSettingPanel(m_RobotSettingPanel.get());
     m_ShortcutManager.SetFileManager(m_FileManager.get());
     m_ShortcutManager.SetFileCallbacks(
+        [this]() { FileNew(); },
         [this]() { FileOpen(); },
         [this]() { FileSave(); },
         [this]() { FileSaveAs(); });
@@ -97,6 +84,7 @@ Robot_UI_Layer::Robot_UI_Layer()
         &m_ThrustCurveEditorOpen,
         &m_AboutOpen);
     m_OptionPanel->SetShortcutManager(&m_ShortcutManager);
+    m_OptionPanel->SetMonitorWall(m_MonitorWall.get());
 
     LoadKernelFile(m_FileManager->DeriveKernelPath());
 
@@ -109,8 +97,34 @@ Robot_UI_Layer::Robot_UI_Layer()
     WL_INFO_TAG("APP", "Loading component: {}", robotPath);
     LoadRobotFile(robotPath);
 
+    // 如果加载的是默认 fallback 文件（非用户选择的），清空路径以触发 Save 时自动 SaveAs
+    {
+        std::string defaultPath = FileManager::GetExeDir() + "..\\..\\..\\asset\\file\\default.rbt";
+        try {
+            std::string rpCanon = std::filesystem::canonical(m_FileManager->GetRobotPath()).string();
+            std::string dpCanon = std::filesystem::canonical(defaultPath).string();
+            if (rpCanon == dpCanon) {
+                m_FileManager->SetRobotPath("");
+            }
+        } catch (...) {
+            if (robotPath == defaultPath && m_FileManager->GetRobotPath() == defaultPath) {
+                m_FileManager->SetRobotPath("");
+            }
+        }
+    }
+
     // 启动后强制断开所有连接（兜底保护）
     if (m_RobotStatus) m_RobotStatus->UnlinkAll();
+
+    // 预热 NodeGraph 首帧（在 Splash 动画期间透明渲染一帧，避免打开时闪烁）
+    m_NeedNodeGraphWarmup = false;
+    {
+        auto& ngMgr = rsp->GetNodeGraphManager();
+        if (ngMgr.GetItemCount() > 0 && ngMgr.GetSelectedGraph())
+        {
+            m_NeedNodeGraphWarmup = true;
+        }
+    }
 
     WL_INFO_TAG("APP", "Robot UI initialized successfully");
 }
@@ -138,11 +152,11 @@ void Robot_UI_Layer::LoadRobotFile(const std::string& path)
 {
     auto* liveStreamMgr = m_RobotSettingPanel->GetLiveStreamManager();
 
-    std::vector<StreamConfig> streams;
+    std::vector<LiveStream> streams;
     UIState uiState;
-    std::vector<RobotCommConfig> commConfigs;
+    std::vector<RobotComm> commConfigs;
     std::map<std::string, std::string> graphMap;
-    std::vector<GraphItem> graphItems;
+    std::vector<NodeGraph> graphItems;
     std::string error;
     std::string robotShortcutsYaml;
 
@@ -229,9 +243,9 @@ void Robot_UI_Layer::SaveRobotFile(const std::string& path)
     auto* liveStreamMgr = m_RobotSettingPanel->GetLiveStreamManager();
     auto* commMgr       = m_RobotSettingPanel->GetRobotCommManager();
 
-    std::vector<StreamConfig> streams;
+    std::vector<LiveStream> streams;
     if (liveStreamMgr) streams = liveStreamMgr->GetAllItems();
-    std::vector<RobotCommConfig> commConfigs;
+    std::vector<RobotComm> commConfigs;
     if (commMgr) commConfigs = commMgr->GetAllItems();
 
     UIState uiState; // .rbt 不保存 UI 状态
@@ -293,6 +307,14 @@ void Robot_UI_Layer::LoadKernelFile(const std::string& path)
     m_OptionPanel->SetScreenshotScope(uiState.screenshot_scope);
     m_OptionPanel->SetScreenshotPath(uiState.screenshot_path);
 
+    // 恢复连接设置
+    m_OptionPanel->SetConnRetryCount(uiState.conn_retry_count);
+    m_OptionPanel->SetCameraRetryCount(uiState.camera_retry_count);
+    if (m_RobotStatus) {
+        m_RobotStatus->SetConnRetryCount(uiState.conn_retry_count);
+        m_RobotStatus->SetCameraRetryCount(uiState.camera_retry_count);
+    }
+
     WL_INFO_TAG("APP", "Kernel loaded: {}", path);
 }
 
@@ -332,6 +354,10 @@ void Robot_UI_Layer::SaveKernelFile(const std::string& path)
     uiState.screenshot_scope = m_OptionPanel->GetScreenshotScope();
     uiState.screenshot_path  = m_OptionPanel->GetScreenshotPath();
 
+    // 连接设置
+    uiState.conn_retry_count = m_OptionPanel->GetConnRetryCount();
+    uiState.camera_retry_count = m_OptionPanel->GetCameraRetryCount();
+
     std::string error;
     if (!ConfigSerializer::SaveKernel(path, m_OptionPanel->GetImGuiStyleManager(), uiState, &error))
     {
@@ -344,6 +370,52 @@ void Robot_UI_Layer::SaveKernelFile(const std::string& path)
 }
 
 // ==================== 文件操作（菜单入口） ====================
+
+void Robot_UI_Layer::FileNew()
+{
+    // 断开所有连接
+    if (m_RobotStatus) m_RobotStatus->UnlinkAll();
+
+    // 清空路径（标记为新文件）
+    m_FileManager->SetRobotPath("");
+    m_FileManager->MarkRobotClean();
+    m_FileManager->ClearRecentFiles();
+
+    // 重置 Component Manager：清空并创建一个默认 Component
+    auto& compMgr = m_RobotSettingPanel->GetRobotComponentManager();
+    auto& comps = compMgr.GetComponents();
+    comps.clear();
+    RobotComponent defaultComp;
+    strncpy_s(defaultComp.name, "Default", sizeof(defaultComp.name) - 1);
+    defaultComp.id = 0;
+    comps.push_back(defaultComp);
+    compMgr.SelectItem(0);
+
+    // 重置 GamepadMapper
+    auto& gpMgr = m_RobotSettingPanel->GetGamepadMapperManager();
+    gpMgr.ResetToDefault();
+
+    // 重置 NodeGraph
+    m_RobotSettingPanel->GetNodeGraphManager().ResetToDefault();
+
+    // 重置 LiveStream
+    m_RobotSettingPanel->GetLiveStreamManager()->ResetToDefault();
+
+    // 重置 RobotComm
+    m_RobotSettingPanel->GetRobotCommManager()->ResetToDefault();
+
+    // 重置 RobotStatus
+    if (m_RobotStatus) {
+        m_RobotStatus->SetActiveMode(comps[0]);
+        auto* gpMapper = gpMgr.GetSelectedMapper();
+        if (gpMapper) {
+            m_RobotStatus->SetActiveGamepad(gpMapper);
+            m_RobotStatus->LoadGraph(gpMapper->name);
+        }
+    }
+
+    WL_INFO_TAG("APP", "New file created");
+}
 
 void Robot_UI_Layer::FileOpen()
 {
@@ -445,23 +517,27 @@ void Robot_UI_Layer::GamepadRoutine()
             m_RobotSettingPanel->GetNodeGraph()->SetKeyValues(keyValues);
         }
 
-        if (m_RobotStatus && m_RobotStatus->IsLinked())
+        // 求值始终运行（不依赖 Connect 状态），Connect 只决定是否发送
+        // 但 RobotSetting 打开时由编辑器独占跑图，GamepadRoutine 跳过
+        if (m_RobotStatus && m_RobotStatus->HasGraphEvaluator() && !m_RobotSettingOpen)
         {
-            auto* gpMapper = m_RobotStatus ? m_RobotStatus->GetActiveGamepadPtr() : nullptr;
-            if (gpMapper && m_RobotStatus->HasGraphEvaluator()) {
+            auto* gpMapper = m_RobotStatus->GetActiveGamepadPtr();
+            if (gpMapper) {
                 std::map<std::string, float> keyValues;
                 auto boundKeys = gpMapper->GetActiveModeBoundKeyNames();
                 for (const auto& keyName : boundKeys) {
                     keyValues[keyName] = gpMapper->GetKeyValue(keyName);
                 }
 
+                // 线程安全：快照连接池，避免与 UI 线程 SyncConnectionsFromGraph / UnlinkAll 竞态
+                auto connSnap = m_RobotStatus->SnapshotConnections();
+                int connCount = (int)connSnap.size();
+
                 std::vector<ActuatorConfig> dataVec;
-                int connCount = m_RobotStatus->GetConnectionCount();
                 {
                     auto& comps = m_RobotSettingPanel->GetRobotComponentManager().GetComponents();
                     for (int i = 0; i < connCount; ++i) {
-                        auto* conn = m_RobotStatus->GetConnection(i);
-                        int cIdx = conn ? conn->config.active_component_idx : 0;
+                        int cIdx = connSnap[i].config.active_component_idx;
                         if (cIdx >= 0 && cIdx < (int)comps.size())
                             dataVec.push_back(comps[cIdx].actuator_config);
                         else
@@ -471,21 +547,23 @@ void Robot_UI_Layer::GamepadRoutine()
                 std::set<int> writtenIndices;
                 m_RobotStatus->EvaluateIntoActuators(keyValues, dataVec, &writtenIndices);
 
-                for (int i = 0; i < connCount; ++i) {
-                    auto* conn = m_RobotStatus->GetConnection(i);
-                    if (!conn || !conn->isLinked) continue;
-                    ActuatorConfig& data = (i < (int)dataVec.size()) ? dataVec[i] : dataVec[0];
-                    conn->hw->SendActuatorData(data);
-                    if (!conn->hw->IsConnected()) {
-                        WL_ERROR_TAG("GAMEPAD", "Connection lost: {} ({})", conn->config.name, conn->config.host_ip);
-                    }
+                // 更新 UI 显示（所有 comm 的数据）
+                std::vector<std::shared_ptr<const ActuatorConfig>> cmdPtrs;
+                for (int i = 0; i < (int)dataVec.size(); ++i)
+                    cmdPtrs.push_back(std::make_shared<const ActuatorConfig>(dataVec[i]));
+                if (!cmdPtrs.empty()) {
+                    m_CurrentCommand.store(cmdPtrs[0], std::memory_order_release);
+                    m_RobotStatus->UpdateAllCommandData(cmdPtrs);
                 }
 
-                // 更新 UI 显示（用第一台机器人的数据）
-                if (!dataVec.empty()) {
-                    auto cmdPtr = std::make_shared<const ActuatorConfig>(dataVec[0]);
-                    m_CurrentCommand.store(cmdPtr, std::memory_order_release);
-                    m_RobotStatus->UpdateCommandData(cmdPtr);
+                // Connect 只决定是否发送，不影响解算
+                for (int i = 0; i < connCount; ++i) {
+                    if (!connSnap[i].isLinked) continue;
+                    ActuatorConfig& data = (i < (int)dataVec.size()) ? dataVec[i] : dataVec[0];
+                    connSnap[i].hw->SendActuatorData(data);
+                    if (!connSnap[i].hw->IsConnected()) {
+                        WL_ERROR_TAG("GAMEPAD", "Connection lost: {} ({})", connSnap[i].config.name, connSnap[i].config.host_ip);
+                    }
                 }
             }
         }
@@ -504,6 +582,52 @@ void Robot_UI_Layer::GamepadRoutine()
 void Robot_UI_Layer::OnUIRender()
 {
     m_ShortcutManager.Process();
+
+    // 预热：透明渲染 NodeGraph 标签页一帧，上传 GPU 纹理，用户不可见
+    if (m_NeedNodeGraphWarmup)
+    {
+        if (m_RobotSettingPanel)
+        {
+            m_RobotSettingPanel->SetWarmupMode(true);
+            m_RobotSettingPanel->SelectTab(2);  // 强制切到 NodeGraph
+        }
+        m_RobotSettingOpen = true;
+        m_RobotSettingPanel->Draw(&m_RobotSettingOpen);
+        m_RobotSettingOpen = false;
+        if (m_RobotSettingPanel)
+        {
+            m_RobotSettingPanel->SelectTab(0);      // 恢复默认 tab（Component）
+            m_RobotSettingPanel->SetWarmupMode(false);
+        }
+        m_NeedNodeGraphWarmup = false;
+    }
+
+    // ======== Connect ↔ RobotSetting 互斥 ========
+    // 规则1: 连接建立时 → 自动关闭 RobotSetting 面板
+    // 规则2: 打开 RobotSetting 时 → 自动断开所有连接
+    {
+        static bool s_WasLinked = false;
+        static bool s_WasSettingOpen = false;
+        bool nowLinked = m_RobotStatus ? m_RobotStatus->IsLinked() : false;
+
+        // 规则1: 从断链变为连接 → 关闭 RobotSetting（保存修改）
+        if (!s_WasLinked && nowLinked && m_RobotSettingOpen) {
+            WL_INFO_TAG("APP", "Connect detected — closing RobotSetting panel");
+            m_RobotSettingOpen = false;
+            if (m_RobotSettingPanel && m_RobotSettingPanel->IsEditing())
+                m_RobotSettingPanel->ApplyEdit();
+        }
+
+        // 规则2: RobotSetting 从关闭变为打开且已连接 → 断开所有连接
+        if (!s_WasSettingOpen && m_RobotSettingOpen && nowLinked) {
+            WL_INFO_TAG("APP", "RobotSetting opened — disconnecting all");
+            m_RobotStatus->UnlinkAll();
+            nowLinked = false;
+        }
+
+        s_WasLinked = nowLinked;
+        s_WasSettingOpen = m_RobotSettingOpen;
+    }
 
     // 每帧将 SendAction 回调注入编辑器图，供 ShortcutTrigger 节点使用
     if (m_RobotSettingPanel && m_RobotStatus) {
@@ -643,8 +767,14 @@ void Robot_UI_Layer::OnUIRender()
         ImGui::End();
     }
 
-    if (m_OptionOpen && m_OptionPanel)
+    if (m_OptionOpen && m_OptionPanel) {
         m_OptionPanel->DrawOptionPanel(&m_OptionOpen);
+        // 实时同步连接重试次数到 RobotStatus
+        if (m_RobotStatus) {
+            m_RobotStatus->SetConnRetryCount(m_OptionPanel->GetConnRetryCount());
+            m_RobotStatus->SetCameraRetryCount(m_OptionPanel->GetCameraRetryCount());
+        }
+    }
 
     if (m_RobotStatusOpen && m_RobotStatus)
     {
@@ -660,17 +790,6 @@ void Robot_UI_Layer::OnUIRender()
     if (m_MonitorWallOpen && m_MonitorWall)
     {
         m_MonitorWall->SetActiveStreamIndex(m_RobotStatus->GetActiveLiveStreamIdx());
-
-        // 检测 RobotStatus 连接状态变化，同步流启停
-        bool linked = m_RobotStatus->IsLinked();
-        if (linked != m_LastLinkState) {
-            m_LastLinkState = linked;
-            if (linked)
-                m_MonitorWall->ConnectStream();
-            else
-                m_MonitorWall->DisconnectStream();
-        }
-
         m_MonitorWall->Draw(&m_MonitorWallOpen);
     }
 
@@ -714,8 +833,16 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 
     app->SetMenubarCallback([app, uiLayer]()
         {
+            auto& sm = uiLayer->GetShortcutManager();
+            auto hint = [&sm](int action) -> std::string { return sm.GetShortcutHint(action); };
+
             if (ImGui::BeginMenu("File"))
             {
+                if (ImGui::MenuItem("New", hint(ShortcutManager::ACT_FILE_NEW).c_str()))
+                {
+                    uiLayer->FileNew();
+                }
+                ImGui::Separator();
                 if (ImGui::BeginMenu("Open"))
                 {
                     int idx = 0;
@@ -748,15 +875,15 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
                     }
                     ImGui::EndMenu();
                 }
-                if (ImGui::MenuItem("Open File", "Ctrl+O"))
+                if (ImGui::MenuItem("Open File", hint(ShortcutManager::ACT_FILE_OPEN).c_str()))
                 {
                     uiLayer->FileOpen();
                 }
-                if (ImGui::MenuItem("Save", "Ctrl+S"))
+                if (ImGui::MenuItem("Save", hint(ShortcutManager::ACT_FILE_SAVE).c_str()))
                 {
                     uiLayer->FileSave();
                 }
-                if (ImGui::MenuItem("Save As", "Ctrl+Shift+S"))
+                if (ImGui::MenuItem("Save As", hint(ShortcutManager::ACT_FILE_SAVEAS).c_str()))
                 {
                     uiLayer->FileSaveAs();
                 }
@@ -770,7 +897,7 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 
             if (ImGui::BeginMenu("Edit"))
             {
-                if (ImGui::MenuItem("Robot Setting", "Ctrl+E"))
+                if (ImGui::MenuItem("Robot Setting", hint(ShortcutManager::ACT_TOGGLE_ROBOTSETTING).c_str()))
                 {
                     uiLayer->ShowRobotSetting();
                 }
@@ -779,25 +906,25 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 
             if (ImGui::BeginMenu("View"))
             {
-                ImGui::MenuItem("Robot Status", "Ctrl+Shift+P", &uiLayer->GetShowRobotStatus());
-                ImGui::MenuItem("Monitor Wall", "Ctrl+M", &uiLayer->GetShowMonitorWall());
-                ImGui::MenuItem("Terminal", "Ctrl+T", &uiLayer->GetShowTerminal());
+                ImGui::MenuItem("Robot Status", hint(ShortcutManager::ACT_TOGGLE_STATUS).c_str(), &uiLayer->GetShowRobotStatus());
+                ImGui::MenuItem("Monitor Wall", hint(ShortcutManager::ACT_TOGGLE_MONITORWALL).c_str(), &uiLayer->GetShowMonitorWall());
+                ImGui::MenuItem("Terminal", hint(ShortcutManager::ACT_TOGGLE_TERMINAL).c_str(), &uiLayer->GetShowTerminal());
                 
                 ImGui::EndMenu();
             }
 
             if (ImGui::BeginMenu("Tool"))
             {
-                if (ImGui::MenuItem("Thrust Curve Editor", "Ctrl+U"))
+                if (ImGui::MenuItem("Thrust Curve Editor", hint(ShortcutManager::ACT_TOGGLE_THRUSTCURVE).c_str()))
                 {
                     uiLayer->ShowThrustCurveEditor();
                 }
-                if (ImGui::MenuItem("Option", "Ctrl+Shift+O"))
+                if (ImGui::MenuItem("Option", hint(ShortcutManager::ACT_TOGGLE_OPTION).c_str()))
                 {
                     uiLayer->ShowOption();
                 }
                 ImGui::Separator();
-                if (ImGui::MenuItem("Screenshot", "Ctrl+Shift+X"))
+                if (ImGui::MenuItem("Screenshot", hint(ShortcutManager::ACT_SCREENSHOT).c_str()))
                 {
                     uiLayer->TakeScreenshot();
                 }
@@ -806,7 +933,7 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 
             if (ImGui::BeginMenu("Help"))
             {
-                if (ImGui::MenuItem("About", "Ctrl+Shift+A"))
+                if (ImGui::MenuItem("About", hint(ShortcutManager::ACT_TOGGLE_ABOUT).c_str()))
                 {
                     uiLayer->ShowAbout();
                 }

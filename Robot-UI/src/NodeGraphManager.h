@@ -2,33 +2,13 @@
 
 // ============================================================================
 // NodeGraphManager — visual node graph editor with item list management.
-// Contains one active NodeGraph + EditorContext. Each GraphItem is a named
-// workspace snapshot. Inherits ManagerBase.
+// Contains one active NodeGraph + EditorContext. Each item is a named
+// workspace snapshot (unique_ptr<NodeGraph>). Inherits ManagerBase.
 // ============================================================================
 
 #include "ManagerBase.h"
 #include "NodeGraph.h"
-#include <functional>
-#include <imgui_node_editor.h>
-#include <vector>
-#include <string>
-#include <map>
-#include <set>
-
-class RobotComponentManager;
-class GamepadMapperManager;
-class RobotCommManager;
-class ShortcutManager;
-
-struct GraphItem
-{
-    int  id = 0;
-    bool isSelected = false;
-    char name[64] = "Default";
-    std::unique_ptr<NodeGraph> graph;
-    std::string editorYaml;      // cached full YAML (with positions) for editor restore
-    int  comm_index = 0;         // 关联的 RobotComm 配置索引
-};
+#include "Walnut/Image.h"
 
 class NodeGraphManager : public ManagerBase
 {
@@ -46,12 +26,26 @@ public:
     void SetSelectedIndex(int idx);
 
     int    GetItemCount() const override { return (int)m_Items.size(); }
-    int    GetItemId(int index) const override { return m_Items[index].id; }
-    char*  GetItemNameBuf(int index) override { return m_Items[index].name; }
+    int    GetItemId(int index) const override { return m_Items[index]->id; }
+    char*  GetItemNameBuf(int index) override { return m_Items[index]->name; }
     int    GetSelectedIndex() const override { return m_SelectedIndex; }
     void   SelectItem(int index) override { SetSelectedIndex(index); }
 
     void DrawContent() override;
+
+    std::string ClipboardCopySelected() override;
+    void        ClipboardPaste(const std::string& yaml) override;
+
+    // ---- Drawing (all UI rendering moved from NodeGraph to Manager) ----
+    void DrawNodeGraphEditor(NodeGraph& ng);
+    void DrawNodeContents(NodeGraph& ng, EditorNode& node,
+                          const std::set<std::string>& analogKeys,
+                          const std::vector<OutputTargetInfo>& outputTargets);
+    void DrawKeyValuesSidebar(NodeGraph& ng, float sideWidth,
+                              const std::set<std::string>& analogKeys);
+    void DrawGlobalsSidebar(NodeGraph& ng, float sideWidth);
+    void DrawCommRefsSidebar(NodeGraph& ng, float sideWidth);
+    void DrawTriggerSidebar(NodeGraph& ng, float sideWidth);
 
     // ---- Dependency injection ----
     void SetRobotComponentManager(RobotComponentManager* c);
@@ -65,22 +59,24 @@ public:
     void RequestNavigate() { m_SelectedGraph->RequestNavigate(); }
 
     // ---- Item snapshot / restore ----
-    std::vector<GraphItem> GetAllItems() const;
-    void LoadItems(const std::vector<GraphItem>& items);
+    std::vector<NodeGraph> GetAllItems() const;
+    void LoadItems(const std::vector<NodeGraph>& items);
+
+    void ResetToDefault();
 
     // ---- Graph YAML (for SaveCurrentToItem / LoadItemToCurrent) ----
     std::string GetGraphYaml() const;
     bool        LoadGraphYaml(const std::string& yamlStr);
+    void SaveCurrentToItem();
 
-    // ---- 供 RobotStatus 同步活跃 NodeGraph 到求值器 ----
+    // ----   RobotStatus    NodeGraph    ----
     std::string GetGraphYamlForIndex(int idx);
     std::string GetGraphDataYamlForIndex(int idx);  // no SaveCurrentToItem side effect
 
 private:
-    void SaveCurrentToItem();
     void LoadItemToCurrent();
 
-    std::vector<GraphItem> m_Items;
+    std::vector<std::unique_ptr<NodeGraph>> m_Items;
     int m_SelectedIndex = 0;
 
     ax::NodeEditor::EditorContext* m_EditorCtx = nullptr;
@@ -91,4 +87,7 @@ private:
     RobotCommManager*      m_RobotCommMgr = nullptr;
     ShortcutManager*       m_ShortcutMgr = nullptr;
     std::function<void(int,bool,bool)> m_StoredSendActionCb;
+
+    // ---- Clipboard (Copy/Paste) ----
+    std::string m_ClipboardYaml;  // YAML snapshot of copied nodes + links
 };

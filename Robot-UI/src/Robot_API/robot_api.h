@@ -43,10 +43,25 @@ struct TemperatureSensor { EncodedValue value{0.0, DataEncoding::Float32}; };
 struct HumiditySensor    { EncodedValue value{0.0, DataEncoding::Float32}; };
 struct DepthSensor       { EncodedValue value{0.0, DataEncoding::Float32}; };
 
+// ================== GPIO 数据结构 ==================
+
+struct GpioPin {
+    int id = 0;
+    std::string name;
+    int  pin_number = 0;
+    int  value = 0;          // 0 or 1 (output only)
+};
+
+struct GpioData {
+    std::vector<GpioPin> pins;
+    bool is_valid = false;
+};
+
 struct SensorData {
     TemperatureSensor temperature;
     HumiditySensor    humidity;
     DepthSensor       depth;
+    GpioData          gpio;
     bool is_valid = false;
 };
 
@@ -92,6 +107,7 @@ struct Servo {
 };
 
 struct MotionControl {
+    std::string name;
     EncodedValue x{0, DataEncoding::Float32};
     EncodedValue y{0, DataEncoding::Float32};
     EncodedValue z{0, DataEncoding::Float32};
@@ -103,8 +119,10 @@ struct MotionControl {
 struct ActuatorConfig {
     std::vector<BrushlessMotor> brushlessmotor;
     std::vector<Servo> servo;
-    MotionControl motion;
-    bool has_motion = false;
+    std::vector<MotionControl> motions;
+
+    // GPIO output pins (for send/protocol control)
+    std::vector<GpioPin> gpio_pins;
 };
 
 // ================== 协议配置 (Protocol) ==================
@@ -299,8 +317,19 @@ struct FieldSubField {
 // 从 ActuatorConfig + SensorConfig 生成可用组件列表
 inline std::vector<FieldComponent> GetSendComponents(const ActuatorConfig& data, const SensorConfig& /*sensor*/) {
     std::vector<FieldComponent> comps;
-    if (data.has_motion)
-        comps.push_back({"motion", "Motion", "motion.", false});
+    if (data.motions.size() > 0) {
+        for (size_t mi = 0; mi < data.motions.size(); ++mi) {
+            const auto& m = data.motions[mi];
+            std::string motionName = m.name.empty()
+                ? std::string("Motion_") + std::to_string(mi)
+                : m.name;
+            std::string label = m.name.empty()
+                ? std::string("Motion #") + std::to_string(mi)
+                : m.name;
+            comps.push_back({"m" + std::to_string(mi), label,
+                std::string("motions.") + std::to_string(mi) + ".", false});
+        }
+    }
     for (const auto& motor : data.brushlessmotor) {
         std::string motorName = motor.name.empty()
             ? std::string("Motor_") + std::to_string(motor.id)
@@ -321,6 +350,16 @@ inline std::vector<FieldComponent> GetSendComponents(const ActuatorConfig& data,
         comps.push_back({"s" + servoName, label,
             std::string("servo.") + servoName + ".", false});
     }
+    for (const auto& gpio : data.gpio_pins) {
+        std::string gpioName = gpio.name.empty()
+            ? std::string("GPIO_") + std::to_string(gpio.id)
+            : gpio.name;
+        std::string label = gpio.name.empty()
+            ? std::string("GPIO #") + std::to_string(gpio.id)
+            : gpio.name;
+        comps.push_back({"g" + gpioName, label,
+            std::string("gpio.") + gpioName + ".", false});
+    }
     return comps;
 }
 
@@ -334,7 +373,7 @@ inline std::vector<FieldComponent> GetRecvComponents(const SensorConfig& sensor)
 
 // 根据组件获取其子字段列表
 inline std::vector<FieldSubField> GetSubFields(const FieldComponent& comp) {
-    if (comp.id == "motion") {
+    if (comp.path_prefix.rfind("motions.", 0) == 0) { // motion vector
         return {
             {"x",  "X"},
             {"y",  "Y"},
@@ -365,6 +404,13 @@ inline std::vector<FieldSubField> GetSubFields(const FieldComponent& comp) {
             {"angle", "Angle"},
         };
     }
+    if (comp.path_prefix.rfind("gpio.", 0) == 0) { // gpio
+        return {
+            {"id",         "ID"},
+            {"pin_number", "Pin Number"},
+            {"value",      "Value"},
+        };
+    }
     // sensors
     return {{"value", "Value"}};
 }
@@ -372,7 +418,11 @@ inline std::vector<FieldSubField> GetSubFields(const FieldComponent& comp) {
 // 根据组件 id 解析 field_path 中的组件部分
 inline std::string ResolveComponentId(const std::string& field_path) {
     // 返回组件 id: "motion", "m0", "s1", "temp", "hum", "depth"
-    if (field_path.rfind("motion.", 0) == 0) return "motion";
+    if (field_path.rfind("motions.", 0) == 0) {
+        auto dot = field_path.find('.', 8);
+        std::string idStr = field_path.substr(8, dot - 8);
+        return "m" + idStr;
+    }
     if (field_path.rfind("brushlessmotor.", 0) == 0) {
         auto dot = field_path.find('.', 15);
         std::string idStr = field_path.substr(15, dot - 15);
@@ -386,6 +436,11 @@ inline std::string ResolveComponentId(const std::string& field_path) {
     if (field_path.rfind("temperature.", 0) == 0) return "temp";
     if (field_path.rfind("humidity.", 0) == 0)    return "hum";
     if (field_path.rfind("depth.", 0) == 0)       return "depth";
+    if (field_path.rfind("gpio.", 0) == 0) {
+        auto dot = field_path.find('.', 5);
+        std::string idStr = field_path.substr(5, dot - 5);
+        return "g" + idStr;
+    }
     return "";
 }
 
@@ -396,8 +451,11 @@ inline std::string ResolveSubField(const std::string& field_path) {
     // motor:    "brushlessmotor.0.target_speed" → "target_speed"
     // motor:    "brushlessmotor.0.curve.np_mid" → "curve.np_mid"
     // sensors:  "temperature.value"     → "value"
-    if (field_path.rfind("motion.", 0) == 0) {
-        return field_path.substr(7);  // "motion." = 7 chars
+    if (field_path.rfind("motions.", 0) == 0) {
+        auto dot = field_path.find('.', 8);
+        if (dot != std::string::npos)
+            return field_path.substr(dot + 1);
+        return "";
     }
     if (field_path.rfind("brushlessmotor.", 0) == 0) {
         // "brushlessmotor." = 15 chars, then "N." where N = motor ID
@@ -444,14 +502,17 @@ inline bool GetActuatorField(const ActuatorConfig& data, const std::string& path
     if (segs.empty()) return false;
 
     // --- motion ---
-    if (segs[0] == "motion" && segs.size() == 2) {
-        const MotionControl& m = data.motion;
-        if      (segs[1] == "x")  { out = m.x;  return true; }
-        else if (segs[1] == "y")  { out = m.y;  return true; }
-        else if (segs[1] == "z")  { out = m.z;  return true; }
-        else if (segs[1] == "rx") { out = m.rx; return true; }
-        else if (segs[1] == "ry") { out = m.ry; return true; }
-        else if (segs[1] == "rz") { out = m.rz; return true; }
+    if (segs[0] == "motions" && segs.size() >= 3) {
+        int motionIdx = -1;
+        try { motionIdx = std::stoi(segs[1]); } catch (...) { return false; }
+        if (motionIdx < 0 || motionIdx >= (int)data.motions.size()) return false;
+        const MotionControl& m = data.motions[motionIdx];
+        if      (segs[2] == "x")  { out = m.x;  return true; }
+        else if (segs[2] == "y")  { out = m.y;  return true; }
+        else if (segs[2] == "z")  { out = m.z;  return true; }
+        else if (segs[2] == "rx") { out = m.rx; return true; }
+        else if (segs[2] == "ry") { out = m.ry; return true; }
+        else if (segs[2] == "rz") { out = m.rz; return true; }
         return false;
     }
 
@@ -518,6 +579,30 @@ inline bool GetActuatorField(const ActuatorConfig& data, const std::string& path
             if (sv.name != servoName && fb != servoName && sv.id != fallbackId) continue;
             if (segs[2] == "id")    { out = sv.id;    return true; }
             if (segs[2] == "angle") { out = sv.angle; return true; }
+            return false;
+        }
+        return false;
+    }
+
+    // --- gpio ---
+    if (segs[0] == "gpio" && segs.size() == 3) {
+        const std::string& gpioName = segs[1];
+        int fallbackId = -1;
+        {
+            std::string digits;
+            for (int ci = (int)gpioName.size() - 1; ci >= 0; --ci) {
+                if (std::isdigit((unsigned char)gpioName[ci]))
+                    digits = gpioName[ci] + digits;
+                else break;
+            }
+            if (!digits.empty()) fallbackId = std::stoi(digits);
+        }
+        for (const auto& gpio : data.gpio_pins) {
+            std::string fb = std::string("GPIO_") + std::to_string(gpio.id);
+            if (gpio.name != gpioName && fb != gpioName && gpio.id != fallbackId) continue;
+            if (segs[2] == "id")         { out = gpio.id;         return true; }
+            if (segs[2] == "pin_number") { out = gpio.pin_number; return true; }
+            if (segs[2] == "value")      { out = gpio.value;      return true; }
             return false;
         }
         return false;
@@ -717,6 +802,21 @@ inline bool GetSensorField(const SensorData& data, const std::string& path, doub
     if (path == "temperature.value") { out = data.temperature.value; return true; }
     if (path == "humidity.value")    { out = data.humidity.value;    return true; }
     if (path == "depth.value")       { out = data.depth.value;       return true; }
+    // GPIO: "gpio.<name>.<field>"
+    if (path.rfind("gpio.", 0) == 0) {
+        auto dot1 = path.find('.', 5);
+        if (dot1 == std::string::npos) return false;
+        std::string gpioName = path.substr(5, dot1 - 5);
+        std::string field = path.substr(dot1 + 1);
+        for (const auto& gpio : data.gpio.pins) {
+            std::string fb = std::string("GPIO_") + std::to_string(gpio.id);
+            if (gpio.name == gpioName || fb == gpioName) {
+                if (field == "value")      { out = gpio.value;      return true; }
+                if (field == "pin_number") { out = gpio.pin_number; return true; }
+                if (field == "id")         { out = gpio.id;         return true; }
+            }
+        }
+    }
     return false;
 }
 
@@ -725,6 +825,30 @@ inline bool SetSensorField(SensorData& data, const std::string& path, double val
     if (path == "temperature.value") { data.temperature.value = val; return true; }
     if (path == "humidity.value")    { data.humidity.value    = val; return true; }
     if (path == "depth.value")       { data.depth.value       = val; return true; }
+    // GPIO: "gpio.<name>.<field>"
+    if (path.rfind("gpio.", 0) == 0) {
+        auto dot1 = path.find('.', 5);
+        if (dot1 == std::string::npos) return false;
+        std::string gpioName = path.substr(5, dot1 - 5);
+        std::string field = path.substr(dot1 + 1);
+        // Find or create GPIO pin
+        GpioPin* target = nullptr;
+        for (auto& gpio : data.gpio.pins) {
+            std::string fb = std::string("GPIO_") + std::to_string(gpio.id);
+            if (gpio.name == gpioName || fb == gpioName) { target = &gpio; break; }
+        }
+        if (!target) {
+            // Auto-create pin
+            GpioPin newPin;
+            newPin.name = gpioName;
+            newPin.id = (int)data.gpio.pins.size();
+            data.gpio.pins.push_back(newPin);
+            target = &data.gpio.pins.back();
+        }
+        if (field == "value")      { target->value = (int)val; return true; }
+        if (field == "pin_number") { target->pin_number = (int)val; return true; }
+        if (field == "id")         { target->id = (int)val; return true; }
+    }
     return false;
 }
 
@@ -883,8 +1007,9 @@ public:
     virtual ~RobotAPI() = default;
 
     virtual bool Initialize(const std::string& host_ip, int remote_port, int local_port, int transport_type = 0) = 0;
+    virtual bool InitSerial(const std::string& com_port, int baud_rate, int data_bits, int stop_bits, int parity) { return false; }
     
-    virtual bool HardwareInit(int max_retries = 3) = 0;
+    virtual bool HardwareInit(int max_retries = 3, int start_attempt = 1) = 0;
 
     // 检查连接状态
     virtual bool IsConnected() const = 0;

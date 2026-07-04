@@ -7,24 +7,16 @@
 // Depends on NodeLibrary for PinType, EditorPin, NodeType, EditorNode.
 // ============================================================================
 
+#include "core.h"
 #include "NodeLibrary.h"
 #include "Robot_API/robot_api.h"
-#include <imgui_node_editor.h>   // only for ed::NodeId / ed::PinId / ed::LinkId types
-#include <vector>
-#include <string>
-#include <map>
-#include <set>
-#include <memory>
-#include <shared_mutex>
-#include <mutex>
-#include <chrono>
-
-namespace Walnut { class Image; }
-
-class RobotComponentManager;
-class GamepadMapperManager;
-class ShortcutManager;
+#include "RobotComponentManager.h"
+#include "GamepadMapperManager.h"
+#include "ShortcutManager.h"
 #include "RobotCommManager.h"
+#include "Walnut/Image.h"
+
+class NodeGraphManager;  // forward decl — Manager handles all drawing
 
 // ============================================================================
 // EditorLink — a connection between two pins
@@ -65,16 +57,32 @@ struct GlobalVar {
     float    value   = 0.0f;
     PinType  type    = PinType::Float;
     bool     visible = false;  // show in RobotStatus panel
+    std::vector<std::string> enumLabels;  // Enum type labels (label[i] ↔ value i)
 };
 
 // ============================================================================
-// NodeGraph
+// NodeGraph —    +   （    ，  NodeGraphManager   ）
+//    GraphItem    NodeGraph
 // ============================================================================
 class NodeGraph
 {
 public:
+    // ----    （从 GraphItem 合并）----
+    int  id         = 0;
+    bool isSelected = false;
+    char name[64]   = "Default";
+    std::string editorYaml;  // cached full YAML (with positions) for editor restore
+
     NodeGraph();
     ~NodeGraph();
+
+    // Explicit copy (skip mutex/atomic, copy config data only)
+    NodeGraph(const NodeGraph& other);
+    NodeGraph& operator=(const NodeGraph& other);
+
+    // Explicit move (mutex/atomic default-constructed, data copied)
+    NodeGraph(NodeGraph&& other) noexcept;
+    NodeGraph& operator=(NodeGraph&& other) noexcept;
 
     // ---- Node/Link data (public for direct iteration by editor) ----
     std::vector<EditorNode>  m_Nodes;
@@ -179,19 +187,6 @@ public:
     void SetKeyValues(const std::map<std::string, float>& kv);
     std::map<std::string, float> GetKeyValuesSnapshot() const;
 
-    // ---- Editor rendering ----
-    void Draw(ax::NodeEditor::EditorContext* editorCtx);
-
-    // ---- Per-node widget drawing ----
-    void DrawNodeContents(EditorNode& node,
-                          const std::set<std::string>& analogKeys,
-                          const std::vector<OutputTargetInfo>& outputTargets);
-    void DrawMenuBar();  // deprecated, removed
-    void DrawKeyValuesSidebar(float sideWidth, const std::set<std::string>& analogKeys);
-    void DrawGlobalsSidebar(float sideWidth);
-    void DrawCommRefsSidebar(float sideWidth);
-    void DrawTriggerSidebar(float sideWidth);
-
     // ---- Node creation (editor-side) ----
     void AddNode(NodeType type);
     bool AddNodeAt(NodeType type, const ImVec2& pos, bool fromScreen);
@@ -275,6 +270,7 @@ private:
     ax::NodeEditor::NodeId m_ActiveGlobalReadId = 0;
     int m_RenamingGlobalIdx = -1;
     int m_LastRenamingIdx   = -2;
+    int m_EditingEnumIdx    = -1;  // global var index being enum-label-edited
 };
 
 // ============================================================================
@@ -282,13 +278,3 @@ private:
 // ============================================================================
 void        WriteOutputToActuator(const std::string& outputTarget, float value, ActuatorConfig& data);
 std::vector<OutputTargetInfo> BuildOutputTargetsFromProtocol(const std::vector<ProtocolSendConfig>& cfgs, const ActuatorConfig& actuator);
-
-// ============================================================================
-// GraphNode — 纯数据（不含 NodeGraph 实例/EditorContext），用于序列化/传递
-// ============================================================================
-struct GraphNode
-{
-    int  id         = 0;
-    bool isSelected = false;
-    char name[64]   = "Default";
-};

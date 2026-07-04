@@ -1,8 +1,4 @@
 #include "RobotSettingPanel.h"
-#include "RobotStatus.h"
-#include "Walnut/Core/Log.h"
-#include "imgui.h"
-#include <imgui_node_editor.h>
 namespace ed = ax::NodeEditor;
 
 RobotSettingPanel::RobotSettingPanel()
@@ -67,8 +63,13 @@ void RobotSettingPanel::CancelEdit()
         m_CommSnapshot.clear();
     }
     if (m_NodeGraphManager && !m_NodeGraphSnapshot.empty()) {
+        // Save current editor state to item BEFORE clearing (prevents dangling pointer)
+        m_NodeGraphManager->SaveCurrentToItem();
         m_NodeGraphManager->LoadItems(m_NodeGraphSnapshot);
         m_NodeGraphSnapshot.clear();
+        // Ensure the restored graph is valid for rendering
+        if (m_NodeGraphManager->GetSelectedGraph())
+            m_NodeGraphManager->GetSelectedGraph()->RequestNavigate();
     }
     RestoreRobotStatusActive();
     EditDraftBase::CancelEdit();
@@ -90,6 +91,10 @@ void RobotSettingPanel::TakeSnapshots()
 
 void RobotSettingPanel::Draw(bool* p_open)
 {
+    // 暖机模式：将窗口设为全透明，正常渲染内容（上传 GPU 纹理），但用户不可见
+    if (m_WarmupMode)
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.0f);
+
     ImVec2 displaySize = ImGui::GetIO().DisplaySize;
     ImGui::SetNextWindowSize(ImVec2(displaySize.x * 0.85f, displaySize.y * 0.8f), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSizeConstraints(ImVec2(500, 400), ImVec2(displaySize.x, displaySize.y));
@@ -101,6 +106,8 @@ void RobotSettingPanel::Draw(bool* p_open)
         if (IsEditing()) {
             ApplyEdit();
         }
+        if (m_WarmupMode)
+            ImGui::PopStyleVar();
         return;
     }
 
@@ -193,6 +200,9 @@ void RobotSettingPanel::Draw(bool* p_open)
     }
 
     ImGui::End();
+
+    if (m_WarmupMode)
+        ImGui::PopStyleVar();
 }
 
 // ============================================================================
@@ -221,80 +231,17 @@ void RobotSettingPanel::RestoreRobotStatusActive()
 }
 
 // ============================================================================
-// 统一策略：SyncActiveItems
+// 统一策略：SyncActiveItems（不再修改 RobotStatus 的 active）
 //
-// BASE（来自 Status 窗口的选择）:
-//   LiveStream  = m_SavedLiveStreamIdx
-//   NodeGraph   = m_SavedNodeGraphIdx
-//   Component/Gamepad/Comm = 由 RobotStatus::DeriveActiveFromNodeGraph() 推导
-//
-// OVERRIDE（当前标签页）:
-//   标签页组件 Active = 对应 Manager 当前选中项
-//   RobotComm/NodeGraph/GamepadMapper 标签页还需跨组件同步 RobotComponent
+// 由于 Connect ↔ RobotSetting 已完全互斥（连接时关闭面板，打开面板时断开），
+// Setting 面板的选中项变更不应影响 RobotStatus 的运行时 active 状态。
+// RobotStatus 通过自己的 UI combo 独立管理 active 选择。
+// 跨组件同步（如 Comm→Component 的 active_component_idx）在各 Manager 的
+// DrawContent 中通过直接传递引用实现，无需通过 RobotStatus 中转。
 // ============================================================================
 void RobotSettingPanel::SyncActiveItems(int tabId)
 {
-    if (!m_RobotStatus) return;
-
-    // ======== BASE: 恢复 Status 选择 + 从 NodeGraph 推导 ========
-    m_RobotStatus->SetActiveLiveStreamIdx(m_SavedLiveStreamIdx);
-    m_RobotStatus->SetActiveNodeGraphIdx(m_SavedNodeGraphIdx);
-    m_RobotStatus->DeriveActiveFromNodeGraph();
-
-    // ======== OVERRIDE: 当前标签页 Active = Manager 选中项 ========
-    switch (tabId)
-    {
-    case 0: // Component
-        {
-            auto* comp = m_RobotComponentManager->GetSelectedComponent();
-            if (comp)
-                m_RobotStatus->SetActiveMode(*comp);
-        }
-        break;
-
-    case 1: // GamepadMapper
-        {
-            auto* gm = m_GamepadMapperManager->GetSelectedMapper();
-            if (gm) {
-                m_RobotStatus->SetActiveGamepad(gm);
-            }
-        }
-        break;
-
-    case 2: // NodeGraph
-        {
-            // 已在 BASE 中从 NodeGraph 推导，但需确保用最新的选中图
-            m_RobotStatus->SetActiveNodeGraphIdx(m_NodeGraphManager->GetSelectedIndex());
-            m_RobotStatus->DeriveActiveFromNodeGraph();
-        }
-        break;
-
-    case 3: // LiveStream
-        {
-            for (int i = 0; i < m_LiveStreamManager->GetItemCount(); ++i)
-                if (m_LiveStreamManager->IsItemSelected(i)) {
-                    m_RobotStatus->SetActiveLiveStreamIdx(i);
-                    break;
-                }
-        }
-        break;
-
-    case 4: // RobotComm
-        {
-            for (int i = 0; i < m_RobotCommManager->GetItemCount(); ++i)
-                if (m_RobotCommManager->IsItemSelected(i)) {
-                    m_RobotStatus->SetActiveCommIndices({i});
-                    break;
-                }
-            // 跨组件：RobotComponent Active = 当前选中 comm 节点自己存的 component 选择
-            auto* node = m_RobotCommManager->GetSelectedNode();
-            if (node) {
-                auto& comps = m_RobotComponentManager->GetComponents();
-                int compIdx = node->component.active_component_idx;
-                if (compIdx >= 0 && compIdx < (int)comps.size())
-                    m_RobotStatus->SetActiveMode(comps[compIdx]);
-            }
-        }
-        break;
-    }
+    (void)tabId;
+    // 不再修改 RobotStatus 的 active 状态
+    // 原逻辑（SetActiveMode / SetActiveGamepad / DeriveActiveFromNodeGraph 等）已移除
 }

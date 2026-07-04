@@ -1,13 +1,6 @@
 #pragma once
 
-#if defined(_WIN32) || defined(_WIN64)
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <winsock2.h>
-#include <windows.h>
-#endif
-
+#include "core.h"
 #include "Walnut/Application.h"
 #include "Walnut/Layer.h"
 #include "OptionPanel.h"
@@ -20,11 +13,6 @@
 #include "MonitorWall.h"
 #include "ShortcutManager.h"
 #include "Robot_API/robot_api.h"
-#include "imgui.h"
-#include <atomic>
-#include <memory>
-#include <string>
-#include <thread>
 
 class Robot_UI_Layer : public Walnut::Layer
 {
@@ -52,7 +40,11 @@ public:
     // ---- 文件管理器访问 ----
     FileManager* GetFileManager() { return m_FileManager.get(); }
 
+    // ---- 快捷键管理 ----
+    ShortcutManager& GetShortcutManager() { return m_ShortcutManager; }
+
     // ---- 文件操作（供菜单调用） ----
+    void FileNew();
     void FileOpen();
     void FileSave();
     void FileSaveAs();
@@ -74,7 +66,6 @@ private:
     bool m_MonitorWallOpen        = false;
     bool m_ThrustCurveEditorOpen  = false;
     bool m_TerminalOpen           = false;   // shared: Terminal + Output in one panel
-    bool m_LastLinkState          = false;   // 跟踪 RobotStatus 连接状态变化
 
     // 子系统
     std::unique_ptr<OptionPanel>       m_OptionPanel;
@@ -85,6 +76,8 @@ private:
     std::unique_ptr<FileManager>       m_FileManager;
     std::unique_ptr<TerminalPanel>     m_TerminalPanel;
     ShortcutManager                     m_ShortcutManager;
+
+    bool m_NeedNodeGraphWarmup = false; // init 时标记，OnUIRender 预热首帧
 
     // 手柄线程
     std::thread m_GamepadThread;

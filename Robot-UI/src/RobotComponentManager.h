@@ -3,7 +3,6 @@
 
 #include "ManagerBase.h"
 #include "RobotComponent.h"
-#include <vector>
 
 class RobotComponentManager : public ManagerBase
 {
@@ -31,6 +30,10 @@ public:
     void   SelectItem(int index) override { SetSelectedIndex(index); }
 
     void DrawContent() override;
+    static void DrawConfigPanel(RobotComponent& comp);
+
+    std::string ClipboardCopySelected() override;
+    void        ClipboardPaste(const std::string& yaml) override;
 
 private:
 

@@ -1,6 +1,4 @@
 #include "RobotComponentManager.h"
-#include "Walnut/Core/Log.h"
-#include "imgui.h"
 
 RobotComponentManager::RobotComponentManager()
 {
@@ -14,7 +12,7 @@ void RobotComponentManager::AddItem()
     comp.id = NextId();
     char buf[64];
     snprintf(buf, sizeof(buf), "Item_%d", comp.id);
-    strncpy(comp.name, buf, sizeof(comp.name) - 1);
+    strncpy_s(comp.name, sizeof(comp.name), buf, sizeof(comp.name) - 1);
     m_Components.push_back(comp);
     if (m_Components.size() == 1) {
         m_SelectedIndex = 0;
@@ -55,7 +53,7 @@ void RobotComponentManager::DrawContent()
     ImGui::Indent(10.0f);
     ImGui::Spacing();
     auto* sel = GetSelectedComponent();
-    if (sel) sel->DrawConfigPanel();
+    if (sel) DrawConfigPanel(*sel);
     else ImGui::TextDisabled("No item selected.");
     ImGui::Unindent(10.0f);
 }
@@ -72,7 +70,7 @@ std::vector<RobotMode> RobotComponentManager::GetAllItems() const
     std::vector<RobotMode> out;
     for (const auto& c : m_Components) {
         RobotMode m;
-        strncpy(m.name, c.name, sizeof(m.name) - 1);
+        strncpy_s(m.name, sizeof(m.name), c.name, sizeof(m.name) - 1);
         m.actuator_config = c.actuator_config;
         m.sensor_config   = c.sensor_config;
         out.push_back(m);
@@ -87,7 +85,7 @@ void RobotComponentManager::LoadComponents(const std::vector<RobotMode>& modes, 
     for (const auto& item : modes) {
         RobotComponent comp;
         comp.id = NextId();
-        strncpy(comp.name, item.name, sizeof(comp.name) - 1);
+        strncpy_s(comp.name, sizeof(comp.name), item.name, sizeof(comp.name) - 1);
         comp.actuator_config = item.actuator_config;
         comp.sensor_config   = item.sensor_config;
         m_Components.push_back(comp);
@@ -102,11 +100,55 @@ void RobotComponentManager::LoadItems(const std::vector<RobotMode>& modes)
     for (const auto& item : modes) {
         RobotComponent comp;
         comp.id = NextId();
-        strncpy(comp.name, item.name, sizeof(comp.name) - 1);
+        strncpy_s(comp.name, sizeof(comp.name), item.name, sizeof(comp.name) - 1);
         comp.actuator_config = item.actuator_config;
         comp.sensor_config   = item.sensor_config;
         m_Components.push_back(comp);
     }
     if (m_SelectedIndex >= (int)m_Components.size()) m_SelectedIndex = 0;
     if (!m_Components.empty()) m_Components[m_SelectedIndex].isSelected = true;
+}
+
+std::string RobotComponentManager::ClipboardCopySelected()
+{
+    int idx = m_SelectedIndex;
+    if (idx < 0 || idx >= (int)m_Components.size()) return {};
+    // Store indexed copy hint: just the name, actual data cloned on paste
+    YAML::Emitter out;
+    out << YAML::BeginMap;
+    out << YAML::Key << "type"  << YAML::Value << "component";
+    out << YAML::Key << "name"  << YAML::Value << m_Components[idx].name;
+    out << YAML::Key << "index" << YAML::Value << idx;
+    out << YAML::EndMap;
+    return out.c_str();
+}
+
+void RobotComponentManager::ClipboardPaste(const std::string& yaml)
+{
+    try {
+        YAML::Node root = YAML::Load(yaml);
+        if (!root.IsMap()) return;
+        std::string type = root["type"] ? root["type"].as<std::string>() : "";
+        int srcIdx = root["index"] ? root["index"].as<int>() : -1;
+        if (type != "component" || srcIdx < 0 || srcIdx >= (int)m_Components.size()) return;
+
+        std::string baseName = root["name"] ? root["name"].as<std::string>() : "Pasted";
+        int n = 1;
+        std::string finalName = baseName;
+        while (true) {
+            bool dup = false;
+            for (auto& c : m_Components)
+                if (std::string(c.name) == finalName) { dup = true; break; }
+            if (!dup) break;
+            finalName = baseName + "_" + std::to_string(n++);
+        }
+
+        auto& src = m_Components[srcIdx];
+        RobotComponent comp;
+        comp.id = NextId();
+        strncpy_s(comp.name, sizeof(comp.name), finalName.c_str(), sizeof(comp.name) - 1);
+        comp.actuator_config = src.actuator_config;
+        comp.sensor_config   = src.sensor_config;
+        m_Components.push_back(comp);
+    } catch (...) {}
 }
