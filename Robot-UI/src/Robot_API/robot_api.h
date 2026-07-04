@@ -471,6 +471,13 @@ inline std::string ResolveSubField(const std::string& field_path) {
             return field_path.substr(dot + 1);  // everything after the ID: "angle"
         return "";
     }
+    if (field_path.rfind("gpio.", 0) == 0) {
+        // "gpio." = 5 chars, then "N." where N = GPIO name
+        auto dot = field_path.find('.', 5);
+        if (dot != std::string::npos)
+            return field_path.substr(dot + 1);  // everything after the name: "value"
+        return "";
+    }
     // sensors: "temperature.", "humidity.", "depth."
     auto prefixLen = field_path.find('.') + 1;
     if (prefixLen > 0 && prefixLen < field_path.size())

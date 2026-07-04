@@ -1979,6 +1979,28 @@ void WriteOutputToActuator(const std::string& target, float val, ActuatorConfig&
         }
         return;
     }
+
+    // --- gpio ---
+    if (segs[0] == "gpio" && segs.size() == 3) {
+        const std::string& gpioName = segs[1];
+        int fallbackId = -1;
+        {
+            std::string digits;
+            for (int ci = (int)gpioName.size() - 1; ci >= 0; --ci) {
+                if (std::isdigit((unsigned char)gpioName[ci]))
+                    digits = gpioName[ci] + digits;
+                else break;
+            }
+            if (!digits.empty()) fallbackId = std::stoi(digits);
+        }
+        for (auto& gpio : data.gpio_pins) {
+            std::string fb = std::string("GPIO_") + std::to_string(gpio.id);
+            if (gpio.name != gpioName && fb != gpioName && gpio.id != fallbackId) continue;
+            if (segs[2] == "value") { gpio.value = (val >= 0.5f) ? 1 : 0; return; }
+            return;
+        }
+        return;
+    }
 }
 
 // ============================================================================

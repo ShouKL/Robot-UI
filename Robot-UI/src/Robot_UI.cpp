@@ -7,6 +7,8 @@
 #include <GLFW/glfw3native.h>
 #include <vulkan/vulkan.h>
 #include <shellapi.h>
+#include <mmsystem.h>
+#pragma comment(lib, "winmm.lib")
 
 Robot_UI_Layer::Robot_UI_Layer()
     : m_AboutOpen(false), m_OptionOpen(false),
@@ -62,6 +64,7 @@ Robot_UI_Layer::Robot_UI_Layer()
     WL_INFO_TAG("APP", "ImPlot context created");
 
     m_Running = true;
+    timeBeginPeriod(1);  // Windows 定时器精度 → 1ms
     m_CurrentCommand.store(std::make_shared<const ActuatorConfig>(), std::memory_order_relaxed);
     m_GamepadThread = std::thread(&Robot_UI_Layer::GamepadRoutine, this);
     WL_INFO_TAG("APP", "Gamepad thread started");
@@ -499,6 +502,7 @@ void Robot_UI_Layer::GamepadRoutine()
     while (m_Running)
     {
         ++iteration;
+        auto t0 = std::chrono::steady_clock::now();
         // Heartbeat every ~1 second (100 iterations at 10ms)
 
         if (iteration % 100 == 0)
@@ -569,7 +573,16 @@ void Robot_UI_Layer::GamepadRoutine()
         }
         int freqHz = m_RobotStatus ? m_RobotStatus->GetSendFreqHz() : 100;
         if (freqHz < 1) freqHz = 1;
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000 / freqHz));
+        auto target = t0 + std::chrono::microseconds(1000000 / freqHz);
+        auto now = std::chrono::steady_clock::now();
+        if (now < target) {
+            auto remain = target - now;
+            if (freqHz >= 200)
+                while (std::chrono::steady_clock::now() < target) YieldProcessor();
+            else
+                std::this_thread::sleep_for(remain);
+        }
+        // 如果本帧超时，不补 sleep，直接进入下一帧
     }
     WL_INFO_TAG("GAMEPAD", "Gamepad routine stopped");
 }
@@ -833,12 +846,9 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 
     app->SetMenubarCallback([app, uiLayer]()
         {
-            auto& sm = uiLayer->GetShortcutManager();
-            auto hint = [&sm](int action) -> std::string { return sm.GetShortcutHint(action); };
-
             if (ImGui::BeginMenu("File"))
             {
-                if (ImGui::MenuItem("New", hint(ShortcutManager::ACT_FILE_NEW).c_str()))
+                if (ImGui::MenuItem("New", "Ctrl+N"))
                 {
                     uiLayer->FileNew();
                 }
@@ -875,15 +885,15 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
                     }
                     ImGui::EndMenu();
                 }
-                if (ImGui::MenuItem("Open File", hint(ShortcutManager::ACT_FILE_OPEN).c_str()))
+                if (ImGui::MenuItem("Open File", "Ctrl+O"))
                 {
                     uiLayer->FileOpen();
                 }
-                if (ImGui::MenuItem("Save", hint(ShortcutManager::ACT_FILE_SAVE).c_str()))
+                if (ImGui::MenuItem("Save", "Ctrl+S"))
                 {
                     uiLayer->FileSave();
                 }
-                if (ImGui::MenuItem("Save As", hint(ShortcutManager::ACT_FILE_SAVEAS).c_str()))
+                if (ImGui::MenuItem("Save As", "Ctrl+Shift+S"))
                 {
                     uiLayer->FileSaveAs();
                 }
@@ -897,7 +907,7 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 
             if (ImGui::BeginMenu("Edit"))
             {
-                if (ImGui::MenuItem("Robot Setting", hint(ShortcutManager::ACT_TOGGLE_ROBOTSETTING).c_str()))
+                if (ImGui::MenuItem("Robot Setting", "F3"))
                 {
                     uiLayer->ShowRobotSetting();
                 }
@@ -906,25 +916,25 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 
             if (ImGui::BeginMenu("View"))
             {
-                ImGui::MenuItem("Robot Status", hint(ShortcutManager::ACT_TOGGLE_STATUS).c_str(), &uiLayer->GetShowRobotStatus());
-                ImGui::MenuItem("Monitor Wall", hint(ShortcutManager::ACT_TOGGLE_MONITORWALL).c_str(), &uiLayer->GetShowMonitorWall());
-                ImGui::MenuItem("Terminal", hint(ShortcutManager::ACT_TOGGLE_TERMINAL).c_str(), &uiLayer->GetShowTerminal());
+                ImGui::MenuItem("Robot Status", "F2", &uiLayer->GetShowRobotStatus());
+                ImGui::MenuItem("Monitor Wall", "F5", &uiLayer->GetShowMonitorWall());
+                ImGui::MenuItem("Terminal", "F4", &uiLayer->GetShowTerminal());
                 
                 ImGui::EndMenu();
             }
 
             if (ImGui::BeginMenu("Tool"))
             {
-                if (ImGui::MenuItem("Thrust Curve Editor", hint(ShortcutManager::ACT_TOGGLE_THRUSTCURVE).c_str()))
+                if (ImGui::MenuItem("Thrust Curve Editor", "F6"))
                 {
                     uiLayer->ShowThrustCurveEditor();
                 }
-                if (ImGui::MenuItem("Option", hint(ShortcutManager::ACT_TOGGLE_OPTION).c_str()))
+                if (ImGui::MenuItem("Option", "F1"))
                 {
                     uiLayer->ShowOption();
                 }
                 ImGui::Separator();
-                if (ImGui::MenuItem("Screenshot", hint(ShortcutManager::ACT_SCREENSHOT).c_str()))
+                if (ImGui::MenuItem("Screenshot", "F12"))
                 {
                     uiLayer->TakeScreenshot();
                 }
@@ -933,7 +943,7 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
 
             if (ImGui::BeginMenu("Help"))
             {
-                if (ImGui::MenuItem("About", hint(ShortcutManager::ACT_TOGGLE_ABOUT).c_str()))
+                if (ImGui::MenuItem("About", "F7"))
                 {
                     uiLayer->ShowAbout();
                 }

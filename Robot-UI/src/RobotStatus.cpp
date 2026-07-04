@@ -1,4 +1,6 @@
 #include "RobotStatus.h"
+#include <thread>
+#include <chrono>
 
 RobotStatus::RobotStatus()
 {
@@ -69,13 +71,13 @@ void RobotStatus::SyncFromManagerSelected()
 int RobotStatus::GetSendFreqHz() const
 {
     std::shared_lock<std::shared_mutex> lock(m_ConnMutex);
-    int minHz = 200; // 安全上限
+    int minHz = 2000; // 初始化为上限，取最小值
     for (const auto& conn : m_Connections) {
-        if (!conn.isLinked) continue;
+        if (!conn.IsLinked()) continue;
         int hz = conn.config.send_freq_hz;
         if (hz > 0 && hz < minHz) minHz = hz;
     }
-    if (minHz == 200) {
+    if (minHz == 2000) {
         // 无已连接实例时，回退到活跃 Comm 配置（取最小值）
         if (!m_RobotCommManager || m_ActiveCommIndices.empty()) return 100;
         auto items = m_RobotCommManager->GetAllItems();
@@ -84,7 +86,7 @@ int RobotStatus::GetSendFreqHz() const
             int hz = items[idx].send_freq_hz;
             if (hz > 0 && hz < minHz) minHz = hz;
         }
-        return (minHz == 200) ? 100 : minHz;
+        return (minHz == 2000) ? 100 : minHz;
     }
     return minHz;
 }
@@ -300,7 +302,7 @@ void RobotStatus::ToggleSendFrame(int index)
     //          
     for (int i = 0; i < (int)m_Connections.size(); ++i) {
         auto& conn = m_Connections[i];
-        if (!conn.isLinked) continue;
+        if (!conn.IsLinked()) continue;
         int ci = (i < (int)m_ActiveCommIndices.size()) ? m_ActiveCommIndices[i] : -1;
         if (ci < 0 || ci >= (int)nodes.size()) continue;
         conn.hw->SetProtocolConfig(nodes[ci]->protocol_send);
@@ -333,14 +335,14 @@ void RobotStatus::OneShotSendFrame(int index)
     //          
     for (int i = 0; i < (int)m_Connections.size(); ++i) {
         auto& conn = m_Connections[i];
-        if (!conn.isLinked) continue;
+        if (!conn.IsLinked()) continue;
         int ci = (i < (int)m_ActiveCommIndices.size()) ? m_ActiveCommIndices[i] : -1;
         if (ci < 0 || ci >= (int)nodes.size()) continue;
         conn.hw->SetProtocolConfig(nodes[ci]->protocol_send);
     }
 
     //    
-    if (owner >= 0 && owner < (int)m_Connections.size() && m_Connections[owner].isLinked) {
+    if (owner >= 0 && owner < (int)m_Connections.size() && m_Connections[owner].IsLinked()) {
         auto cmdPtr = GetCurrentCommand(owner);
         if (cmdPtr) m_Connections[owner].hw->SendActuatorData(*cmdPtr);
     }
@@ -349,7 +351,7 @@ void RobotStatus::OneShotSendFrame(int index)
     slots[index].cfg->enabled = wasEnabled;
     for (int i = 0; i < (int)m_Connections.size(); ++i) {
         auto& conn = m_Connections[i];
-        if (!conn.isLinked) continue;
+        if (!conn.IsLinked()) continue;
         int ci = (i < (int)m_ActiveCommIndices.size()) ? m_ActiveCommIndices[i] : -1;
         if (ci < 0 || ci >= (int)nodes.size()) continue;
         conn.hw->SetProtocolConfig(nodes[ci]->protocol_send);
@@ -383,7 +385,7 @@ void RobotStatus::ToggleAllSendFrames()
     // 只推各自连接的协议配置
     for (int i = 0; i < (int)m_Connections.size(); ++i) {
         auto& conn = m_Connections[i];
-        if (!conn.isLinked) continue;
+        if (!conn.IsLinked()) continue;
         int ci = (i < (int)m_ActiveCommIndices.size()) ? m_ActiveCommIndices[i] : -1;
         if (ci < 0 || ci >= (int)nodes.size()) continue;
         conn.hw->SetProtocolConfig(nodes[ci]->protocol_send);
@@ -456,24 +458,54 @@ void RobotStatus::SyncConnectionsFromGraph()
     std::unique_lock<std::shared_mutex> connLock(m_ConnMutex);
 
     // 只同步连接池的 config 部分，绝不改变 isLinked 状态
-    bool changed = ((int)m_Connections.size() != (int)commRefs.size());
-    if (!changed) {
+    bool poolChanged = ((int)m_Connections.size() != (int)commRefs.size());
+    bool configDirty = false;
+    if (!poolChanged) {
         for (int i = 0; i < (int)commRefs.size(); ++i) {
             int ci = commRefs[i];
-            if (i >= (int)m_Connections.size()) { changed = true; break; }
+            if (i >= (int)m_Connections.size()) { poolChanged = true; break; }
             const char* wantedName = (ci >= 0 && ci < (int)allCfgs.size()) ? allCfgs[ci].name : "";
-            if (strcmp(m_Connections[i].config.name, wantedName) != 0) { changed = true; break; }
+            if (strcmp(m_Connections[i].config.name, wantedName) != 0) { poolChanged = true; break; }
+            // 检测配置字段是否变化（不触发重连，仅标记需要更新 config 拷贝）
+            if (!configDirty && ci >= 0 && ci < (int)allCfgs.size()) {
+                const auto& src = allCfgs[ci];
+                const auto& dst = m_Connections[i].config;
+                if (strcmp(src.host_ip, dst.host_ip) != 0 ||
+                    src.remote_port != dst.remote_port ||
+                    src.local_port != dst.local_port ||
+                    src.transport_type != dst.transport_type ||
+                    strcmp(src.com_port_str, dst.com_port_str) != 0 ||
+                    src.baud_rate != dst.baud_rate ||
+                    src.data_bits != dst.data_bits ||
+                    src.stop_bits != dst.stop_bits ||
+                    src.parity != dst.parity ||
+                    src.send_freq_hz != dst.send_freq_hz ||
+                    src.retry_count != dst.retry_count)
+                    configDirty = true;
+            }
         }
     }
 
-    if (changed) {
+    // 仅配置字段变化时，更新 config 拷贝（不重连）
+    if (!poolChanged && configDirty) {
+        for (int i = 0; i < (int)commRefs.size(); ++i) {
+            int ci = commRefs[i];
+            if (ci >= 0 && ci < (int)allCfgs.size() && i < (int)m_Connections.size()) {
+                m_Connections[i].config = allCfgs[ci];
+            }
+        }
+    }
+
+    if (poolChanged) {
         // 保存旧连接状态
         std::unordered_map<std::string, bool> linkedMap;
         for (auto& conn : m_Connections) {
-            if (conn.isLinked) {
+            if (conn.IsLinked()) {
                 linkedMap[conn.config.name] = true;
                 conn.hw->Shutdown();  // 关闭旧连接 socket
             }
+            conn.state->isConnecting = false;  // 中断进行中的连接
+            conn.state->isLinked = false;
         }
 
         m_Connections.clear();
@@ -483,22 +515,23 @@ void RobotStatus::SyncConnectionsFromGraph()
             entry.hw = std::make_shared<HardwareInterface>();
             entry.config = allCfgs[ci];
             // 仅当之前已连接时重建（用户手动点过 Connect），否则保持未连接
-            entry.isLinked = (linkedMap.count(entry.config.name) > 0);
-            if (entry.isLinked) {
+            if (linkedMap.count(entry.config.name) > 0)
+                entry.state->isLinked = true;
+            if (entry.IsLinked()) {
                 if (entry.config.transport_type == 2)
                     entry.hw->InitSerial(entry.config.com_port_str, entry.config.baud_rate,
                                          entry.config.data_bits, entry.config.stop_bits, entry.config.parity);
                 else
                     entry.hw->Initialize(entry.config.host_ip, entry.config.remote_port,
                                          entry.config.local_port, entry.config.transport_type);
-                if (!entry.hw->IsConnected()) entry.isLinked = false;
+                if (!entry.hw->IsConnected()) entry.state->isLinked = false;
             }
             m_Connections.push_back(std::move(entry));
         }
         WL_INFO_TAG("ROBOT_STATUS", "Synced {} connections from graph comm_refs (linked={})",
                     m_Connections.size(),
                     (int)std::count_if(m_Connections.begin(), m_Connections.end(),
-                                       [](auto& c){ return c.isLinked; }));
+                                       [](auto& c){ return c.IsLinked(); }));
     }
 }
 
@@ -506,7 +539,7 @@ bool RobotStatus::IsLinked() const
 {
     std::shared_lock<std::shared_mutex> lock(m_ConnMutex);
     for (const auto& conn : m_Connections)
-        if (conn.isLinked) return true;
+        if (conn.IsLinked()) return true;
     return false;
 }
 
@@ -533,10 +566,12 @@ std::vector<ConnectionSnapshot> RobotStatus::SnapshotConnections() const
     for (int i = 0; i < (int)m_Connections.size(); ++i) {
         const auto& conn = m_Connections[i];
         ConnectionSnapshot s;
-        s.hw        = conn.hw;
-        s.config    = conn.config;
-        s.isLinked  = conn.isLinked;
-        s.commIndex = (i < (int)m_ActiveCommIndices.size()) ? m_ActiveCommIndices[i] : 0;
+        s.hw             = conn.hw;
+        s.config         = conn.config;
+        s.isLinked       = conn.IsLinked();
+        s.isConnecting   = conn.IsConnecting();
+        s.connectAttempt = conn.GetAttempt();
+        s.commIndex      = (i < (int)m_ActiveCommIndices.size()) ? m_ActiveCommIndices[i] : 0;
         snap.push_back(std::move(s));
     }
     return snap;
@@ -547,42 +582,57 @@ bool RobotStatus::LinkConnection(int index)
     std::unique_lock<std::shared_mutex> lock(m_ConnMutex);
     if (index < 0 || index >= (int)m_Connections.size()) return false;
     auto& conn = m_Connections[index];
+    if (conn.IsLinked() || conn.IsConnecting()) return false;  // 已在连接中
     int totalAttempts = std::max(1, std::min(20, m_ConnRetryCount));
     WL_INFO_TAG("ROBOT_STATUS", "Linking {} ({}) [max {} attempts]...", conn.config.name,
         conn.config.transport_type == 2 ? conn.config.com_port_str : conn.config.host_ip,
         totalAttempts);
 
-    // 首次尝试（同时将连接参数写入 hardware 内部成员变量）
-    bool ok;
-    if (conn.config.transport_type == 2) {
-        ok = conn.hw->InitSerial(conn.config.com_port_str, conn.config.baud_rate,
-                                  conn.config.data_bits, conn.config.stop_bits, conn.config.parity);
-    } else {
-        ok = conn.hw->Initialize(conn.config.host_ip, conn.config.remote_port,
-                                  conn.config.local_port, conn.config.transport_type);
-    }
+    conn.state->isConnecting = true;
+    conn.state->attempt = 0;
+    conn.state->maxAttempts = totalAttempts;
 
-    // 如果首次连接失败，启用重试机制
-    if (!ok) {
-        WL_WARN_TAG("ROBOT_STATUS", "Attempt 1 of {} failed for '{}', retrying...",
-                     totalAttempts, conn.config.name);
-        ok = conn.hw->HardwareInit(totalAttempts - 1, 2); // 从第 2 次开始，最多再试 5 次
-    }
+    // 后台线程执行连接，不阻塞 UI
+    auto hw = conn.hw;
+    auto cfg = conn.config;
+    auto st  = conn.state;
+    std::thread([hw, cfg, st, totalAttempts]() {
+        for (int attempt = 1; attempt <= totalAttempts; ++attempt) {
+            st->attempt = attempt;  // UI 逐帧读取显示 "Connecting... (2/4)"
 
-    if (ok) {
-        WL_INFO_TAG("ROBOT_STATUS", "Link SUCCESS: {} ({})",
-                     conn.config.name,
-                     conn.config.transport_type == 2 ? conn.config.com_port_str : conn.config.host_ip);
-        // Push protocol configs from RobotComm to hardware interface
-        conn.hw->SetProtocolConfig(conn.config.protocol_send);
-        conn.hw->SetProtocolReceiveConfig(conn.config.protocol_receive);
-    } else {
-        WL_ERROR_TAG("ROBOT_STATUS", "Link FAILED after all retries: {} ({})",
-                     conn.config.name,
-                     conn.config.transport_type == 2 ? conn.config.com_port_str : conn.config.host_ip);
-    }
-    conn.isLinked = ok;
-    return ok;
+            bool ok;
+            if (cfg.transport_type == 2)
+                ok = hw->InitSerial(cfg.com_port_str, cfg.baud_rate,
+                                    cfg.data_bits, cfg.stop_bits, cfg.parity);
+            else
+                ok = hw->Initialize(cfg.host_ip, cfg.remote_port,
+                                    cfg.local_port, cfg.transport_type);
+
+            if (ok) {
+                WL_INFO_TAG("ROBOT_STATUS", "Link SUCCESS: {} ({})", cfg.name,
+                    cfg.transport_type == 2 ? cfg.com_port_str : cfg.host_ip);
+                hw->SetProtocolConfig(cfg.protocol_send);
+                hw->SetProtocolReceiveConfig(cfg.protocol_receive);
+                st->isLinked = true;
+                st->isConnecting = false;
+                return;
+            }
+
+            WL_WARN_TAG("ROBOT_STATUS", "Attempt {}/{} failed for '{}'",
+                         attempt, totalAttempts, cfg.name);
+
+            if (attempt < totalAttempts)
+                std::this_thread::sleep_for(std::chrono::milliseconds(800));
+        }
+
+        WL_ERROR_TAG("ROBOT_STATUS", "Link FAILED after {} attempts: {} ({})",
+                     totalAttempts, cfg.name,
+                     cfg.transport_type == 2 ? cfg.com_port_str : cfg.host_ip);
+        st->isConnecting = false;
+        st->isLinked = false;
+    }).detach();
+
+    return true;  // 已启动后台线程
 }
 
 void RobotStatus::UnlinkConnection(int index)
@@ -590,24 +640,26 @@ void RobotStatus::UnlinkConnection(int index)
     std::unique_lock<std::shared_mutex> lock(m_ConnMutex);
     if (index < 0 || index >= (int)m_Connections.size()) return;
     auto& conn = m_Connections[index];
-    if (conn.isLinked) {
+    conn.state->isConnecting = false;  // 中断后台连接线程
+    if (conn.IsLinked()) {
         WL_INFO_TAG("ROBOT_STATUS", "Unlinked {} ({})", conn.config.name,
             conn.config.transport_type == 2 ? conn.config.com_port_str : conn.config.host_ip);
         conn.hw->Shutdown();  // 安全关闭底层 socket
     }
-    conn.isLinked = false;
+    conn.state->isLinked = false;
 }
 
 void RobotStatus::UnlinkAll()
 {
     std::unique_lock<std::shared_mutex> lock(m_ConnMutex);
     for (auto& conn : m_Connections) {
-        if (conn.isLinked) {
+        conn.state->isConnecting = false;  // 中断后台连接线程
+        if (conn.IsLinked()) {
             WL_INFO_TAG("ROBOT_STATUS", "Unlinking {} ({})", conn.config.name,
                 conn.config.transport_type == 2 ? conn.config.com_port_str : conn.config.host_ip);
             conn.hw->Shutdown();  // 安全关闭底层 socket
         }
-        conn.isLinked = false;
+        conn.state->isLinked = false;
     }
     m_LastSyncedProtocolKey.clear();
 }
@@ -616,13 +668,13 @@ void RobotStatus::SendActuatorData(const ActuatorConfig& data)
 {
     std::shared_lock<std::shared_mutex> lock(m_ConnMutex);
     for (auto& conn : m_Connections) {
-        if (!conn.isLinked) continue;
+        if (!conn.IsLinked()) continue;
         conn.hw->SendActuatorData(data);
         if (!conn.hw->IsConnected()) {
             WL_ERROR_TAG("ROBOT_STATUS", "Connection lost during send: {} ({})",
                          conn.config.name,
                          conn.config.transport_type == 2 ? conn.config.com_port_str : conn.config.host_ip);
-            conn.isLinked = false;
+            conn.state->isLinked = false;
         }
     }
 }
@@ -631,13 +683,13 @@ SensorData RobotStatus::GetSensorData()
 {
     std::shared_lock<std::shared_mutex> lock(m_ConnMutex);
     for (auto& conn : m_Connections) {
-        if (!conn.isLinked) continue;
+        if (!conn.IsLinked()) continue;
         SensorData d = conn.hw->GetSensorData();
         if (!conn.hw->IsConnected()) {
             WL_ERROR_TAG("ROBOT_STATUS", "Connection lost during recv: {} ({})",
                          conn.config.name,
                          conn.config.transport_type == 2 ? conn.config.com_port_str : conn.config.host_ip);
-            conn.isLinked = false;
+            conn.state->isLinked = false;
         }
         return d;
     }
@@ -695,35 +747,6 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
             ImGui::EndCombo();
         }
 
-        // LiveStream Connect / Disconnect
-        auto* activeStream = liveStreamMgr->GetDeviceByIndex(m_ActiveLiveStreamIdx);
-        if (activeStream) {
-            bool isStreamLinked = activeStream->isStreaming;
-            bool isConnecting   = activeStream->IsConnecting();
-
-            ImVec4 lsColor;
-            if (isStreamLinked)      lsColor = ImVec4(0.3f, 1.0f, 0.3f, 1.0f);
-            else if (isConnecting)   lsColor = ImVec4(1.0f, 0.7f, 0.2f, 1.0f);
-            else                     lsColor = ImVec4(0.7f, 0.7f, 0.7f, 1.0f);
-            ImGui::TextColored(lsColor, "  (%s:%d)", activeStream->ip, activeStream->port);
-            ImGui::SameLine();
-            if (isStreamLinked) {
-                if (ImGui::SmallButton("Disconnect Stream")) {
-                    activeStream->Close();
-                    activeStream->isStreaming = false;
-                }
-            } else if (isConnecting) {
-                if (ImGui::SmallButton("Cancel")) {
-                    activeStream->CancelConnect();
-                }
-                ImGui::SameLine();
-                ImGui::TextColored(ImVec4(1.0f, 0.7f, 0.2f, 1.0f), "Connecting...");
-            } else {
-                if (ImGui::SmallButton("Connect Stream")) {
-                    activeStream->TryOpen(m_CameraRetryCount);
-                }
-            }
-        }
     }
 
     if (nodeGraphMgr && nodeGraphMgr->GetItemCount() > 0)
@@ -754,65 +777,131 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
     // ---- 连接状态（由 Status 自己的 active NodeGraph 决定） ----
     SyncConnectionsFromGraph();
 
-    if (commManager && commManager->GetItemCount() > 0)
+    bool hasComm = (commManager && commManager->GetItemCount() > 0);
+    bool hasStream = (liveStreamMgr && liveStreamMgr->GetItemCount() > 0);
+    std::vector<ConnectionSnapshot> connSnap;
+    if (hasComm) connSnap = SnapshotConnections();
+
+    if (hasComm || hasStream)
     {
-        // 线程安全：快照连接数据用于 UI 渲染，避免持有锁期间进行 ImGui 绘制
-        std::vector<ConnectionSnapshot> connSnap = SnapshotConnections();
-        int linkedCount = 0;
-        for (const auto& s : connSnap)
-            if (s.isLinked) ++linkedCount;
-        bool anyLinked = (linkedCount > 0);
+        ImGui::TextUnformatted("Connection:");
 
-        ImGui::Spacing();
-        ImVec4 statusColor = anyLinked ? ImVec4(0.3f, 1.0f, 0.3f, 1.0f) : ImVec4(1.0f, 0.5f, 0.0f, 1.0f);
-        ImGui::TextColored(statusColor, "Status: %d/%d linked", linkedCount, (int)connSnap.size());
-
-        if (connSnap.empty()) {
-            ImGui::TextDisabled("  (NodeGraph has no comm refs — add in sidebar)");
-        } else if (ImGui::TreeNodeEx("Connections", ImGuiTreeNodeFlags_DefaultOpen)) {
-            ImGui::Indent();
+        // 每个 Connection 条目竖排显示（详细信息 + Connect/Disconnect/Cancel）
+        if (!connSnap.empty()) {
             for (int i = 0; i < (int)connSnap.size(); ++i) {
                 const auto& s = connSnap[i];
-                ImGui::PushID(i);
-                ImVec4 col = s.isLinked ? ImVec4(0.3f, 1.0f, 0.3f, 1.0f) : ImVec4(0.7f, 0.7f, 0.7f, 1.0f);
-                ImGui::TextColored(col, "[%d] %s", i, s.config.name);
-                ImGui::SameLine();
+                ImGui::PushID(i + 100);
+                ImVec4 col;
+                if (s.isLinked)           col = ImVec4(0.3f, 1.0f, 0.3f, 1.0f);
+                else if (s.isConnecting)  col = ImVec4(0.3f, 0.7f, 1.0f, 1.0f);
+                else                      col = ImVec4(0.7f, 0.7f, 0.7f, 1.0f);
+
+                // 详细信息行
+                const char* transport = "???";
+                if (s.config.transport_type == 0)      transport = "UDP";
+                else if (s.config.transport_type == 1) transport = "TCP";
+                else if (s.config.transport_type == 2) transport = "Serial";
+
                 if (s.config.transport_type == 2)
-                    ImGui::TextDisabled("(Serial:%s @%d)", s.config.com_port_str, s.config.baud_rate);
+                    ImGui::TextColored(col, "  %s  [%s]  %s:%d  @%dHz",
+                        s.config.name, transport,
+                        s.config.com_port_str, s.config.baud_rate,
+                        s.config.send_freq_hz);
                 else
-                    ImGui::TextDisabled("(%s:%d)", s.config.host_ip, s.config.remote_port);
+                    ImGui::TextColored(col, "  %s  [%s]  %s:%d  @%dHz",
+                        s.config.name, transport,
+                        s.config.host_ip, s.config.remote_port,
+                        s.config.send_freq_hz);
+
+                ImGui::SameLine();
                 if (s.isLinked) {
-                    ImGui::SameLine();
                     if (ImGui::SmallButton("Disconnect")) UnlinkConnection(i);
-                } else {
+                } else if (s.isConnecting) {
+                    if (ImGui::SmallButton("Cancel")) UnlinkConnection(i);
                     ImGui::SameLine();
+                    ImGui::TextColored(ImVec4(0.3f, 0.7f, 1.0f, 1.0f),
+                        "(%d/%d)", s.connectAttempt, m_ConnRetryCount);
+                } else {
                     if (ImGui::SmallButton("Connect")) LinkConnection(i);
                 }
                 ImGui::PopID();
             }
-            ImGui::Unindent();
-            ImGui::TreePop();
         }
 
-        // 一键操作
-        if (anyLinked) {
-            if (ImGui::Button("Disconnect All", ImVec2(-1, 0))) {
-                UnlinkAll();
-                if (liveStreamMgr) {
-                    auto* stream = liveStreamMgr->GetDeviceByIndex(m_ActiveLiveStreamIdx);
-                    if (stream && stream->isStreaming) {
-                        stream->Close();
-                        stream->isStreaming = false;
+        // LiveStream 条目（详细信息 + Connect/Disconnect/Cancel）
+        if (hasStream) {
+            auto* s = liveStreamMgr->GetDeviceByIndex(m_ActiveLiveStreamIdx);
+            if (s) {
+                bool sl = s->isStreaming;
+                bool sc = s->IsConnecting();
+                ImVec4 col;
+                if (sl)      col = ImVec4(0.3f, 1.0f, 0.3f, 1.0f);
+                else if (sc) col = ImVec4(0.3f, 0.7f, 1.0f, 1.0f);
+                else         col = ImVec4(0.7f, 0.7f, 0.7f, 1.0f);
+
+                const char* proto = "RTSP";
+                if (s->protocol == TransportProto::UDP) proto = "UDP";
+                const char* codecStr = "H264";
+                if (s->codec == CodecType::H265)      codecStr = "H265";
+                else if (s->codec == CodecType::H265_PLUS) codecStr = "H265+";
+                ImGui::TextColored(col, "  %s  [%s/%s]  %s:%d",
+                    s->name, proto, codecStr,
+                    s->ip, s->port);
+
+                ImGui::SameLine();
+                ImGui::PushID(999);
+                if (sl) {
+                    if (ImGui::SmallButton("Disconnect")) {
+                        s->Close(); s->isStreaming = false;
+                    }
+                } else if (sc) {
+                    if (ImGui::SmallButton("Cancel")) {
+                        s->CancelConnect();
+                    }
+                    ImGui::SameLine();
+                    ImGui::TextColored(ImVec4(0.3f, 0.7f, 1.0f, 1.0f),
+                        "(%d/%d)", s->GetConnectAttempt(), s->GetConnectTotal());
+                } else {
+                    if (ImGui::SmallButton("Connect")) {
+                        s->TryOpen(m_CameraRetryCount);
                     }
                 }
+                ImGui::PopID();
             }
-        } else if (!connSnap.empty()) {
-            if (ImGui::Button("Connect All", ImVec2(-1, 0))) {
-                for (int i = 0; i < (int)connSnap.size(); ++i) LinkConnection(i);
-                if (liveStreamMgr) {
-                    auto* stream = liveStreamMgr->GetDeviceByIndex(m_ActiveLiveStreamIdx);
-                    if (stream && !stream->isStreaming) {
-                        stream->TryOpen(m_CameraRetryCount);  // 后台线程，不阻塞 UI
+        }
+
+        // ----- Connect All / Disconnect All（连接/断开 Connection + LiveStream 所有） -----
+        {
+            int totalLinked = 0, totalConnecting = 0, totalItems = 0;
+            for (const auto& sn : connSnap) {
+                ++totalItems;
+                if (sn.isLinked) ++totalLinked;
+                if (sn.isConnecting) ++totalConnecting;
+            }
+            if (hasStream && liveStreamMgr->GetDeviceByIndex(m_ActiveLiveStreamIdx)) {
+                ++totalItems;
+                auto* s = liveStreamMgr->GetDeviceByIndex(m_ActiveLiveStreamIdx);
+                if (s->isStreaming) ++totalLinked;
+                if (s->IsConnecting()) ++totalConnecting;
+            }
+            if (totalLinked > 0) {
+                if (ImGui::SmallButton("Disconnect All")) {
+                    UnlinkAll();
+                    if (hasStream) {
+                        for (int i = 0; i < liveStreamMgr->GetItemCount(); ++i) {
+                            auto* st = liveStreamMgr->GetDeviceByIndex(i);
+                            if (st) { st->Close(); st->isStreaming = false; }
+                        }
+                    }
+                }
+            } else if (totalConnecting == 0) {
+                if (ImGui::SmallButton("Connect All")) {
+                    for (int i = 0; i < (int)connSnap.size(); ++i) LinkConnection(i);
+                    if (hasStream) {
+                        for (int i = 0; i < liveStreamMgr->GetItemCount(); ++i) {
+                            auto* st = liveStreamMgr->GetDeviceByIndex(i);
+                            if (st && !st->isStreaming) st->TryOpen(m_CameraRetryCount);
+                        }
                     }
                 }
             }
@@ -912,7 +1001,7 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
                 for (auto& p : activeSendCfgs)  sendCopy.push_back(*p.second);
                 for (auto& p : activeRecvCfgs)  recvCopy.push_back(*p.second);
                 for (auto& conn : m_Connections) {
-                    if (!conn.isLinked) continue;
+                    if (!conn.IsLinked()) continue;
                     conn.hw->SetProtocolConfig(sendCopy);
                     conn.hw->SetProtocolReceiveConfig(recvCopy);
                 }
@@ -936,7 +1025,7 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
                 std::vector<ProtocolSendConfig> sendCopy;
                 for (auto& p : activeSendCfgs) sendCopy.push_back(*p.second);
                 for (auto& conn : m_Connections) {
-                    if (!conn.isLinked) continue;
+                    if (!conn.IsLinked()) continue;
                     conn.hw->SetProtocolConfig(sendCopy);
                 }
             }

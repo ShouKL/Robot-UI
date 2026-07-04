@@ -9,13 +9,30 @@
 #include "NodeGraph.h"
 
 // ============================================================================
+// ConnectState — 线程安全的连接状态（atomic，后台线程和 UI 线程共享）
+// ============================================================================
+struct ConnectState
+{
+    std::atomic<bool> isLinked{false};
+    std::atomic<bool> isConnecting{false};
+    std::atomic<int>  attempt{0};
+    std::atomic<int>  maxAttempts{0};
+};
+
+// ============================================================================
 // ConnectionEntry — 单个机器人连接条目
 // ============================================================================
 struct ConnectionEntry
 {
     std::shared_ptr<HardwareInterface> hw;
     RobotComm config;
-    bool isLinked = false;
+    std::shared_ptr<ConnectState> state = std::make_shared<ConnectState>();
+
+    // 便捷访问
+    bool IsLinked()     const { return state->isLinked.load(); }
+    bool IsConnecting() const { return state->isConnecting.load(); }
+    int  GetAttempt()   const { return state->attempt.load(); }
+    int  GetMaxAttempts() const { return state->maxAttempts.load(); }
 };
 
 // ============================================================================
@@ -25,8 +42,10 @@ struct ConnectionSnapshot
 {
     std::shared_ptr<HardwareInterface> hw;
     RobotComm config;
-    bool isLinked = false;
-    int commIndex = 0;  // 在 m_ActiveCommIndices 中的索引
+    bool isLinked     = false;
+    bool isConnecting = false;
+    int  connectAttempt = 0;
+    int  commIndex = 0;  // 在 m_ActiveCommIndices 中的索引
 };
 
 // ============================================================================

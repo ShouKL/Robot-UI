@@ -1,6 +1,7 @@
 #pragma once
 #include "core.h"
 #include "Walnut/Image.h"
+#include <chrono>
 
 // GStreamer C
 extern "C" {
@@ -30,7 +31,7 @@ class LiveStream {
 public:
     // ========   ========
     int  id          = 0;
-    bool isStreaming = false;
+    std::atomic<bool> isStreaming{false};
     bool isSelected  = false;
 
     // ========   （原 StreamConfig 字段）========
@@ -72,7 +73,7 @@ public:
     LiveStream& operator=(LiveStream&& other);
 
     // ========   ========
-    bool Open();                        // 同步单次尝试，由 TryOpen 在后台线程调用
+    bool Open();                        // 同步单次尝试，由 TryOpen 后台线程调用
     void TryOpen(int maxRetries = 2, int intervalMs = 800);  // 非阻塞，后台线程重试
     void Close();
     void CancelConnect();  // 取消正在进行的后台连接
@@ -80,6 +81,8 @@ public:
 
     // ========  状态查询 ========
     bool IsConnecting() const { return m_connecting.load(std::memory_order_relaxed); }
+    int  GetConnectAttempt() const { return m_connectAttempt.load(std::memory_order_relaxed); }
+    int  GetConnectTotal()   const { return m_connectTotal.load(std::memory_order_relaxed); }
 
     // ========   ========
     void* GetDescriptorSet() const { return m_image ? m_image->GetDescriptorSet() : nullptr; }
@@ -101,8 +104,12 @@ private:
     GstElement* m_pipeline = nullptr;
     std::mutex m_pipeMutex;  // 保护 m_pipeline（后台线程 Open / UI 线程 Update & Close）
     std::atomic<bool> m_destroying{false};  // 析构标志，保护 TryOpen 后台线程
-    std::atomic<bool> m_connecting{false};  // 防止重复 TryOpen，同一时刻只有一个连接线程
+    std::atomic<bool> m_connecting{false};  // UI 显示 & 后台循环检查
+    std::atomic<int>  m_connectAttempt{0};   // 当前尝试次数（1-based，供 UI 显示）
+    std::atomic<int>  m_connectTotal{0};     // 总尝试次数
+    std::atomic<int>  m_connectGeneration{0};// 每次 TryOpen 递增，旧线程检测到不再匹配则退出
     std::atomic<bool> m_hasError{false};     // Update 检测到错误，标记需要 Close
+    std::chrono::steady_clock::time_point m_connectingStart{};  // 连接开始时间戳（用于最小显示时间）
 
     // ========    ========
     std::mutex m_mutex;

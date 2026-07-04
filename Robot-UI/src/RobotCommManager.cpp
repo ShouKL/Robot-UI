@@ -1,4 +1,32 @@
 #include "RobotCommManager.h"
+#include <windows.h>
+
+// ---- COM 端口枚举（直接尝试打开 COM1~COM256） ----
+static std::vector<std::string> GetAvailableComPorts()
+{
+    std::vector<std::string> ports;
+
+    for (int i = 1; i <= 256; ++i) {
+        std::string portName = "COM" + std::to_string(i);
+        std::string portPath = "\\\\.\\" + portName;
+
+        HANDLE hPort = CreateFileA(
+            portPath.c_str(),
+            GENERIC_READ | GENERIC_WRITE,
+            0,                      // 独占
+            nullptr,
+            OPEN_EXISTING,
+            0,                      // 非重叠 I/O
+            nullptr);
+
+        if (hPort != INVALID_HANDLE_VALUE) {
+            ports.push_back(portName);
+            CloseHandle(hPort);
+        }
+    }
+
+    return ports;
+}
 
 // ====================   /   ====================
 RobotCommManager::RobotCommManager() {
@@ -755,18 +783,72 @@ void RobotCommManager::DrawControlPanel(RobotComm& node, RobotComponentManager* 
         }
     }
 
-    if (ImGui::CollapsingHeader("Network", ImGuiTreeNodeFlags_DefaultOpen)) {
-        ImGui::InputText("Host IP", node.host_ip, sizeof(node.host_ip));
-        ImGui::InputInt("Remote Port", &node.remote_port);
-        ImGui::InputInt("Local Port", &node.local_port);
-    }
-
     if (ImGui::CollapsingHeader("Transport", ImGuiTreeNodeFlags_DefaultOpen)) {
         const char* protocols[] = { "UDP", "TCP", "Serial" };
         ImGui::Combo("Protocol", &node.transport_type, protocols, IM_ARRAYSIZE(protocols));
         ImGui::InputInt("Send Freq (Hz)", &node.send_freq_hz, 1, 10);
         if (node.send_freq_hz < 1) node.send_freq_hz = 1;
         if (node.send_freq_hz > 1000) node.send_freq_hz = 1000;
+        ImGui::InputInt("Retry Count", &node.retry_count, 1, 1);
+        if (node.retry_count < 1) node.retry_count = 1;
+        if (node.retry_count > 20) node.retry_count = 20;
+    }
+
+    if (node.transport_type == 2) {
+        // Serial-specific configuration
+        if (ImGui::CollapsingHeader("Serial Port", ImGuiTreeNodeFlags_DefaultOpen)) {
+            // COM Port — 自动检测 + 刷新
+            static std::vector<std::string> s_ComPorts;
+            ImGui::PushItemWidth(ImGui::CalcItemWidth() - 100);
+            if (ImGui::BeginCombo("##ComPort", node.com_port_str)) {
+                s_ComPorts = GetAvailableComPorts();
+                if (s_ComPorts.empty()) {
+                    ImGui::TextDisabled("No COM ports detected");
+                } else {
+                    for (const auto& p : s_ComPorts) {
+                        bool sel = (strcmp(node.com_port_str, p.c_str()) == 0);
+                        if (ImGui::Selectable(p.c_str(), sel)) {
+                            strncpy_s(node.com_port_str, sizeof(node.com_port_str),
+                                      p.c_str(), sizeof(node.com_port_str) - 1);
+                        }
+                        if (sel) ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+            ImGui::PopItemWidth();
+            ImGui::SameLine();
+            if (ImGui::Button("Refresh COM")) {
+                s_ComPorts = GetAvailableComPorts();
+            }
+
+            const int baudRates[] = { 9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600 };
+            if (ImGui::BeginCombo("Baud Rate", std::to_string(node.baud_rate).c_str())) {
+                for (int br : baudRates) {
+                    char label[16];
+                    snprintf(label, sizeof(label), "%d", br);
+                    if (ImGui::Selectable(label, node.baud_rate == br))
+                        node.baud_rate = br;
+                    if (node.baud_rate == br) ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+
+            const char* dataBitsItems[] = { "5", "6", "7", "8" };
+            ImGui::Combo("Data Bits", &node.data_bits, dataBitsItems, IM_ARRAYSIZE(dataBitsItems));
+
+            const char* stopBitsItems[] = { "1", "1.5", "2" };
+            ImGui::Combo("Stop Bits", &node.stop_bits, stopBitsItems, IM_ARRAYSIZE(stopBitsItems));
+
+            const char* parityItems[] = { "None", "Odd", "Even", "Mark", "Space" };
+            ImGui::Combo("Parity", &node.parity, parityItems, IM_ARRAYSIZE(parityItems));
+        }
+    } else {
+        if (ImGui::CollapsingHeader("Network", ImGuiTreeNodeFlags_DefaultOpen)) {
+            ImGui::InputText("Host IP", node.host_ip, sizeof(node.host_ip));
+            ImGui::InputInt("Remote Port", &node.remote_port);
+            ImGui::InputInt("Local Port", &node.local_port);
+        }
     }
 
     if (ImGui::CollapsingHeader("Protocol Fields", ImGuiTreeNodeFlags_DefaultOpen)) {

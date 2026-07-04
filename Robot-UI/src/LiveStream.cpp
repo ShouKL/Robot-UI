@@ -406,51 +406,69 @@ bool LiveStream::Open() {
 void LiveStream::TryOpen(int maxRetries, int intervalMs) {
     if (m_destroying.load(std::memory_order_relaxed)) return;
 
-    // 防止重复连接：如果已有连接线程在运行，直接返回
-    bool expected = false;
-    if (!m_connecting.compare_exchange_strong(expected, true))
-        return;  // 已有连接线程在运行
+    // 递增 generation：旧后台线程检测到不匹配后自行退出
+    int myGen = ++m_connectGeneration;
+    m_connecting = true;
+    m_connectTotal = maxRetries + 1;
+    m_connectAttempt = 0;  // 后台线程第一轮自增到 1，UI 逐帧读取
+    m_connectingStart = std::chrono::steady_clock::now();
 
     std::string capturedIp(ip);
     int capturedPort = port;
     int totalAttempts = maxRetries + 1;
 
-    std::thread([this, totalAttempts, intervalMs, capturedIp, capturedPort]() {
-        WL_INFO_TAG("LIVESTREAM", "Connecting to rtsp://{}:{} (max {} attempts)...",
-                     capturedIp, capturedPort, totalAttempts);
+    WL_INFO_TAG("LIVESTREAM", "Connecting to rtsp://{}:{} (max {} attempts)...",
+                 capturedIp, capturedPort, totalAttempts);
 
+    std::thread([this, totalAttempts, intervalMs, myGen, capturedIp, capturedPort]() {
         for (int attempt = 1; attempt <= totalAttempts; ++attempt) {
-            if (m_destroying.load(std::memory_order_relaxed)) {
-                m_connecting = false;
+            // 被更新的 TryOpen 取代 → 静默退出
+            if (m_connectGeneration.load(std::memory_order_relaxed) != myGen ||
+                m_destroying.load(std::memory_order_relaxed)) {
                 return;
             }
 
+            m_connectAttempt = attempt;  // UI 逐帧读取显示 "Connecting... (2/4)"
             WL_INFO_TAG("LIVESTREAM", "  Attempt {} of {}...", attempt, totalAttempts);
 
             bool ok = Open();
-            if (m_destroying.load(std::memory_order_relaxed)) {
-                m_connecting = false;
+            if (m_connectGeneration.load(std::memory_order_relaxed) != myGen ||
+                m_destroying.load(std::memory_order_relaxed)) {
                 return;
             }
 
             if (ok) {
                 WL_INFO_TAG("LIVESTREAM", "  Attempt {} of {} OK (pipeline started)", attempt, totalAttempts);
                 isStreaming = true;
+                auto elapsed = std::chrono::steady_clock::now() - m_connectingStart;
+                if (elapsed < std::chrono::milliseconds(300))
+                    std::this_thread::sleep_for(std::chrono::milliseconds(300) - elapsed);
                 m_connecting = false;
+                m_connectAttempt = 0;
                 return;
+            }
+
+            // Open() 在失败路径内部调用了 Close()→CancelConnect()，
+            // 此时 m_connecting 和 m_connectAttempt 已被置零，需要恢复
+            if (attempt < totalAttempts) {
+                m_connecting = true;
+                m_connectAttempt = attempt;
             }
 
             WL_ERROR_TAG("LIVESTREAM", "  Attempt {} of {} FAILED: {}", attempt, totalAttempts,
                          m_lastErrorMsg.empty() ? "no response" : m_lastErrorMsg);
 
-            if (attempt < totalAttempts && !m_destroying.load(std::memory_order_relaxed)) {
+            if (attempt < totalAttempts && !m_destroying.load(std::memory_order_relaxed))
                 std::this_thread::sleep_for(std::chrono::milliseconds(intervalMs));
-            }
         }
 
         if (!m_destroying.load(std::memory_order_relaxed))
             WL_ERROR_TAG("LIVESTREAM", "All {} attempts failed.", totalAttempts);
+        auto elapsed = std::chrono::steady_clock::now() - m_connectingStart;
+        if (elapsed < std::chrono::milliseconds(300))
+            std::this_thread::sleep_for(std::chrono::milliseconds(300) - elapsed);
         m_connecting = false;
+        m_connectAttempt = 0;
     }).detach();
 }
 
@@ -493,7 +511,8 @@ void LiveStream::Close() {
 }
 
 void LiveStream::CancelConnect() {
-    m_connecting = false;  // 通知后台线程停止
+    m_connecting = false;  // 通知 ProcessPendingConnect 停止
+    m_connectAttempt = 0;
 }
 
 void LiveStream::CloseInternal(GstClockTime timeout) {

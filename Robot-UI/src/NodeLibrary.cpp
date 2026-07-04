@@ -670,10 +670,9 @@ float ComputeNodeOutput(EditorNode& node,
     {
         float in  = GetPinByIndex(node, pinVals, 0);
         int idx = node.GlobalVarId;
-        if (idx >= 0 && globals && idx < globalsCount) {
+        if (idx >= 0 && globals && idx < globalsCount)
             globals[idx] = in;
-            return in;
-        }
+        if (idx >= 0 && globals && idx < globalsCount) return globals[idx];
         return 0.0f;
     }
 

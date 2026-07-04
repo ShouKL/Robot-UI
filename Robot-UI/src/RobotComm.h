@@ -41,7 +41,7 @@ public:
     int  active_component_idx = 0;  // 每个 comm 节点独立的 component 选择
 
     // Serial-specific config
-    char com_port_str[16]  = "COM1";
+    char com_port_str[16]  = "";
     int  baud_rate         = 115200;
     int  data_bits         = 3;     // index: 0=5,1=6,2=7,3=8
     int  stop_bits         = 0;     // index: 0=1,1=1.5,2=2
