@@ -1,4 +1,4 @@
-# Directories
+# Directories (build output & IDE)
 .vs/
 bin/
 bin-int/
@@ -8,6 +8,21 @@ bin-int/
 *.vcxproj.user
 *.vcxproj.filters
 *.slnx
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Logs
+*.log
+logs/
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
 
 # Exclude
 !vendor/bin
