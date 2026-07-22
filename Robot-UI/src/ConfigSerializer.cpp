@@ -1015,6 +1015,17 @@ void ConfigSerializer::EmitUIState(YAML::Emitter& out, const UIState& uiState)
     out << YAML::Key << "conn_retry_count" << YAML::Value << uiState.conn_retry_count;
     out << YAML::Key << "camera_retry_count" << YAML::Value << uiState.camera_retry_count;
 
+    // 启用的插件列表
+    out << YAML::Key << "enabled_plugins" << YAML::Value << YAML::BeginSeq;
+    for (const auto& name : uiState.enabled_plugins)
+        out << name;
+    out << YAML::EndSeq;
+
+    // 通信节点配置（含发送帧 enable 状态）
+    if (!uiState.comm_configs.empty()) {
+        EmitRobotComm(out, uiState.comm_configs);
+    }
+
     out << YAML::EndMap;  // ui_state
 }
 
@@ -1054,6 +1065,20 @@ bool ConfigSerializer::ApplyUIState(const YAML::Node& node, UIState& uiState, st
     // 连接设置
     if (const YAML::Node& n = node["conn_retry_count"]; n.IsDefined()) uiState.conn_retry_count = n.as<int>();
     if (const YAML::Node& n = node["camera_retry_count"]; n.IsDefined()) uiState.camera_retry_count = n.as<int>();
+
+    // 启用的插件列表
+    if (const YAML::Node& n = node["enabled_plugins"]; n.IsDefined() && n.IsSequence())
+    {
+        uiState.enabled_plugins.clear();
+        for (const auto& item : n)
+            uiState.enabled_plugins.push_back(item.as<std::string>());
+    }
+
+    // 通信节点配置
+    if (const YAML::Node& commNode = node["robot_comm"]; commNode.IsDefined()) {
+        std::string commError;
+        ApplyRobotComm(commNode, uiState.comm_configs, &commError);
+    }
 
     return true;
 }

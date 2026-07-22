@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 // ============================================================================
 // NodeGraph — pure data model + evaluation for the node graph.
@@ -187,17 +187,29 @@ public:
     void SetKeyValues(const std::map<std::string, float>& kv);
     std::map<std::string, float> GetKeyValuesSnapshot() const;
 
+    // ---- Last evaluation outputs snapshot (for shared memory / external tools) ----
+    std::map<std::string, float> GetLastOutputsSnapshot() const {
+        std::shared_lock<std::shared_mutex> lock(m_EvalMutex);
+        return m_LastOutputs;
+    }
+
     // ---- Node creation (editor-side) ----
     void AddNode(NodeType type);
     bool AddNodeAt(NodeType type, const ImVec2& pos, bool fromScreen);
 
     // ---- Modified flag ----
+    bool IsModified() const { return m_Modified; }
     void SetModified(bool v) { m_Modified = v; }
+
+    // ---- Suppress external actions during editing (prevents crash from
+    //      ShortcutTrigger -> RobotStatus callback during editor render) ----
+    void SetSuppressActions(bool v) { m_SuppressActions = v; }
+    bool IsSuppressedActions() const { return m_SuppressActions; }
 
     // ---- Run control (play/stop evaluation) ----
     bool IsRunning() const { return m_IsRunning; }
     void SetRunning(bool r) { m_IsRunning = r; }
-    void ToggleRunning()    { m_IsRunning = !m_IsRunning; }
+    void ToggleRunning()    { m_IsRunning = !m_IsRunning; if (m_IsRunning) { auto now = std::chrono::steady_clock::now(); m_LastEvalTimeNs.store(std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count(), std::memory_order_relaxed); } }
 
     // ---- Active mode names (for graph map key) ----
     const std::string& GetActiveRobotModeName()   const { return m_ActiveRobotModeName; }
@@ -240,6 +252,7 @@ private:
 
     // ---- Editor UI data ----
     bool m_IsRunning = false;
+    bool m_SuppressActions = false;
     std::shared_ptr<Walnut::Image> m_PlayIcon;
     std::shared_ptr<Walnut::Image> m_StopIcon;
     ax::NodeEditor::NodeId m_ActiveKeySourceId = 0;

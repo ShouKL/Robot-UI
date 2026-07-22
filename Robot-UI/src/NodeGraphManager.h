@@ -10,6 +10,8 @@
 #include "NodeGraph.h"
 #include "Walnut/Image.h"
 
+class RobotStatus;
+
 class NodeGraphManager : public ManagerBase
 {
 public:
@@ -52,6 +54,7 @@ public:
     void SetGamepadMapperManager(GamepadMapperManager* g);
     void SetRobotCommManager(RobotCommManager* comm);
     void SetShortcutManager(ShortcutManager* sm);
+    void SetRobotStatus(RobotStatus* rs);
     void SetSendActionCb(std::function<void(int,bool,bool)> cb);
 
     // ---- Internal (called by RobotSettingPanel) ----
@@ -86,6 +89,7 @@ private:
     GamepadMapperManager*  m_GamepadMgr = nullptr;
     RobotCommManager*      m_RobotCommMgr = nullptr;
     ShortcutManager*       m_ShortcutMgr = nullptr;
+    RobotStatus*           m_RobotStatus = nullptr;
     std::function<void(int,bool,bool)> m_StoredSendActionCb;
 
     // ---- Clipboard (Copy/Paste) ----

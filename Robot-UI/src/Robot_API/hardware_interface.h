@@ -1,9 +1,12 @@
 #pragma once
 
 #include "robot_api.h"
+#include <atomic>
+#include <chrono>
+#include <map>
 #include <mutex>
-#include <vector>
 #include <string>
+#include <vector>
 
 #if defined(_WIN32) || defined(_WIN64)
 #ifndef WIN32_LEAN_AND_MEAN
@@ -36,6 +39,9 @@ public:
     bool HardwareInit(int max_retries = 3, int start_attempt = 1) override;
     bool IsConnected() const { return m_IsConnected; }
 
+    void SetName(const std::string& name) { m_ConnName = name; }
+    const std::string& GetName() const { return m_ConnName; }
+
     SensorData GetSensorData() override;
     void SendActuatorData(const ActuatorConfig& data) override;
 
@@ -63,6 +69,8 @@ private:
     int  m_StopBits  = 1;
     int  m_Parity    = 0;
 
+    std::string m_ConnName;  // 连接名称（如 "Beyond", "Camera"），用于日志
+
     std::vector<ProtocolSendConfig>    m_ProtocolCfgs;   // 用户自定义发送协议（多帧）
     std::vector<ProtocolReceiveConfig> m_ReceiveCfgs;    // 用户自定义接收协议（多帧）
 
@@ -74,4 +82,14 @@ private:
 
     std::vector<std::vector<uint8_t>> SerializeActuatorData(const ActuatorConfig& data);
     SensorData DeserializeSensorData(const std::vector<uint8_t>& raw_data);
+
+    // Per-instance log timers (按时间间隔输出发送日志，key=帧索引)
+    std::map<size_t, std::chrono::steady_clock::time_point> m_LastSendLogTime;
+    int m_RecvOkCount    = 0;
+    int m_IdleCount      = 0;
+    int m_FailCount      = 0;
+    bool m_LoggedInvalid = false;
+
+    // Shutdown 标记（用于 InitSerial/Initialize 重加锁后检测）
+    std::atomic<bool> m_ShuttingDown{false};
 };

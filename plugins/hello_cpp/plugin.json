@@ -1,0 +1,10 @@
+{
+    "name": "hellocpp",
+    "displayName": "Hello C++",
+    "version": "1.0.0",
+    "author": "Robot-UI",
+    "description": "Hello World C++ demo — demonstrates the native plugin format with a precompiled executable.",
+    "type": "native",
+    "main": "hello_cpp.exe",
+    "engines": { "robot-ui": ">=1.0.0" }
+}

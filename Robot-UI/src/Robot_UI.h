@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "core.h"
 #include "Walnut/Application.h"
@@ -13,6 +13,8 @@
 #include "MonitorWall.h"
 #include "ShortcutManager.h"
 #include "Robot_API/robot_api.h"
+#include "plugin/PluginManager.h"
+#include "plugin/PluginPanel.h"
 
 class Robot_UI_Layer : public Walnut::Layer
 {
@@ -35,7 +37,9 @@ public:
     bool& GetShowRobotStatus()   { return m_RobotStatusOpen; }
     bool& GetShowTerminal()      { return m_TerminalOpen; }
     bool& GetShowMonitorWall()   { return m_MonitorWallOpen; }
+    bool& GetShowPluginManager() { return m_PluginManagerOpen; }
     TerminalPanel*     GetTerminalPanel()     { return m_TerminalPanel.get(); }
+    PluginManager*     GetPluginManager()     { return m_PluginMgr.get(); }
 
     // ---- 文件管理器访问 ----
     FileManager* GetFileManager() { return m_FileManager.get(); }
@@ -66,6 +70,7 @@ private:
     bool m_MonitorWallOpen        = false;
     bool m_ThrustCurveEditorOpen  = false;
     bool m_TerminalOpen           = false;   // shared: Terminal + Output in one panel
+    bool m_PluginManagerOpen      = false;   // Plugin Manager window
 
     // 子系统
     std::unique_ptr<OptionPanel>       m_OptionPanel;
@@ -75,13 +80,14 @@ private:
     std::unique_ptr<MonitorWall>       m_MonitorWall;
     std::unique_ptr<FileManager>       m_FileManager;
     std::unique_ptr<TerminalPanel>     m_TerminalPanel;
+    std::unique_ptr<PluginManager>     m_PluginMgr;
+    std::unique_ptr<PluginPanel>       m_PluginPanel;
     ShortcutManager                     m_ShortcutManager;
 
     bool m_NeedNodeGraphWarmup = false; // init 时标记，OnUIRender 预热首帧
 
     // 手柄线程
     std::thread m_GamepadThread;
-    std::atomic<bool> m_Running;
+    std::atomic<bool> m_Running{false};
     std::atomic<std::shared_ptr<const ActuatorConfig>> m_CurrentCommand;
-
 };

@@ -52,9 +52,9 @@ private:
     void TakeSnapshots();
     void SaveRobotStatusActive();
     void RestoreRobotStatusActive();
-
-    // 统一策略：根据当前打开的标签页，同步五个 Active 项到 RobotStatus
     void SyncActiveItems(int tabId);
+
+
 
     std::unique_ptr<RobotComponentManager> m_RobotComponentManager;
     std::unique_ptr<GamepadMapperManager>  m_GamepadMapperManager;
@@ -77,17 +77,15 @@ private:
     std::vector<RobotComm>  m_CommSnapshot;
     std::vector<NodeGraph>  m_NodeGraphSnapshot;
 
-    // 调试：追踪 GamepadMapper 选中项变化
-    int m_LastGamepadIndex = -1;
-
-    // 统一策略：追踪各 Manager 选中项变化，用于跨组件同步
-    int m_LastComponentIdx  = -1;
-    int m_LastNodeGraphIdx  = -1;
-    int m_LastLiveStreamIdx  = -1;
-    int m_LastCommIdx        = -1;
-
     // 保存的 RobotStatus active 状态（退出面板时恢复）
     // BASE 仅保存 Status 的两个选择，Component/Gamepad/Comm 均从 NodeGraph 推导
     int m_SavedLiveStreamIdx = 0;
     int m_SavedNodeGraphIdx  = 0;
+
+    // 上次选中索引（用于检测切换）
+    int m_LastComponentIdx  = -1;
+    int m_LastGamepadIndex  = -1;
+    int m_LastNodeGraphIdx  = -1;
+    int m_LastLiveStreamIdx = -1;
+    int m_LastCommIdx       = -1;
 };

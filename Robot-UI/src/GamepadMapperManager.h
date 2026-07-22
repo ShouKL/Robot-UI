@@ -34,6 +34,7 @@ public:
     void        ClipboardPaste(const std::string& yaml) override;
 
     // ---- Canvas drawing (moved from GamepadMapper to Manager) ----
+    void DrawGamepadMapper(GamepadMapper& mapper);
     void DrawXboxCanvas(GamepadMapper& mapper);
     void DrawCustomCanvas(GamepadMapper& mapper);
     void DrawKeyGrid(GamepadMapper& mapper, bool analog, float height);

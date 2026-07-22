@@ -17,8 +17,6 @@ void RobotSettingPanel::BeginEdit()
     EditDraftBase::BeginEdit();
     TakeSnapshots();
     SaveRobotStatusActive();
-    // 编辑期间：evaluator 实时跟随 Manager 选中图
-    if (m_RobotStatus) m_RobotStatus->EnableLiveSync(true);
     WL_INFO_TAG("CONFIG", "RobotSetting editing started");
 }
 
@@ -33,10 +31,12 @@ void RobotSettingPanel::ApplyEdit()
         m_NodeGraphManager->ApplyChanges();
         m_NodeGraphSnapshot.clear();
     }
-    // 关闭 live sync，回到 RobotStatus 自己的 active 图
+    // 手动同步一次当前图到 evaluator，然后恢复 RobotStatus 的 active 选择
+    // 同时触发连接同步（仅 Apply 时同步，Play 不再触发）
     if (m_RobotStatus) {
-        m_RobotStatus->EnableLiveSync(false);
-        RestoreRobotStatusActive();
+        m_RobotStatus->SyncFromManagerSelected();
+        RestoreRobotStatusActive();              // 先 Derive 更新 m_ActiveCommIndices
+        m_RobotStatus->SyncConnectionsFromGraph(); // 再根据 indices 重建连接池
     }
     EditDraftBase::ApplyEdit();
 }
@@ -44,8 +44,6 @@ void RobotSettingPanel::ApplyEdit()
 void RobotSettingPanel::CancelEdit()
 {
     WL_INFO_TAG("CONFIG", "Reverting RobotSetting...");
-    // 关闭 live sync，恢复已保存状态
-    if (m_RobotStatus) m_RobotStatus->EnableLiveSync(false);
     if (m_RobotComponentManager && !m_ComponentSnapshot.empty()) {
         m_RobotComponentManager->LoadItems(m_ComponentSnapshot);
         m_ComponentSnapshot.clear();
@@ -110,10 +108,6 @@ void RobotSettingPanel::Draw(bool* p_open)
             ImGui::PopStyleVar();
         return;
     }
-
-    // 编辑期间每帧：若在 NodeGraph 标签页，实时同步 evaluator 到 Manager 选中图
-    if (m_RobotStatus)
-        m_RobotStatus->SyncFromManagerIfLive();
 
     float footerHeight = ImGui::GetFrameHeightWithSpacing() + 5.0f;
     float availableHeight = ImGui::GetContentRegionAvail().y - footerHeight;

@@ -33,38 +33,21 @@ void RobotStatus::SyncActiveNodeGraph()
     }
 }
 
-void RobotStatus::EnableLiveSync(bool enable)
-{
-    m_LiveSyncToManager = enable;
-    WL_INFO_TAG("ROBOT_STATUS", "Live sync to Manager: {}", enable ? "ON" : "OFF");
-}
-
-void RobotStatus::SyncFromManagerIfLive()
-{
-    if (!m_LiveSyncToManager || !m_NodeGraphManager) return;
-    SyncFromManagerSelected();
-}
-
 void RobotStatus::SyncFromManagerSelected()
 {
     if (!m_NodeGraphManager) return;
-    int selIdx = m_NodeGraphManager->GetSelectedIndex();
-    if (selIdx < 0 || selIdx >= m_NodeGraphManager->GetItemCount()) return;
-
-    std::string yaml = m_NodeGraphManager->GetGraphYamlForIndex(selIdx);
+    // Directly serialize current editor graph — avoids SaveCurrentToItem
+    // side-effect (LoadGraphData) that would corrupt m_Nodes mid-render.
+    std::string yaml = m_NodeGraphManager->GetGraphYaml();
     if (yaml.empty()) return;
 
-    if (yaml == m_LastSyncedYaml) return;
-    m_LastSyncedYaml = yaml;
+    // Skip if graph structure hasn't changed (hash nodes+links count only)
+    size_t h = std::hash<std::string>{}(yaml);
+    if (h == m_LastSyncedHash) return;
+    m_LastSyncedHash = h;
 
-    // 仅加载图数据到求值器，不改写 Status 自己的 ActiveNodeGraphIdx/ActiveCommIndices/ActiveMode/ActiveGamepad
-    // Setting 面板的 select 是独立运行态，关闭面板后由 RestoreRobotStatusActive 恢复 Status 的 active
     std::unique_lock<std::shared_mutex> lock(m_StatusMutex);
-    if (m_GraphEvaluator->LoadGraphData(yaml))
-        WL_INFO_TAG("ROBOT_STATUS", "Synced graph from Manager selected #{} ({})",
-                    selIdx, m_NodeGraphManager->GetItemNameBuf(selIdx));
-    else
-        WL_WARN_TAG("ROBOT_STATUS", "Failed to parse graph from Manager selected #{}", selIdx);
+    m_GraphEvaluator->LoadGraphData(yaml);
 }
 
 // ---- 获取当前活跃 Comm 的发送频率（取所有连接中的最小值）----
@@ -165,7 +148,15 @@ void RobotStatus::DeriveActiveFromNodeGraph()
 
 RobotStatus::~RobotStatus()
 {
+    m_ShuttingDown = true;  // 通知所有后台线程立即退出
     UnlinkAll();
+    // join 等待线程退出：UnlinkAll 已关闭所有 socket，
+    // 线程中阻塞的 select/connect 会立即被中断，不会长时间等待
+    for (auto& t : m_ConnectThreads) {
+        if (t && t->joinable())
+            t->join();
+    }
+    m_ConnectThreads.clear();
 }
 
 // ---- 向求值器注入回调（供 ShortcutTrigger 节点使用） ----
@@ -212,7 +203,15 @@ void RobotStatus::SetActiveMode(const RobotComponent& comp)
 void RobotStatus::SetActiveGamepad(GamepadMapper* gp)
 {
     std::unique_lock<std::shared_mutex> lock(m_StatusMutex);
-    m_ActiveGamepad = gp;
+    // Store gamepad id to survive vector reallocation in GamepadMapperManager
+    if (gp && m_GamepadMapperManager) {
+        m_ActiveGamepadId = gp->id;
+        // Also cache raw pointer for fast lookup (validated on each Get)
+        m_ActiveGamepad = gp;
+    } else {
+        m_ActiveGamepadId = 0;
+        m_ActiveGamepad = nullptr;
+    }
     if (gp)
         WL_INFO_TAG("ROBOT_STATUS", "Active gamepad set to: {}", gp->name);
     else
@@ -269,7 +268,22 @@ void RobotStatus::EvaluateIntoActuators(const std::map<std::string, float>& keyV
 bool RobotStatus::HasGraphEvaluator()    const { std::shared_lock lock(m_StatusMutex); return m_GraphEvaluator != nullptr; }
 bool RobotStatus::HasActiveMode()        const { std::shared_lock lock(m_StatusMutex); return m_HasActiveMode; }
 const RobotMode* RobotStatus::GetActiveModePtr() const { std::shared_lock lock(m_StatusMutex); return m_HasActiveMode ? &m_ActiveMode : nullptr; }
-GamepadMapper* RobotStatus::GetActiveGamepadPtr() const { std::shared_lock lock(m_StatusMutex); return m_ActiveGamepad; }
+GamepadMapper* RobotStatus::GetActiveGamepadPtr() const {
+    std::shared_lock lock(m_StatusMutex);
+    // Validate cached pointer: if manager's vector reallocated, re-resolve by id
+    GamepadMapper* gp = m_ActiveGamepad;
+    if (!gp && m_ActiveGamepadId != 0 && m_GamepadMapperManager) {
+        for (auto& m : m_GamepadMapperManager->GetMappers())
+            if (m.id == m_ActiveGamepadId) { gp = &m; break; }
+    }
+    // Double-check: if cached pointer's id doesn't match, re-resolve
+    if (gp && gp->id != m_ActiveGamepadId && m_GamepadMapperManager) {
+        gp = nullptr;
+        for (auto& m : m_GamepadMapperManager->GetMappers())
+            if (m.id == m_ActiveGamepadId) { gp = &m; break; }
+    }
+    return gp;
+}
 std::string RobotStatus::GetActiveModeName() const { std::shared_lock lock(m_StatusMutex); return m_HasActiveMode ? std::string(m_ActiveMode.name) : ""; }
 
 const ActuatorConfig&        RobotStatus::GetAppliedActuator()   const { std::shared_lock lock(m_StatusMutex); return m_ActiveMode.actuator_config; }
@@ -497,7 +511,7 @@ void RobotStatus::SyncConnectionsFromGraph()
     }
 
     if (poolChanged) {
-        // 保存旧连接状态
+        // 保存旧连接状态（需在后台重连的连接列表）
         std::unordered_map<std::string, bool> linkedMap;
         for (auto& conn : m_Connections) {
             if (conn.IsLinked()) {
@@ -509,25 +523,68 @@ void RobotStatus::SyncConnectionsFromGraph()
         }
 
         m_Connections.clear();
+        std::vector<std::pair<std::shared_ptr<HardwareInterface>, RobotComm>> pendingReconnects;
         for (int ci : commRefs) {
             if (ci < 0 || ci >= commMgrCount) continue;
             ConnectionEntry entry;
             entry.hw = std::make_shared<HardwareInterface>();
             entry.config = allCfgs[ci];
-            // 仅当之前已连接时重建（用户手动点过 Connect），否则保持未连接
-            if (linkedMap.count(entry.config.name) > 0)
-                entry.state->isLinked = true;
-            if (entry.IsLinked()) {
-                if (entry.config.transport_type == 2)
-                    entry.hw->InitSerial(entry.config.com_port_str, entry.config.baud_rate,
-                                         entry.config.data_bits, entry.config.stop_bits, entry.config.parity);
-                else
-                    entry.hw->Initialize(entry.config.host_ip, entry.config.remote_port,
-                                         entry.config.local_port, entry.config.transport_type);
-                if (!entry.hw->IsConnected()) entry.state->isLinked = false;
+            // 仅当之前已连接时标记需要重连（不阻塞 UI 线程）
+            if (linkedMap.count(entry.config.name) > 0) {
+                // 不立即连接，收集到待重连列表
+                pendingReconnects.push_back({entry.hw, entry.config});
             }
             m_Connections.push_back(std::move(entry));
         }
+
+        // 在后台线程中执行重连，避免阻塞 UI 线程
+        if (!pendingReconnects.empty()) {
+            auto connPtr = &m_Connections;
+            auto connMutexPtr = &m_ConnMutex;
+            auto mgr = m_RobotCommManager;
+            auto t = std::make_shared<std::thread>([pendingReconnects, connPtr, connMutexPtr, mgr, this]() {
+                for (const auto& [hw, cfg] : pendingReconnects) {
+                    if (m_ShuttingDown.load()) return;
+                    bool ok;
+                    if (cfg.transport_type == 2)
+                        ok = hw->InitSerial(cfg.com_port_str, cfg.baud_rate,
+                                            cfg.data_bits, cfg.stop_bits, cfg.parity);
+                    else
+                        ok = hw->Initialize(cfg.host_ip, cfg.remote_port,
+                                            cfg.local_port, cfg.transport_type);
+
+                    // 重连成功后标记 isLinked
+                    if (ok) {
+                        // 从 RobotCommManager 按名查找实时协议（含 UI 最新 enabled 状态）
+                        if (mgr) {
+                            auto& nodes = mgr->GetNodes();
+                            for (auto& node : nodes) {
+                                if (strcmp(node->name, cfg.name) == 0) {
+                                    hw->SetProtocolConfig(node->protocol_send);
+                                    hw->SetProtocolReceiveConfig(node->protocol_receive);
+                                    break;
+                                }
+                            }
+                        } else {
+                            hw->SetProtocolConfig(cfg.protocol_send);
+                            hw->SetProtocolReceiveConfig(cfg.protocol_receive);
+                        }
+                        hw->SetName(cfg.name);
+                        std::unique_lock<std::shared_mutex> lock(*connMutexPtr);
+                        for (auto& c : *connPtr) {
+                            if (c.hw == hw) {
+                                c.state->isLinked = true;
+                                WL_INFO_TAG("ROBOT_STATUS", "Reconnected: {} ({})",
+                                    cfg.name, cfg.transport_type == 2 ? cfg.com_port_str : cfg.host_ip);
+                                break;
+                            }
+                        }
+                    }
+                }
+            });
+            m_ConnectThreads.push_back(t);
+        }
+
         WL_INFO_TAG("ROBOT_STATUS", "Synced {} connections from graph comm_refs (linked={})",
                     m_Connections.size(),
                     (int)std::count_if(m_Connections.begin(), m_Connections.end(),
@@ -596,9 +653,11 @@ bool RobotStatus::LinkConnection(int index)
     auto hw = conn.hw;
     auto cfg = conn.config;
     auto st  = conn.state;
-    std::thread([hw, cfg, st, totalAttempts]() {
+    auto mgr = m_RobotCommManager;
+    auto t = std::make_shared<std::thread>([hw, cfg, st, totalAttempts, mgr, this]() {
         for (int attempt = 1; attempt <= totalAttempts; ++attempt) {
-            st->attempt = attempt;  // UI 逐帧读取显示 "Connecting... (2/4)"
+            if (!st->isConnecting.load() || m_ShuttingDown.load()) return;
+            st->attempt = attempt;
 
             bool ok;
             if (cfg.transport_type == 2)
@@ -611,8 +670,22 @@ bool RobotStatus::LinkConnection(int index)
             if (ok) {
                 WL_INFO_TAG("ROBOT_STATUS", "Link SUCCESS: {} ({})", cfg.name,
                     cfg.transport_type == 2 ? cfg.com_port_str : cfg.host_ip);
-                hw->SetProtocolConfig(cfg.protocol_send);
-                hw->SetProtocolReceiveConfig(cfg.protocol_receive);
+                // 从 RobotCommManager 按名查找实时协议（含 UI 最新 enabled 状态）
+                if (mgr) {
+                    auto& nodes = mgr->GetNodes();
+                    for (auto& node : nodes) {
+                        if (strcmp(node->name, cfg.name) == 0) {
+                            hw->SetProtocolConfig(node->protocol_send);
+                            hw->SetProtocolReceiveConfig(node->protocol_receive);
+                            break;
+                        }
+                    }
+                }
+                if (!mgr || mgr->GetNodes().empty()) {
+                    hw->SetProtocolConfig(cfg.protocol_send);
+                    hw->SetProtocolReceiveConfig(cfg.protocol_receive);
+                }
+                hw->SetName(cfg.name);
                 st->isLinked = true;
                 st->isConnecting = false;
                 return;
@@ -621,8 +694,10 @@ bool RobotStatus::LinkConnection(int index)
             WL_WARN_TAG("ROBOT_STATUS", "Attempt {}/{} failed for '{}'",
                          attempt, totalAttempts, cfg.name);
 
-            if (attempt < totalAttempts)
-                std::this_thread::sleep_for(std::chrono::milliseconds(800));
+            if (attempt < totalAttempts) {
+                for (int s = 0; s < 20 && st->isConnecting.load() && !m_ShuttingDown.load(); ++s)
+                    std::this_thread::sleep_for(std::chrono::milliseconds(40));
+            }
         }
 
         WL_ERROR_TAG("ROBOT_STATUS", "Link FAILED after {} attempts: {} ({})",
@@ -630,9 +705,10 @@ bool RobotStatus::LinkConnection(int index)
                      cfg.transport_type == 2 ? cfg.com_port_str : cfg.host_ip);
         st->isConnecting = false;
         st->isLinked = false;
-    }).detach();
+    });
+    m_ConnectThreads.push_back(t);
 
-    return true;  // 已启动后台线程
+    return true;
 }
 
 void RobotStatus::UnlinkConnection(int index)
@@ -708,11 +784,12 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
     m_RobotComponentManager   = compMgr;
     m_GamepadMapperManager    = gpMgr;
 
-    // 首帧自动同步 + 推导 Active（无需用户手动切换 NodeGraph combo）
+    // 首帧：加载配置后初始化连接池（与 Apply 等效，程序启动 = 初始 Apply）
     if (!m_DidFirstDerive && nodeGraphMgr && nodeGraphMgr->GetItemCount() > 0) {
         m_DidFirstDerive = true;
         SyncActiveNodeGraph();
         DeriveActiveFromNodeGraph();
+        SyncConnectionsFromGraph();
     }
 
     // 响应外部请求（如 RestoreRobotStatusActive 后）同步 NodeGraph
@@ -774,8 +851,7 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
         }
     }
 
-    // ---- 连接状态（由 Status 自己的 active NodeGraph 决定） ----
-    SyncConnectionsFromGraph();
+    // ---- 连接状态（不再每帧同步，由 ApplyEdit 触发 SyncConnectionsFromGraph） ----
 
     bool hasComm = (commManager && commManager->GetItemCount() > 0);
     bool hasStream = (liveStreamMgr && liveStreamMgr->GetItemCount() > 0);
@@ -994,16 +1070,19 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
         {
             ImGui::Indent();
 
-            // 每次连接后首次同步协议配置到硬件
+            // 每次连接后首次同步协议配置到硬件（每连接只用自己对应 RobotComm 的协议）
             if (IsLinked() && m_LastSyncedProtocolKey != snapshotMode.name) {
-                std::vector<ProtocolSendConfig> sendCopy;
-                std::vector<ProtocolReceiveConfig> recvCopy;
-                for (auto& p : activeSendCfgs)  sendCopy.push_back(*p.second);
-                for (auto& p : activeRecvCfgs)  recvCopy.push_back(*p.second);
-                for (auto& conn : m_Connections) {
-                    if (!conn.IsLinked()) continue;
-                    conn.hw->SetProtocolConfig(sendCopy);
-                    conn.hw->SetProtocolReceiveConfig(recvCopy);
+                if (commManager) {
+                    auto& nodes = commManager->GetNodes();
+                    for (int i = 0; i < (int)m_Connections.size(); ++i) {
+                        auto& conn = m_Connections[i];
+                        if (!conn.IsLinked()) continue;
+                        int ci = (i < (int)m_ActiveCommIndices.size()) ? m_ActiveCommIndices[i] : -1;
+                        if (ci >= 0 && ci < (int)nodes.size()) {
+                            conn.hw->SetProtocolConfig(nodes[ci]->protocol_send);
+                            conn.hw->SetProtocolReceiveConfig(nodes[ci]->protocol_receive);
+                        }
+                    }
                 }
                 m_LastSyncedProtocolKey = snapshotMode.name;
             }
@@ -1021,12 +1100,14 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
                     "%s  [cmd:%zub] %s (%zu fields)",
                     sc.name, sc.command_bytes.size(), sc.enabled ? "ON" : "OFF", sc.fields.size());
             }
-            if (anyChanged && IsLinked()) {
-                std::vector<ProtocolSendConfig> sendCopy;
-                for (auto& p : activeSendCfgs) sendCopy.push_back(*p.second);
-                for (auto& conn : m_Connections) {
+            if (anyChanged && IsLinked() && commManager) {
+                auto& nodes = commManager->GetNodes();
+                for (int i = 0; i < (int)m_Connections.size(); ++i) {
+                    auto& conn = m_Connections[i];
                     if (!conn.IsLinked()) continue;
-                    conn.hw->SetProtocolConfig(sendCopy);
+                    int ci = (i < (int)m_ActiveCommIndices.size()) ? m_ActiveCommIndices[i] : -1;
+                    if (ci >= 0 && ci < (int)nodes.size())
+                        conn.hw->SetProtocolConfig(nodes[ci]->protocol_send);
                 }
             }
             ImGui::Unindent();
@@ -1073,20 +1154,23 @@ void RobotStatus::DrawWindow(bool* p_open, RobotCommManager* commManager,
                     ImGui::Indent();
                     for (const auto& g : groups)
                     {
+                        // Skip groups that have no visible fields at all
+                        bool hasVisible = false;
+                        for (const auto* f : g.second) {
+                            if (f->visible) { hasVisible = true; break; }
+                        }
+                        if (!hasVisible) continue;
+
                         if (ImGui::TreeNodeEx(g.first.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
                         {
-                            int visibleCnt = 0;
                             for (const auto* f : g.second)
                             {
                                 if (!f->visible) continue;
-                                ++visibleCnt;
 
                                 double val = 0.0;
                                 GetActuatorField(cmd, f->field_path, val);
                                 ImGui::Text("  %s = %.2f", f->name.c_str(), val);
                             }
-                            if (visibleCnt == 0)
-                                ImGui::TextDisabled("  (no visible fields)");
                             ImGui::TreePop();
                         }
                     }

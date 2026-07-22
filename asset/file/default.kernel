@@ -15,21 +15,644 @@ robot_ui_kernel:
     robot_comm_open: false
     notification_open: true
     terminal_open: true
-    monitor_wall_open: false
-    robot_active_mode: 0
+    monitor_wall_open: true
+    robot_active_mode: 1
     gamepad_active_mode: 0
     node_left_side_width: 200
     node_right_side_width: 200
-    robot_path: ..\..\..\..\ÄÚ²â°æ\asset\file\C2.rbt
+    robot_path: ..\..\..\asset\file\demo.rbt
     robot_dirty: false
     recent_files:
-      - ..\..\..\..\ÄÚ²â°æ\asset\file\C2.rbt
       - ..\..\..\asset\file\demo.rbt
       - ..\..\..\asset\file\default.rbt
+      - ..\..\..\..\ÄÚ²â°æ\asset\file\C2.rbt
     screenshot_scope: 5
     screenshot_path: ""
     conn_retry_count: 5
     camera_retry_count: 2
+    enabled_plugins:
+      []
+    robot_comm:
+      nodes:
+        - id: 1
+          is_selected: true
+          is_linked: false
+          name: Beyond
+          host_ip: 192.168.0.233
+          remote_port: 2200
+          local_port: 1100
+          transport_type: 0
+          send_freq_hz: 100
+          retry_count: 6
+          active_component_idx: 0
+          com_port: (no COM ports)
+          baud_rate: 115200
+          data_bits: 3
+          stop_bits: 0
+          parity: 0
+          protocol_send:
+            - name: Motion
+              command_byte:
+                - 1
+              enabled: true
+              include_length: false
+              checksum: 2
+              big_endian: false
+              checksum_range: 0
+              header:
+                - 250
+                - 175
+              tail:
+                - 251
+                - 191
+              fields:
+                - name: X
+                  path: motions.0.x
+                  encoding: 0
+                  group: Motion
+                  visible: true
+                  fix: false
+                  fix_value: 0
+                - name: Y
+                  path: motions.0.y
+                  encoding: 0
+                  group: Motion
+                  visible: true
+                  fix: false
+                  fix_value: 0
+                - name: Z
+                  path: motions.0.z
+                  encoding: 0
+                  group: Motion
+                  visible: true
+                  fix: false
+                  fix_value: 0
+                - name: RX
+                  path: motions.0.rx
+                  encoding: 0
+                  group: Motion
+                  visible: true
+                  fix: false
+                  fix_value: 0
+                - name: RY
+                  path: motions.0.ry
+                  encoding: 0
+                  group: Motion
+                  visible: true
+                  fix: false
+                  fix_value: 0
+                - name: RZ
+                  path: motions.0.rz
+                  encoding: 0
+                  group: Motion
+                  visible: true
+                  fix: false
+                  fix_value: 0
+                - name: Angle
+                  path: servo.Servo.angle
+                  encoding: 0
+                  group: Servo
+                  visible: true
+                  fix: false
+                  fix_value: 0
+            - name: LeftFront
+              command_byte:
+                - 2
+              enabled: false
+              include_length: false
+              checksum: 2
+              big_endian: false
+              checksum_range: 0
+              header:
+                - 250
+                - 175
+              tail:
+                - 251
+                - 191
+              fields:
+                - name: ID
+                  path: brushlessmotor.LeftFront.id
+                  encoding: 0
+                  group: LeftFront
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: np_mid
+                  path: brushlessmotor.LeftFront.curve.np_mid
+                  encoding: 0
+                  group: LeftFront
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: np_ini
+                  path: brushlessmotor.LeftFront.curve.np_ini
+                  encoding: 0
+                  group: LeftFront
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pp_ini
+                  path: brushlessmotor.LeftFront.curve.pp_ini
+                  encoding: 0
+                  group: LeftFront
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pp_mid
+                  path: brushlessmotor.LeftFront.curve.pp_mid
+                  encoding: 0
+                  group: LeftFront
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: nt_end
+                  path: brushlessmotor.LeftFront.curve.nt_end
+                  encoding: 0
+                  group: LeftFront
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: nt_mid
+                  path: brushlessmotor.LeftFront.curve.nt_mid
+                  encoding: 0
+                  group: LeftFront
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pt_mid
+                  path: brushlessmotor.LeftFront.curve.pt_mid
+                  encoding: 0
+                  group: LeftFront
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pt_end
+                  path: brushlessmotor.LeftFront.curve.pt_end
+                  encoding: 0
+                  group: LeftFront
+                  visible: false
+                  fix: true
+                  fix_value: 0
+            - name: RightFront
+              command_byte:
+                - 2
+              enabled: false
+              include_length: false
+              checksum: 2
+              big_endian: false
+              checksum_range: 0
+              header:
+                - 250
+                - 175
+              tail:
+                - 251
+                - 191
+              fields:
+                - name: ID
+                  path: brushlessmotor.RightFront.id
+                  encoding: 6
+                  group: RightFront
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: np_mid
+                  path: brushlessmotor.RightFront.curve.np_mid
+                  encoding: 0
+                  group: RightFront
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: np_ini
+                  path: brushlessmotor.RightFront.curve.np_ini
+                  encoding: 0
+                  group: RightFront
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pp_ini
+                  path: brushlessmotor.RightFront.curve.pp_ini
+                  encoding: 0
+                  group: RightFront
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pp_mid
+                  path: brushlessmotor.RightFront.curve.pp_mid
+                  encoding: 0
+                  group: RightFront
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: nt_end
+                  path: brushlessmotor.RightFront.curve.nt_end
+                  encoding: 0
+                  group: RightFront
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: nt_mid
+                  path: brushlessmotor.RightFront.curve.nt_mid
+                  encoding: 0
+                  group: RightFront
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pt_mid
+                  path: brushlessmotor.RightFront.curve.pt_mid
+                  encoding: 0
+                  group: RightFront
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pt_end
+                  path: brushlessmotor.RightFront.curve.pt_end
+                  encoding: 0
+                  group: RightFront
+                  visible: false
+                  fix: true
+                  fix_value: 0
+            - name: LeftVertical
+              command_byte:
+                - 2
+              enabled: false
+              include_length: false
+              checksum: 2
+              big_endian: false
+              checksum_range: 0
+              header:
+                - 250
+                - 175
+              tail:
+                - 251
+                - 191
+              fields:
+                - name: ID
+                  path: brushlessmotor.LeftVertical.id
+                  encoding: 6
+                  group: LeftVertical
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: np_mid
+                  path: brushlessmotor.LeftVertical.curve.np_mid
+                  encoding: 0
+                  group: LeftVertical
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: np_ini
+                  path: brushlessmotor.LeftVertical.curve.np_ini
+                  encoding: 0
+                  group: LeftVertical
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pp_ini
+                  path: brushlessmotor.LeftVertical.curve.pp_ini
+                  encoding: 0
+                  group: LeftVertical
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pp_mid
+                  path: brushlessmotor.LeftVertical.curve.pp_mid
+                  encoding: 0
+                  group: LeftVertical
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: nt_end
+                  path: brushlessmotor.LeftVertical.curve.nt_end
+                  encoding: 0
+                  group: LeftVertical
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: nt_mid
+                  path: brushlessmotor.LeftVertical.curve.nt_mid
+                  encoding: 0
+                  group: LeftVertical
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pt_mid
+                  path: brushlessmotor.LeftVertical.curve.pt_mid
+                  encoding: 0
+                  group: LeftVertical
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pt_end
+                  path: brushlessmotor.LeftVertical.curve.pt_end
+                  encoding: 0
+                  group: LeftVertical
+                  visible: false
+                  fix: true
+                  fix_value: 0
+            - name: RightVertical
+              command_byte:
+                - 2
+              enabled: false
+              include_length: false
+              checksum: 2
+              big_endian: false
+              checksum_range: 0
+              header:
+                - 250
+                - 175
+              tail:
+                - 251
+                - 191
+              fields:
+                - name: ID
+                  path: brushlessmotor.RightVertical.id
+                  encoding: 6
+                  group: RightVertical
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: np_mid
+                  path: brushlessmotor.RightVertical.curve.np_mid
+                  encoding: 0
+                  group: RightVertical
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: np_ini
+                  path: brushlessmotor.RightVertical.curve.np_ini
+                  encoding: 0
+                  group: RightVertical
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pp_ini
+                  path: brushlessmotor.RightVertical.curve.pp_ini
+                  encoding: 0
+                  group: RightVertical
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pp_mid
+                  path: brushlessmotor.RightVertical.curve.pp_mid
+                  encoding: 0
+                  group: RightVertical
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: nt_end
+                  path: brushlessmotor.RightVertical.curve.nt_end
+                  encoding: 0
+                  group: RightVertical
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: nt_mid
+                  path: brushlessmotor.RightVertical.curve.nt_mid
+                  encoding: 0
+                  group: RightVertical
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pt_mid
+                  path: brushlessmotor.RightVertical.curve.pt_mid
+                  encoding: 0
+                  group: RightVertical
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pt_end
+                  path: brushlessmotor.RightVertical.curve.pt_end
+                  encoding: 0
+                  group: RightVertical
+                  visible: false
+                  fix: true
+                  fix_value: 0
+            - name: LeftRear
+              command_byte:
+                - 2
+              enabled: false
+              include_length: false
+              checksum: 2
+              big_endian: false
+              checksum_range: 0
+              header:
+                - 250
+                - 175
+              tail:
+                - 251
+                - 191
+              fields:
+                - name: ID
+                  path: brushlessmotor.LeftRear.id
+                  encoding: 6
+                  group: LeftRear
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: np_mid
+                  path: brushlessmotor.LeftRear.curve.np_mid
+                  encoding: 0
+                  group: LeftRear
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: np_ini
+                  path: brushlessmotor.LeftRear.curve.np_ini
+                  encoding: 0
+                  group: LeftRear
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pp_ini
+                  path: brushlessmotor.LeftRear.curve.pp_ini
+                  encoding: 0
+                  group: LeftRear
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pp_mid
+                  path: brushlessmotor.LeftRear.curve.pp_mid
+                  encoding: 0
+                  group: LeftRear
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: nt_end
+                  path: brushlessmotor.LeftRear.curve.nt_end
+                  encoding: 0
+                  group: LeftRear
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: nt_mid
+                  path: brushlessmotor.LeftRear.curve.nt_mid
+                  encoding: 0
+                  group: LeftRear
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pt_mid
+                  path: brushlessmotor.LeftRear.curve.pt_mid
+                  encoding: 0
+                  group: LeftRear
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pt_end
+                  path: brushlessmotor.LeftRear.curve.pt_end
+                  encoding: 0
+                  group: LeftRear
+                  visible: false
+                  fix: true
+                  fix_value: 0
+            - name: RightRear
+              command_byte:
+                - 2
+              enabled: false
+              include_length: false
+              checksum: 2
+              big_endian: false
+              checksum_range: 0
+              header:
+                - 250
+                - 175
+              tail:
+                - 251
+                - 191
+              fields:
+                - name: ID
+                  path: brushlessmotor.RightRear.id
+                  encoding: 6
+                  group: RightRear
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: np_mid
+                  path: brushlessmotor.RightRear.curve.np_mid
+                  encoding: 0
+                  group: RightRear
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: np_ini
+                  path: brushlessmotor.RightRear.curve.np_ini
+                  encoding: 0
+                  group: RightRear
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pp_ini
+                  path: brushlessmotor.RightRear.curve.pp_ini
+                  encoding: 0
+                  group: RightRear
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pp_mid
+                  path: brushlessmotor.RightRear.curve.pp_mid
+                  encoding: 0
+                  group: RightRear
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: nt_end
+                  path: brushlessmotor.RightRear.curve.nt_end
+                  encoding: 0
+                  group: RightRear
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: nt_mid
+                  path: brushlessmotor.RightRear.curve.nt_mid
+                  encoding: 0
+                  group: RightRear
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pt_mid
+                  path: brushlessmotor.RightRear.curve.pt_mid
+                  encoding: 0
+                  group: RightRear
+                  visible: false
+                  fix: true
+                  fix_value: 0
+                - name: pt_end
+                  path: brushlessmotor.RightRear.curve.pt_end
+                  encoding: 0
+                  group: RightRear
+                  visible: false
+                  fix: true
+                  fix_value: 0
+          protocol_receive:
+            - name: Sensor
+              command_byte:
+                - 3
+              include_length: false
+              checksum: 2
+              big_endian: false
+              checksum_range: 0
+              header:
+                - 250
+                - 175
+              tail:
+                - 251
+                - 191
+              fields:
+                - name: Depth
+                  path: depth.value
+                  encoding: 0
+                  group: Sensor
+                  visible: true
+                - name: Temperature
+                  path: temperature.value
+                  encoding: 0
+                  group: Sensor
+                  visible: true
+        - id: 2
+          is_selected: false
+          is_linked: false
+          name: Camera
+          host_ip: 192.168.0.38
+          remote_port: 37260
+          local_port: 1000
+          transport_type: 0
+          send_freq_hz: 100
+          retry_count: 6
+          active_component_idx: 1
+          com_port: COM1
+          baud_rate: 115200
+          data_bits: 3
+          stop_bits: 0
+          parity: 0
+          protocol_send:
+            - name: Position
+              command_byte:
+                - 14
+              enabled: true
+              include_length: false
+              checksum: 4
+              big_endian: false
+              checksum_range: 3
+              header:
+                - 85
+                - 102
+                - 1
+                - 4
+                - 0
+                - 0
+                - 0
+              tail:
+                []
+              fields:
+                - name: pitch
+                  path: brushlessmotor.Pitch.target_position
+                  encoding: 3
+                  group: Camera
+                  visible: true
+                  fix: false
+                  fix_value: 0
+          protocol_receive:
+            []
   software_shortcuts:
     File Open: {key: 560, ctrl: true, shift: false, alt: false}
     File Save: {key: 564, ctrl: true, shift: false, alt: false}

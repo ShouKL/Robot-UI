@@ -6,6 +6,14 @@
 			"type": "shell",
 			"command": "premake5 vs2022",
 			"group": "build"
+		},
+		{
+			"label": "Build VisibleNodegraphData EXE",
+			"type": "shell",
+			"command": "& \"C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise\\Common7\\Tools\\Launch-VsDevShell.ps1\" -SkipAutomaticLocation -Arch amd64 ; msbuild \"plugins\\Visible NodegraphData\\Visible NodegraphData\\Visible NodegraphData\\Visible NodegraphData.vcxproj\" /p:Configuration=Debug /p:Platform=x64 /t:Build /nologo",
+			"problemMatcher": [
+				"$msCompile"
+			]
 		}
 	]
 }

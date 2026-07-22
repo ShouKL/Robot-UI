@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Robot-UI 技术文档</title>
+  <meta name="description" content="Robot-UI — 水下机器人(ROV)配置、控制、仿真与监控一体化桌面应用">
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+</head>
+<body>
+  <div id="app">加载中...</div>
+  <script>
+    window.$docsify = {
+      name: 'Robot-UI 技术文档',
+      repo: 'https://github.com/ShouKL/Robot-UI',
+      loadSidebar: '_sidebar.md',
+      subMaxLevel: 3,
+      auto2top: true,
+      search: {
+        maxAge: 86400000,
+        paths: 'auto',
+        placeholder: '🔍 搜索...',
+        noData: '😞 无结果',
+        depth: 4
+      },
+      copyCode: {
+        buttonText: '📋 复制',
+        errorText: '❌ 失败',
+        successText: '✅ 已复制'
+      }
+    }
+  </script>
+  <script src="//cdn.jsdelivr.net/npm/docsify@4"></script>
+  <script src="//cdn.jsdelivr.net/npm/docsify/lib/plugins/search.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/docsify-copy-code@2"></script>
+  <script src="//cdn.jsdelivr.net/npm/docsify-pagination/dist/docsify-pagination.min.js"></script>
+</body>
+</html>

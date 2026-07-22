@@ -523,6 +523,22 @@ std::map<std::string, float> NodeGraph::EvaluateCompute(const std::map<std::stri
         if (gv.id < (int)m_GlobalTempVals.size())
             gv.value = m_GlobalTempVals[gv.id];
 
+    // ---- ShortcutTrigger action execution (rising edge detection) ----
+    for (auto& node : m_Nodes) {
+        if (node.Type != NodeType::ShortcutTrigger) continue;
+        float prev = node.Param[0];
+        node.Param[0] = node.Value;
+        if (prev < 0.5f && node.Value >= 0.5f) {
+            if (node.ShortcutSendIndex >= 0 && m_SendActionCb) {
+                bool enable = (node.ShortcutSendMode == 0);
+                bool oneShot = (node.ShortcutSendMode == 1);
+                m_SendActionCb(node.ShortcutSendIndex, enable, oneShot);
+            } else if (node.ShortcutActionIndex >= 0 && m_ShortcutMgr) {
+                m_ShortcutMgr->ExecuteAction(node.ShortcutActionIndex);
+            }
+        }
+    }
+
     return outputs;
 }
 
@@ -571,13 +587,9 @@ void NodeGraph::EvaluateComputeInto(const std::map<std::string, float>& keyValue
         float prev = node.Param[0];
         node.Param[0] = node.Value;
         if (prev < 0.5f && node.Value >= 0.5f) {
-            fprintf(stderr, "[TRACE] ShortcutTrigger FIRED val=%.2f sendIdx=%d sendMode=%d hasCb=%d\n",
-                node.Value, node.ShortcutSendIndex, node.ShortcutSendMode, m_SendActionCb ? 1 : 0);
             if (node.ShortcutSendIndex >= 0 && m_SendActionCb) {
                 bool enable = (node.ShortcutSendMode == 0);
                 bool oneShot = (node.ShortcutSendMode == 1);
-                fprintf(stderr, "[TRACE] Calling SendActionCb(idx=%d, enable=%d, oneShot=%d)\n",
-                    node.ShortcutSendIndex, enable, oneShot);
                 m_SendActionCb(node.ShortcutSendIndex, enable, oneShot);
             } else if (node.ShortcutActionIndex >= 0 && m_ShortcutMgr) {
                 m_ShortcutMgr->ExecuteAction(node.ShortcutActionIndex);
@@ -589,10 +601,8 @@ void NodeGraph::EvaluateComputeInto(const std::map<std::string, float>& keyValue
     int maxIdx = (int)m_CommRefs.size();
     for (const auto& [idx, _] : commOutputs)
         if (idx >= maxIdx) maxIdx = idx + 1;
-    if (maxIdx > 0 && dataVec.empty())
+    if ((int)dataVec.size() < maxIdx)
         dataVec.resize(maxIdx);
-    else if ((int)dataVec.size() < maxIdx)
-        dataVec.resize(maxIdx, dataVec.empty() ? ActuatorConfig{} : dataVec[0]);
 
     // Write outputs to correct ActuatorConfig
     for (const auto& [commIdx, targetMap] : commOutputs) {
@@ -601,6 +611,12 @@ void NodeGraph::EvaluateComputeInto(const std::map<std::string, float>& keyValue
             WriteOutputToActuator(target, val, dataVec[commIdx]);
         if (pWrittenIndices) pWrittenIndices->insert(commIdx);
     }
+
+    // Also aggregate all outputs into m_LastOutputs for external readers (plugins, shared mem)
+    m_LastOutputs.clear();
+    for (const auto& [commIdx, targetMap] : commOutputs)
+        for (const auto& [target, val] : targetMap)
+            m_LastOutputs[target] = val;
 }
 
 // ============================================================================
@@ -656,6 +672,8 @@ void NodeGraph::EvaluateForDisplay(const std::map<std::string, float>& keyValues
             gv.value = m_GlobalTempVals[gv.id];
 
     // ---- ShortcutTrigger action execution (rising edge detection) ----
+    // Skip if suppressed (editing mode prevents crash from callback into RobotStatus)
+    if (!m_SuppressActions) {
     for (auto& node : m_Nodes) {
         if (node.Type != NodeType::ShortcutTrigger) continue;
         // Param[0] stores previous frame output for edge detection
@@ -673,6 +691,7 @@ void NodeGraph::EvaluateForDisplay(const std::map<std::string, float>& keyValues
                 m_ShortcutMgr->ExecuteAction(node.ShortcutActionIndex);
             }
         }
+    }
     }
 }
 

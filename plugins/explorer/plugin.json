@@ -1,0 +1,10 @@
+{
+    "name": "explorer",
+    "displayName": "Robot-UI Explorer",
+    "version": "1.0.0",
+    "author": "Robot-UI",
+    "description": "Variable inspector GUI — browse available state variables, traverse the data tree, and generate plugin template code. (tkinter-based)",
+    "main": "main.py",
+    "dependencies": [],
+    "engines": { "robot-ui": ">=1.0.0" }
+}

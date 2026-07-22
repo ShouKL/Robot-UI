@@ -25,6 +25,7 @@ project "Robot-UI"
    IncludeDir["GStreamer"] = "%{GSTREAMER}/include"
    IncludeDir["NodeEditor"] = "../vendor/imgui-node-editor"
    IncludeDir["ImPlot"] = "../vendor/implot"
+   IncludeDir["JsonRpc"] = "../vendor/jsonrpcpp/include"
    
    LibraryDir = LibraryDir or {}
    LibraryDir["OpenCV"] = "%{OPENCV}/x64/vc16/lib"
@@ -53,7 +54,8 @@ project "Robot-UI"
       "%{LibraryDir.GStreamer}/glib-2.0/include",
 
       "%{IncludeDir.NodeEditor}",
-      "%{IncludeDir.ImPlot}"
+      "%{IncludeDir.ImPlot}",
+      "%{IncludeDir.JsonRpc}",
    }
 
    links
@@ -68,7 +70,10 @@ project "Robot-UI"
       "%{LibraryDir.GStreamer}/gstreamer-1.0.lib",
       "%{LibraryDir.GStreamer}/glib-2.0.lib",
       "%{LibraryDir.GStreamer}/gobject-2.0.lib",
-      "%{LibraryDir.GStreamer}/gstapp-1.0.lib"
+      "%{LibraryDir.GStreamer}/gstapp-1.0.lib",
+      "ntdll.lib",
+      "bcrypt.lib",
+      "userenv.lib"
    }
 
    targetdir ("../bin/" .. outputdir .. "/%{prj.name}")
@@ -77,6 +82,7 @@ project "Robot-UI"
    filter "system:windows"
       systemversion "latest"
       buildoptions { "/utf-8" }
+      linkoptions { "/STACK:8388608" }
       defines { "WL_PLATFORM_WINDOWS", "YAML_CPP_STATIC_DEFINE" }
 
    filter "configurations:Debug"

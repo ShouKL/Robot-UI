@@ -1,0 +1,10 @@
+{
+    "name": "counting",
+    "displayName": "Object Counting",
+    "version": "1.0.0",
+    "author": "Robot-UI",
+    "description": "YOLO-based object counting plugin — detects and counts cylinders in images with configurable ROI region filtering.",
+    "main": "main.py",
+    "dependencies": ["opencv-python", "numpy", "ultralytics", "Pillow"],
+    "engines": { "robot-ui": ">=1.0.0" }
+}

@@ -1,0 +1,10 @@
+{
+    "name": "statemonitor",
+    "displayName": "State Monitor",
+    "version": "3.0.0",
+    "author": "Robot-UI",
+    "description": "Real-time state monitoring panel — variable inspector on the left with live time-series plotting on the right.",
+    "main": "main.py",
+    "dependencies": [],
+    "engines": { "robot-ui": ">=1.0.0" }
+}

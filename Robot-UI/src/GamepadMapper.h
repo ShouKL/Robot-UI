@@ -1,4 +1,5 @@
 #pragma once
+#include <cstring>
 #include "core.h"
 #include <GLFW/glfw3.h>
 #include "Walnut/Image.h"
@@ -55,12 +56,15 @@ public:
 
     void UpdateGamepadState();
     float GetKeyValue(const std::string& keyName);
+    float GetRawKeyValue(const std::string& keyName) const;
+    float CalcActivation(const KeyInfo&, float) const;
     std::vector<std::string> GetActiveModeBoundKeyNames() const;
     bool IsCustomConnected() const { return m_CustomPresent; }
 
     int AddKey(const std::string&, bool);
     void RemoveKey(int);
     void RenameKey(int, const std::string&);
+    void UnbindKey(const std::string&);
 
     const std::vector<GamepadKey>& GetKeys() const;
     void UpdateNextKeyID();
@@ -68,32 +72,21 @@ public:
     int GetSelectedIndex() const { return 0; }
     void SetSelectedIndex(int) {}
 
-    // ---- Canvas drawing data accessors (used by GamepadMapperManager) ----
-    const std::shared_ptr<Walnut::Image>& GetGamepadImage() const { return m_GamepadImage; }
-    std::shared_ptr<Walnut::Image>& GetGamepadImageRef()          { return m_GamepadImage; }
-    const std::vector<KeyInfo>& GetXboxPhysicalKeys() const       { return m_Keys; }
-    const std::vector<KeyInfo>& GetCustomPhysicalKeys() const     { return m_CustomPhysicalKeys; }
-    float GetRawKeyValue(const std::string& name) const;
+    // ---- accessors (used by GamepadMapperManager) ----
+    std::shared_ptr<Walnut::Image>& GetGamepadImageRef() { return m_GamepadImage; }
+    const std::vector<KeyInfo>& GetXboxPhysicalKeys() const { return GetActivePhysicalKeys(); }
+    const std::vector<KeyInfo>& GetCustomPhysicalKeys() const { return m_CustomPhysicalKeys; }
     const std::map<std::string, std::vector<std::string>>& GetKeyBoundActions() const { return m_KeyBoundActions; }
-
-    // ---- Expose for canvas drawing ----
-    void UnbindKey(const std::string&);
-    float CalcActivation(const KeyInfo& key, float rawVal) const;
+    const std::string& GetSelectedKey() const { return m_SelectedKey; }
+    void SetSelectedKey(const std::string& k) { m_SelectedKey = k; }
+    bool IsRenaming(int keyId) const { return m_Renaming && m_RenamingKeyId == keyId; }
+    char* GetRenameBuffer() { return m_RenameBuffer; }
+    void BeginRename(int id, const std::string& name) { m_Renaming = true; m_RenamingKeyId = id; strncpy_s(m_RenameBuffer, name.c_str(), sizeof(m_RenameBuffer)-1); }
+    void EndRename(bool confirmed) { if (confirmed && m_RenameBuffer[0]) { RenameKey(m_RenamingKeyId, m_RenameBuffer); } m_Renaming = false; }
+    void SetPendingDeleteKeyId(int id) { m_PendingDeleteKeyId = id; }
+    void ProcessPendingDeletes();
     void RebuildCustomKeys();
     void RefreshBoundKeys();
-
-    // ---- UI state accessors (used by GamepadMapperManager for key-grid drawing) ----
-    const std::string& GetSelectedKey() const             { return m_SelectedKey; }
-    void SetSelectedKey(const std::string& k)              { m_SelectedKey = k; }
-    void ClearSelectedKey()                                { m_SelectedKey.clear(); }
-    int  GetPendingDeleteKeyId() const                     { return m_PendingDeleteKeyId; }
-    void SetPendingDeleteKeyId(int id)                     { m_PendingDeleteKeyId = id; }
-    void ProcessPendingDeletes();
-    // Inline rename state
-    bool IsRenaming(int keyId) const                       { return m_Renaming && m_RenamingKeyId == keyId; }
-    char* GetRenameBuffer()                                { return m_RenameBuffer; }
-    void BeginRename(int keyId, const std::string& keyName);
-    void EndRename(bool confirmed);
 
 private:
     const std::vector<KeyInfo>& GetActivePhysicalKeys() const;
@@ -129,6 +122,4 @@ private:
     std::vector<KeyInfo> m_Keys;
     std::map<std::string, float> m_RawKeyValues;
     mutable std::mutex m_RawKeyValuesMutex;
-
-    GLFWgamepadstate m_LastState;
 };

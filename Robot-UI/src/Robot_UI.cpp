@@ -23,6 +23,10 @@ Robot_UI_Layer::Robot_UI_Layer()
     m_MonitorWall        = std::make_unique<MonitorWall>();
     m_FileManager        = std::make_unique<FileManager>();
     m_TerminalPanel      = std::make_unique<TerminalPanel>();
+    m_PluginMgr          = std::make_unique<PluginManager>();
+    m_PluginPanel         = std::make_unique<PluginPanel>();
+    m_PluginPanel->SetPluginManager(m_PluginMgr.get());
+    m_PluginPanel->SetPluginsDir(m_PluginMgr->GetPluginDirectory());
 
     auto* rsp      = m_RobotSettingPanel.get();
     auto* commMgr  = rsp->GetRobotCommManager();
@@ -54,20 +58,32 @@ Robot_UI_Layer::Robot_UI_Layer()
         rsp->GetNodeGraphManager().SetGamepadMapperManager(&gpMgr);
         rsp->GetNodeGraphManager().SetRobotCommManager(commMgr);
         rsp->GetNodeGraphManager().SetShortcutManager(&m_ShortcutManager);
+        rsp->GetNodeGraphManager().SetRobotStatus(m_RobotStatus.get());
     }
 
     rsp->SetRobotStatus(m_RobotStatus.get());
+    m_RobotStatus->SetGamepadMapperManager(&rsp->GetGamepadMapperManager());
+
+    // ---- 插件系统初始化 ----
+    {
+        auto& compMgr = rsp->GetRobotComponentManager();
+        auto& gpMgr   = rsp->GetGamepadMapperManager();
+        m_PluginMgr->SetNodeGraphManager(&rsp->GetNodeGraphManager());
+        m_PluginMgr->SetRobotCommManager(commMgr);
+        m_PluginMgr->SetRobotComponentManager(&compMgr);
+        m_PluginMgr->SetGamepadMapperManager(&gpMgr);
+        m_PluginMgr->SetLiveStreamManager(rsp->GetLiveStreamManager());
+        m_PluginMgr->SetRobotStatus(m_RobotStatus.get());
+    }
+    m_PluginMgr->ScanPlugins();
+    WL_INFO_TAG("APP", "Plugin system initialized");
 
     m_ThrustCurveEditor = std::make_unique<ThrustCurveEditor>();
 
     ImPlot::CreateContext();
     WL_INFO_TAG("APP", "ImPlot context created");
 
-    m_Running = true;
-    timeBeginPeriod(1);  // Windows 定时器精度 → 1ms
-    m_CurrentCommand.store(std::make_shared<const ActuatorConfig>(), std::memory_order_relaxed);
-    m_GamepadThread = std::thread(&Robot_UI_Layer::GamepadRoutine, this);
-    WL_INFO_TAG("APP", "Gamepad thread started");
+    timeBeginPeriod(1);  // Windows   → 1ms
 
     // ---- 快捷键系统初始化（在加载文件之前设置默认值） ----
     m_ShortcutManager.SetFileManager(m_FileManager.get());
@@ -97,8 +113,37 @@ Robot_UI_Layer::Robot_UI_Layer()
     else
         robotPath = FileManager::GetExeDir() + "..\\..\\..\\asset\\file\\default.rbt";
 
+    // 保存 kernel 中恢复的 enabled 状态（LoadRobotFile 会覆盖 comm 配置）
+    std::map<std::string, std::map<std::string, bool>> kernelSendEnabled;
+    {
+        auto* commMgr = m_RobotSettingPanel->GetRobotCommManager();
+        if (commMgr) {
+            for (auto& node : commMgr->GetNodes()) {
+                for (auto& sc : node->protocol_send)
+                    kernelSendEnabled[node->name][sc.name] = sc.enabled;
+            }
+        }
+    }
+
     WL_INFO_TAG("APP", "Loading component: {}", robotPath);
     LoadRobotFile(robotPath);
+
+    // 将 kernel 中保存的 enabled 状态合并回加载的 comm 配置中
+    {
+        auto* commMgr = m_RobotSettingPanel->GetRobotCommManager();
+        if (commMgr) {
+            for (auto& node : commMgr->GetNodes()) {
+                auto sit = kernelSendEnabled.find(node->name);
+                if (sit != kernelSendEnabled.end()) {
+                    for (auto& sc : node->protocol_send) {
+                        auto it = sit->second.find(sc.name);
+                        if (it != sit->second.end())
+                            sc.enabled = it->second;
+                    }
+                }
+            }
+        }
+    }
 
     // 如果加载的是默认 fallback 文件（非用户选择的），清空路径以触发 Save 时自动 SaveAs
     {
@@ -119,14 +164,24 @@ Robot_UI_Layer::Robot_UI_Layer()
     // 启动后强制断开所有连接（兜底保护）
     if (m_RobotStatus) m_RobotStatus->UnlinkAll();
 
-    // 预热 NodeGraph 首帧（在 Splash 动画期间透明渲染一帧，避免打开时闪烁）
+    // 预热 NodeGraph 首帧
     m_NeedNodeGraphWarmup = false;
     {
         auto& ngMgr = rsp->GetNodeGraphManager();
         if (ngMgr.GetItemCount() > 0 && ngMgr.GetSelectedGraph())
-        {
             m_NeedNodeGraphWarmup = true;
-        }
+    }
+
+    // Start gamepad thread AFTER config is loaded (graph evaluator needs data)
+    m_Running = true;
+    m_CurrentCommand.store(std::make_shared<const ActuatorConfig>(), std::memory_order_relaxed);
+    try {
+        m_GamepadThread = std::thread(&Robot_UI_Layer::GamepadRoutine, this);
+        WL_INFO_TAG("APP", "Gamepad thread started");
+    } catch (const std::exception& e) {
+        WL_ERROR_TAG("APP", "Failed to start gamepad thread: {}", e.what());
+    } catch (...) {
+        WL_ERROR_TAG("APP", "Failed to start gamepad thread: unknown error");
     }
 
     WL_INFO_TAG("APP", "Robot UI initialized successfully");
@@ -135,6 +190,10 @@ Robot_UI_Layer::Robot_UI_Layer()
 Robot_UI_Layer::~Robot_UI_Layer()
 {
     WL_INFO_TAG("APP", "Robot UI shutting down...");
+
+    // ---- 先断开所有硬件连接 ----
+    if (m_RobotStatus)
+        m_RobotStatus->UnlinkAll();
 
     // ---- 自动保存 .kernel ----
     if (m_FileManager)
@@ -318,6 +377,17 @@ void Robot_UI_Layer::LoadKernelFile(const std::string& path)
         m_RobotStatus->SetCameraRetryCount(uiState.camera_retry_count);
     }
 
+    // 恢复启用的插件列表（仅当 .kernel 中有记录时才恢复）
+    if (m_PluginMgr && !uiState.enabled_plugins.empty())
+        m_PluginMgr->EnablePlugins(uiState.enabled_plugins);
+
+    // 恢复通信节点配置（发送帧 enable 状态等）
+    if (!uiState.comm_configs.empty()) {
+        auto* commMgr = m_RobotSettingPanel->GetRobotCommManager();
+        if (commMgr)
+            commMgr->LoadItems(uiState.comm_configs);
+    }
+
     WL_INFO_TAG("APP", "Kernel loaded: {}", path);
 }
 
@@ -360,6 +430,14 @@ void Robot_UI_Layer::SaveKernelFile(const std::string& path)
     // 连接设置
     uiState.conn_retry_count = m_OptionPanel->GetConnRetryCount();
     uiState.camera_retry_count = m_OptionPanel->GetCameraRetryCount();
+
+    // 已启用插件列表
+    if (m_PluginMgr)
+        uiState.enabled_plugins = m_PluginMgr->GetEnabledPluginNames();
+
+    // 通信节点配置（含发送帧 enable 状态）
+    if (auto* commMgr = m_RobotSettingPanel->GetRobotCommManager())
+        uiState.comm_configs = commMgr->GetAllItems();
 
     std::string error;
     if (!ConfigSerializer::SaveKernel(path, m_OptionPanel->GetImGuiStyleManager(), uiState, &error))
@@ -497,92 +575,96 @@ void Robot_UI_Layer::ApplyUIState(const UIState& st)
 
 void Robot_UI_Layer::GamepadRoutine()
 {
-    WL_INFO_TAG("GAMEPAD", "Gamepad routine started (100Hz)");
+    WL_INFO_TAG("GAMEPAD", "Gamepad routine started");
     unsigned int iteration = 0;
     while (m_Running)
     {
         ++iteration;
-        auto t0 = std::chrono::steady_clock::now();
-        // Heartbeat every ~1 second (100 iterations at 10ms)
-
-        if (iteration % 100 == 0)
-            WL_TRACE_TAG("GAMEPAD", "Routine heartbeat #{} (linked={})", iteration, m_RobotStatus ? m_RobotStatus->IsLinked() : false);
-
-        // Collect key values for sidebar display (UI thread reads via SetKeyValues)
+        try
         {
-            std::map<std::string, float> keyValues;
-            auto* gpMapper = m_RobotStatus ? m_RobotStatus->GetActiveGamepadPtr() : nullptr;
-            if (gpMapper) {
-                auto boundKeys = gpMapper->GetActiveModeBoundKeyNames();
-                for (const auto& keyName : boundKeys) {
-                    keyValues[keyName] = gpMapper->GetKeyValue(keyName);
-                }
-            }
-            m_RobotSettingPanel->GetNodeGraph()->SetKeyValues(keyValues);
-        }
+            auto t0 = std::chrono::steady_clock::now();
 
-        // 求值始终运行（不依赖 Connect 状态），Connect 只决定是否发送
-        // 但 RobotSetting 打开时由编辑器独占跑图，GamepadRoutine 跳过
-        if (m_RobotStatus && m_RobotStatus->HasGraphEvaluator() && !m_RobotSettingOpen)
-        {
-            auto* gpMapper = m_RobotStatus->GetActiveGamepadPtr();
-            if (gpMapper) {
+            // Collect key values + evaluate + push to Status display (ALWAYS)
+            {
                 std::map<std::string, float> keyValues;
-                auto boundKeys = gpMapper->GetActiveModeBoundKeyNames();
-                for (const auto& keyName : boundKeys) {
-                    keyValues[keyName] = gpMapper->GetKeyValue(keyName);
+                if (m_RobotStatus) {
+                    auto* gpMapper = m_RobotStatus->GetActiveGamepadPtr();
+                    if (gpMapper) {
+                        auto boundKeys = gpMapper->GetActiveModeBoundKeyNames();
+                        for (const auto& keyName : boundKeys)
+                            keyValues[keyName] = gpMapper->GetKeyValue(keyName);
+                    }
                 }
+                if (m_RobotSettingPanel)
+                    m_RobotSettingPanel->GetNodeGraph()->SetKeyValues(keyValues);
 
-                // 线程安全：快照连接池，避免与 UI 线程 SyncConnectionsFromGraph / UnlinkAll 竞态
-                auto connSnap = m_RobotStatus->SnapshotConnections();
-                int connCount = (int)connSnap.size();
-
+                // Build data vector: conn-based or fallback to selected component
                 std::vector<ActuatorConfig> dataVec;
-                {
+                if (m_RobotStatus && m_RobotSettingPanel) {
+                    auto connSnap = m_RobotStatus->SnapshotConnections();
+                    int connCount = (int)connSnap.size();
                     auto& comps = m_RobotSettingPanel->GetRobotComponentManager().GetComponents();
+                    int selIdx = m_RobotSettingPanel->GetRobotComponentManager().GetSelectedIndex();
                     for (int i = 0; i < connCount; ++i) {
                         int cIdx = connSnap[i].config.active_component_idx;
                         if (cIdx >= 0 && cIdx < (int)comps.size())
                             dataVec.push_back(comps[cIdx].actuator_config);
-                        else
-                            dataVec.push_back(m_RobotStatus->GetAppliedActuator());
+                        else if (selIdx >= 0 && selIdx < (int)comps.size())
+                            dataVec.push_back(comps[selIdx].actuator_config);
                     }
-                }
-                std::set<int> writtenIndices;
-                m_RobotStatus->EvaluateIntoActuators(keyValues, dataVec, &writtenIndices);
+                    // Fallback: no connections → use selected component's real config
+                    if (dataVec.empty() && selIdx >= 0 && selIdx < (int)comps.size())
+                        dataVec.push_back(comps[selIdx].actuator_config);
+                    if (dataVec.empty())
+                        dataVec.push_back(ActuatorConfig{});
 
-                // 更新 UI 显示（所有 comm 的数据）
-                std::vector<std::shared_ptr<const ActuatorConfig>> cmdPtrs;
-                for (int i = 0; i < (int)dataVec.size(); ++i)
-                    cmdPtrs.push_back(std::make_shared<const ActuatorConfig>(dataVec[i]));
-                if (!cmdPtrs.empty()) {
-                    m_CurrentCommand.store(cmdPtrs[0], std::memory_order_release);
-                    m_RobotStatus->UpdateAllCommandData(cmdPtrs);
-                }
+                    // Evaluate graph into dataVec
+                    std::set<int> writtenIndices;
+                    m_RobotStatus->EvaluateIntoActuators(keyValues, dataVec, &writtenIndices);
 
-                // Connect 只决定是否发送，不影响解算
-                for (int i = 0; i < connCount; ++i) {
-                    if (!connSnap[i].isLinked) continue;
-                    ActuatorConfig& data = (i < (int)dataVec.size()) ? dataVec[i] : dataVec[0];
-                    connSnap[i].hw->SendActuatorData(data);
-                    if (!connSnap[i].hw->IsConnected()) {
-                        WL_ERROR_TAG("GAMEPAD", "Connection lost: {} ({})", connSnap[i].config.name, connSnap[i].config.host_ip);
+                    // Push result to Status display
+                    std::vector<std::shared_ptr<const ActuatorConfig>> cmdPtrs;
+                    for (int i = 0; i < (int)dataVec.size(); ++i)
+                        cmdPtrs.push_back(std::make_shared<const ActuatorConfig>(dataVec[i]));
+                    if (!cmdPtrs.empty()) {
+                        m_CurrentCommand.store(cmdPtrs[0], std::memory_order_release);
+                        m_RobotStatus->UpdateAllCommandData(cmdPtrs);
+                    }
+
+                    // Send only when linked
+                    for (int i = 0; i < connCount; ++i) {
+                        if (!connSnap[i].isLinked) continue;
+                        ActuatorConfig& data = (i < (int)dataVec.size()) ? dataVec[i] : dataVec[0];
+                        connSnap[i].hw->SendActuatorData(data);
+                        if (!connSnap[i].hw->IsConnected()) {
+                            WL_ERROR_TAG("GAMEPAD", "Connection lost: {} ({})", connSnap[i].config.name, connSnap[i].config.host_ip);
+                        }
                     }
                 }
             }
+            int freqHz = m_RobotStatus ? m_RobotStatus->GetSendFreqHz() : 100;
+            if (freqHz < 1) freqHz = 1;
+            auto target = t0 + std::chrono::microseconds(1000000 / freqHz);
+            auto now = std::chrono::steady_clock::now();
+            if (now < target) {
+                auto remain = target - now;
+                if (freqHz >= 200)
+                    while (std::chrono::steady_clock::now() < target) YieldProcessor();
+                else
+                    std::this_thread::sleep_for(remain);
+            }
+            // 如果本帧超时，不补 sleep，直接进入下一帧
+        } // try
+        catch (const std::exception& e)
+        {
+            WL_ERROR_TAG("GAMEPAD", "Exception in loop #{}: {}", iteration, e.what());
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
-        int freqHz = m_RobotStatus ? m_RobotStatus->GetSendFreqHz() : 100;
-        if (freqHz < 1) freqHz = 1;
-        auto target = t0 + std::chrono::microseconds(1000000 / freqHz);
-        auto now = std::chrono::steady_clock::now();
-        if (now < target) {
-            auto remain = target - now;
-            if (freqHz >= 200)
-                while (std::chrono::steady_clock::now() < target) YieldProcessor();
-            else
-                std::this_thread::sleep_for(remain);
+        catch (...)
+        {
+            WL_ERROR_TAG("GAMEPAD", "Unknown exception in loop #{}", iteration);
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
-        // 如果本帧超时，不补 sleep，直接进入下一帧
     }
     WL_INFO_TAG("GAMEPAD", "Gamepad routine stopped");
 }
@@ -646,10 +728,16 @@ void Robot_UI_Layer::OnUIRender()
     if (m_RobotSettingPanel && m_RobotStatus) {
         auto& mgr = m_RobotSettingPanel->GetNodeGraphManager();
         mgr.SetSendActionCb([this](int flatIdx, bool toggle, bool oneShot) {
+            if (!m_RobotStatus) return;
             if (oneShot) m_RobotStatus->OneShotSendFrame(flatIdx);
             else        m_RobotStatus->ToggleSendFrame(flatIdx);
         });
         mgr.SetShortcutManager(&m_ShortcutManager);
+        m_RobotStatus->SetEvaluatorShortcutManager(&m_ShortcutManager);
+        m_RobotStatus->SetEvaluatorSendActionCb([this](int flatIdx, bool toggle, bool oneShot) {
+            if (oneShot) m_RobotStatus->OneShotSendFrame(flatIdx);
+            else        m_RobotStatus->ToggleSendFrame(flatIdx);
+        });
         m_RobotStatus->SetNodeGraphManager(&mgr);
     }
 
@@ -658,6 +746,8 @@ void Robot_UI_Layer::OnUIRender()
     if (m_RobotSettingPanel) {
         auto* gpMapper = m_RobotStatus ? m_RobotStatus->GetActiveGamepadPtr() : nullptr;
         if (gpMapper) gpMapper->UpdateGamepadState();
+        if (auto* selMapper = m_RobotSettingPanel->GetGamepadMapperManager().GetSelectedMapper())
+            selMapper->UpdateGamepadState();
     }
 
     if (m_RobotSettingOpen)
@@ -817,6 +907,19 @@ void Robot_UI_Layer::OnUIRender()
     if (m_TerminalPanel)
         m_TerminalPanel->Draw(&m_TerminalOpen);
 
+    // ---- 插件系统渲染 ----
+    if (m_PluginMgr)
+    {
+        m_PluginMgr->OnUpdate(ImGui::GetIO().DeltaTime);
+        m_PluginMgr->OnUIRender();
+    }
+
+    // Plugin Manager 面板
+    if (m_PluginManagerOpen && m_PluginPanel)
+    {
+        m_PluginPanel->Draw(&m_PluginManagerOpen);
+    }
+
 }
 
 void Robot_UI_Layer::ShowThrustCurveEditor()
@@ -919,8 +1022,16 @@ Walnut::Application* Walnut::CreateApplication(int argc, char** argv)
                 ImGui::MenuItem("Robot Status", "F2", &uiLayer->GetShowRobotStatus());
                 ImGui::MenuItem("Monitor Wall", "F5", &uiLayer->GetShowMonitorWall());
                 ImGui::MenuItem("Terminal", "F4", &uiLayer->GetShowTerminal());
-                
+                ImGui::MenuItem("Plugin Manager", nullptr, &uiLayer->GetShowPluginManager());
+
                 ImGui::EndMenu();
+            }
+
+            // ---- Plugins：由 PluginManager 渲染插件注册的菜单项 ----
+            {
+                auto* pm = uiLayer->GetPluginManager();
+                if (pm)
+                    pm->OnMenuBar();
             }
 
             if (ImGui::BeginMenu("Tool"))

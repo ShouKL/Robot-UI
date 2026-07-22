@@ -73,9 +73,10 @@ public:
                                              std::vector<ActuatorConfig>& dataVec,
                                              std::set<int>* pWrittenIndices = nullptr);
     bool               HasGraphEvaluator()    const;
+    NodeGraph*          GetGraphEvaluator()   const { return m_GraphEvaluator.get(); }
     bool               HasActiveMode()        const;
     const RobotMode*     GetActiveModePtr()   const;
-    GamepadMapper*       GetActiveGamepadPtr() const;
+    GamepadMapper*  GetActiveGamepadPtr() const;
     std::string          GetActiveModeName()  const;
 
     // ---- 活跃模式配置快捷访问 ----
@@ -126,10 +127,8 @@ public:
 
     // ---- 同步 RobotStatus 的 active 选择到实际行为 ----
     void SyncActiveNodeGraph();
-    void SyncFromManagerSelected();  // 直接从 NodeGraphManager 当前选中项同步
-    void SyncFromManagerIfLive();    // 若 live sync 模式开启则实时同步
+    void SyncFromManagerSelected();  // 直接从 NodeGraphManager 当前选中项同步（ApplyEdit 调用）
     void RequestNodeGraphSync() { m_NeedsNodeGraphSync = true; }
-    void EnableLiveSync(bool enable);
 
     // ---- 获取当前活跃 Comm 的发送频率 ----
     int GetSendFreqHz() const;
@@ -141,6 +140,7 @@ public:
 
     // ---- 设置 Manager 引用（供 GamepadRoutine 独立同步图数据） ----
     void SetNodeGraphManager(NodeGraphManager* mgr) { m_NodeGraphManager = mgr; }
+    void SetGamepadMapperManager(GamepadMapperManager* mgr) { m_GamepadMapperManager = mgr; }
 
     // ---- 全局连接重试次数 (由 OptionPanel 设置) ----
     void SetConnRetryCount(int n) { if (n >= 1 && n <= 20) m_ConnRetryCount = n; }
@@ -151,12 +151,17 @@ public:
     // ---- 从编辑器图同步节点/连线/CommRefs 到内部求值器 ----
     void SyncGraphFromEditor(NodeGraph* editor);
 
+    // ---- 从 NodeGraph CommRefs 同步连接池（仅 Apply 时调用） ----
+    void SyncConnectionsFromGraph();
+
 private:
     RobotMode                                  m_ActiveMode;
     bool                                       m_HasActiveMode = false;
-    GamepadMapper*                              m_ActiveGamepad = nullptr;
+    GamepadMapper*  m_ActiveGamepad = nullptr;
+    int                                         m_ActiveGamepadId = 0;
     std::unique_ptr<NodeGraph>                  m_GraphEvaluator;
     std::string                                 m_LastSyncedYaml;  // skip re-sync if unchanged
+    size_t                                      m_LastSyncedHash = 0;
     std::vector<std::shared_ptr<const ActuatorConfig>>  m_CurrentCommands;
     SensorData                                  m_CurrentSensor;
     bool                                        m_SensorValid   = false;
@@ -194,14 +199,12 @@ private:
     // 跟踪上次同步协议配置的连接集合，切换时自动推送
     std::string m_LastSyncedProtocolKey;
 
-    // 自动从 NodeGraph CommRefs 同步连接池
-    void SyncConnectionsFromGraph();
-
-    // live sync：RobotSettingPanel 打开时，evaluator 实时跟随 Manager 选中图
-    bool m_LiveSyncToManager = false;
-
     int  m_ConnRetryCount = 6;   // 全局机器人连接重试次数（1~20）
     int  m_CameraRetryCount = 2; // 全局摄像头连接重试次数（额外次数，0~10）
+
+    // 后台连接线程（析构时 detach，避免 join 死锁）
+    std::vector<std::shared_ptr<std::thread>> m_ConnectThreads;
+    std::atomic<bool> m_ShuttingDown{false};  // 析构标志，后台线程检查后快速退出
 
     mutable std::shared_mutex                   m_StatusMutex;
 };

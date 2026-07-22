@@ -1,8 +1,6 @@
 #include "hardware_interface.h"
 #include <cstdio>
 #include <cstring>
-#include <chrono>
-#include <thread>
 
 #include "Walnut/Core/Log.h"
 
@@ -31,7 +29,8 @@ HardwareInterface::~HardwareInterface() {
 
 // ======== 初始化与连接 ========
 bool HardwareInterface::Initialize(const std::string& host_ip, int remote_port, int local_port, int transport_type) {
-    std::lock_guard<std::mutex> lock(m_DataMutex);
+    m_ShuttingDown = false;  // 新连接开始，重置 shutdown 标记
+    std::unique_lock<std::mutex> lock(m_DataMutex);
 
     m_TargetIP      = host_ip;
     m_TargetPort    = remote_port;
@@ -49,20 +48,23 @@ bool HardwareInterface::Initialize(const std::string& host_ip, int remote_port, 
         m_SerialHandle = INVALID_HANDLE_VALUE;
     }
 
-    if (transport_type == 2)  // Serial: delegate to InitSerial
+    if (transport_type == 2)  // Serial: 释放锁后委托给 InitSerial
     {
-        // host_ip carries COM port, remote_port carries baud_rate
         m_ComPort  = host_ip;
         m_BaudRate = remote_port;
+        lock.unlock();
         return InitSerial(m_ComPort, m_BaudRate, m_DataBits, m_StopBits, m_Parity);
     }
-    else if (transport_type == 1)  // TCP 客户端：connect 到远端服务器，同一条连接双向收发
+    else if (transport_type == 1)  // TCP 客户端
     {
         m_Socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         if (m_Socket == INVALID_SOCKET) {
             WL_ERROR_TAG("HW", "TCP socket() failed: {}", WSAGetLastError());
             return false;
         }
+
+        unsigned long mode = 1;
+        ioctlsocket(m_Socket, FIONBIO, &mode);
 
         memset(&m_RemoteAddr, 0, sizeof(m_RemoteAddr));
         m_RemoteAddr.sin_family = AF_INET;
@@ -74,14 +76,34 @@ bool HardwareInterface::Initialize(const std::string& host_ip, int remote_port, 
 
         if (connect(m_Socket, (sockaddr*)&m_RemoteAddr, sizeof(m_RemoteAddr)) == SOCKET_ERROR) {
             int err = WSAGetLastError();
-            WL_ERROR_TAG("HW", "TCP connect() to {}:{} failed: {}", host_ip, remote_port, err);
-            closesocket(m_Socket);
-            m_Socket = INVALID_SOCKET;
-            return false;
+            if (err != WSAEWOULDBLOCK) {
+                WL_ERROR_TAG("HW", "TCP connect() to {}:{} failed: {}", host_ip, remote_port, err);
+                closesocket(m_Socket);
+                m_Socket = INVALID_SOCKET;
+                return false;
+            }
+            // 非阻塞连接进行中，释放锁后用 select 等最多 3 秒（允许 Shutdown 关闭 socket）
+            SOCKET selSocket = m_Socket;
+            lock.unlock();
+            fd_set fdWrite, fdExcept;
+            FD_ZERO(&fdWrite); FD_ZERO(&fdExcept);
+            FD_SET(selSocket, &fdWrite);
+            FD_SET(selSocket, &fdExcept);
+            timeval tv = {3, 0};
+            int selRet = select(0, nullptr, &fdWrite, &fdExcept, &tv);
+            lock.lock();
+            // Shutdown 可能在 select 期间执行了
+            if (m_ShuttingDown.load()) {
+                WL_INFO_TAG("HW", "TCP connect cancelled by shutdown");
+                return false;
+            }
+            if (selRet <= 0 || FD_ISSET(selSocket, &fdExcept)) {
+                WL_ERROR_TAG("HW", "TCP connect() to {}:{} timeout or error", host_ip, remote_port);
+                closesocket(m_Socket);
+                m_Socket = INVALID_SOCKET;
+                return false;
+            }
         }
-
-        unsigned long mode = 1;
-        ioctlsocket(m_Socket, FIONBIO, &mode);
 
         int nodelay = 1;
         setsockopt(m_Socket, IPPROTO_TCP, TCP_NODELAY, (const char*)&nodelay, sizeof(nodelay));
@@ -132,31 +154,26 @@ bool HardwareInterface::Initialize(const std::string& host_ip, int remote_port, 
 
 bool HardwareInterface::HardwareInit(int max_retries, int start_attempt) {
     int attempts = 0;
-    int total = start_attempt + max_retries - 1;
     while (attempts < max_retries) {
         if (m_IsConnected) {
-            WL_INFO_TAG("HW", "Hardware Init Success (attempt {} of {}).", start_attempt + attempts, total);
+            WL_INFO_TAG("HW", "Hardware Init Success.");
             return true;
         }
         attempts++;
-        int curAttempt = start_attempt + attempts - 1;
-        WL_INFO_TAG("HW", "Hardware Init Attempt {} of {}...", curAttempt, total);
+        WL_INFO_TAG("HW", "Hardware Init Retry...");
         if (m_TransportType == 2)
             InitSerial(m_ComPort, m_BaudRate, m_DataBits, m_StopBits, m_Parity);
         else
             Initialize(m_TargetIP, m_TargetPort, m_LocalPort, m_TransportType);
-
-        if (!m_IsConnected && attempts < max_retries) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(800));
-        }
     }
-    WL_ERROR_TAG("HW", "Hardware Init Failed after {} attempts.", total);
+    WL_ERROR_TAG("HW", "Hardware Init Failed after {} retries.", max_retries);
     return false;
 }
 
 // ======== Serial 初始化 ========
 bool HardwareInterface::InitSerial(const std::string& com_port, int baud_rate, int data_bits, int stop_bits, int parity) {
-    std::lock_guard<std::mutex> lock(m_DataMutex);
+    m_ShuttingDown = false;  // 新连接开始，重置 shutdown 标记
+    std::unique_lock<std::mutex> lock(m_DataMutex);
 
     m_ComPort   = com_port;
     m_BaudRate  = baud_rate;
@@ -177,8 +194,17 @@ bool HardwareInterface::InitSerial(const std::string& com_port, int baud_rate, i
     }
 
     std::string portPath = "\\\\.\\" + com_port;
-    m_SerialHandle = CreateFileA(portPath.c_str(), GENERIC_READ | GENERIC_WRITE,
+    lock.unlock();  // 释放锁，允许 Shutdown 在其他线程关闭句柄
+    HANDLE newHandle = CreateFileA(portPath.c_str(), GENERIC_READ | GENERIC_WRITE,
         0, nullptr, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, nullptr);
+    lock.lock();
+    // Shutdown 可能在 CreateFile 期间执行了
+    if (m_ShuttingDown.load()) {
+        if (newHandle != INVALID_HANDLE_VALUE) CloseHandle(newHandle);
+        WL_INFO_TAG("HW", "Serial init cancelled by shutdown");
+        return false;
+    }
+    m_SerialHandle = newHandle;
     if (m_SerialHandle == INVALID_HANDLE_VALUE) {
         WL_ERROR_TAG("HW", "Serial: Cannot open {}", com_port);
         return false;
@@ -256,10 +282,9 @@ SensorData HardwareInterface::GetSensorData() {
         bytesRead = (int)dwRead;
     }
     else if (m_Socket == INVALID_SOCKET) {
-        static bool s_LoggedInvalid = false;
-        if (!s_LoggedInvalid) {
+        if (!m_LoggedInvalid) {
             WL_ERROR_TAG("HW", "GetSensorData: socket INVALID");
-            s_LoggedInvalid = true;
+            m_LoggedInvalid = true;
         }
         return m_CurrentSensorData;
     }
@@ -281,19 +306,14 @@ SensorData HardwareInterface::GetSensorData() {
         if (parsed.is_valid)
             m_CurrentSensorData = parsed;
 
-        // 每条接收都打印（调试期间）
-        static int s_RecvOkCount = 0;
-        ++s_RecvOkCount;
+        // 每条接收都输出数据帧
+        ++m_RecvOkCount;
         {
             char hexBuf[192] = {0};
             int off = 0;
             for (int i = 0; i < bytesRead && i < 64; ++i)
                 off += snprintf(hexBuf + off, sizeof(hexBuf) - off, "%02X ", (unsigned char)buffer[i]);
-            WL_INFO_TAG("HW", "recv #{} {}B valid={} hex: {}", s_RecvOkCount, bytesRead, parsed.is_valid ? 1 : 0, hexBuf);
-            if (parsed.is_valid) {
-                WL_INFO_TAG("HW", "  temperature: {:.3f}  humidity: {:.3f}  depth: {:.3f}",
-                            parsed.temperature.value.value, parsed.humidity.value.value, parsed.depth.value.value);
-            }
+            WL_INFO_TAG("HW", "[{}][{}] recv #{} {}B valid={}: {}", m_ConnName, m_TransportType == 1 ? "TCP" : "UDP", m_RecvOkCount, bytesRead, parsed.is_valid ? 1 : 0, hexBuf);
         }
     }
     else if (bytesRead == 0) {
@@ -311,18 +331,8 @@ SensorData HardwareInterface::GetSensorData() {
         // bytesRead == SOCKET_ERROR (-1)
         int err = WSAGetLastError();
         if (err == WSAEWOULDBLOCK) {
-            // 每 300 帧打印，确认 recv 在正常轮询
-            static int s_IdleCount = 0;
-            if (++s_IdleCount % 300 == 0) {
-                // 顺便检查 socket 是否出错了（send 可能成功但 socket 已半关闭）
-                int sockErr = 0;
-                int sockErrLen = sizeof(sockErr);
-                getsockopt(m_Socket, SOL_SOCKET, SO_ERROR, (char*)&sockErr, &sockErrLen);
-                WL_INFO_TAG("HW", "[{}] recv idle #{} — socket_err={} connected={} -> {}:{}",
-                            m_TransportType == 1 ? "TCP" : "UDP",
-                            s_IdleCount, sockErr, m_IsConnected ? 1 : 0,
-                            m_TargetIP, m_TargetPort);
-            }
+            // 静默轮询，不打印日志
+            ++m_IdleCount;
         }
         else {
             WL_ERROR_TAG("HW", "{} recv error: {} ({}:{})", m_TransportType == 1 ? "TCP" : "UDP",
@@ -345,39 +355,12 @@ void HardwareInterface::SendActuatorData(const ActuatorConfig& data) {
     std::lock_guard<std::mutex> lock(m_DataMutex);
     m_CurrentActuatorData = data;
 
-    // DEBUG: write per-connection ActuatorConfig to file
-    static int s_DbgOnce[2] = {0, 0};
-    static int s_ConnIdx = 0;
-    if (s_ConnIdx < 2 && s_DbgOnce[s_ConnIdx] == 0) {
-        s_DbgOnce[s_ConnIdx] = 1;
-        FILE* f = nullptr;
-        fopen_s(&f, "C:\\Users\\29164\\Desktop\\Robot-UI\\hw_debug.txt", "a");
-        if (f) {
-            fprintf(f, "\n=== Conn %d ===\n", s_ConnIdx);
-            fprintf(f, "protoCfgs=%d\n", (int)m_ProtocolCfgs.size());
-            for (size_t mi = 0; mi < data.motions.size(); ++mi) {
-                auto& m = data.motions[mi];
-                fprintf(f, "motion[%zu]: x=%.2f y=%.2f z=%.2f rz=%.2f\n",
-                    mi, (double)m.x, (double)m.y, (double)m.z, (double)m.rz);
-            }
-            for (auto& m : data.brushlessmotor)
-                fprintf(f, "  motor '%s' id=%d spd=%.2f np_mid=%.2f\n",
-                    m.name.c_str(), m.id, (double)m.target_speed, (double)m.curve.np_mid);
-            for (auto& s : data.servo)
-                fprintf(f, "  servo '%s' id=%d angle=%.2f\n",
-                    s.name.c_str(), s.id, (double)s.angle);
-            fclose(f);
-        }
-        s_ConnIdx++;
-    }
-
 #if defined(_WIN32) || defined(_WIN64)
     if (m_TransportType == 2) {
-        // Serial: send via WriteFile
         if (m_SerialHandle == INVALID_HANDLE_VALUE) return;
         auto allFrames = SerializeActuatorData(m_CurrentActuatorData);
-        static int s_SerialSendCount = 0;
-        for (const auto& bytes : allFrames) {
+        for (size_t fi = 0; fi < allFrames.size(); ++fi) {
+            const auto& bytes = allFrames[fi];
             if (bytes.empty()) continue;
             DWORD dwWritten = 0;
             OVERLAPPED ov = {};
@@ -390,12 +373,18 @@ void HardwareInterface::SendActuatorData(const ActuatorConfig& data) {
             }
             CloseHandle(ov.hEvent);
 
-            if (++s_SerialSendCount % 100 == 0 && dwWritten > 0) {
-                char hexBuf[192] = {0};
-                int off = 0;
-                for (size_t i = 0; i < bytes.size() && i < 64; ++i)
-                    off += snprintf(hexBuf + off, sizeof(hexBuf) - off, "%02X ", bytes[i]);
-                WL_INFO_TAG("HW", "serial send #{} {}B: {}", s_SerialSendCount, bytes.size(), hexBuf);
+            {
+                auto now = std::chrono::steady_clock::now();
+                auto& last = m_LastSendLogTime[fi];
+                if (dwWritten > 0 && (last.time_since_epoch().count() == 0 ||
+                    std::chrono::duration_cast<std::chrono::seconds>(now - last).count() >= 1)) {
+                    last = now;
+                    char hexBuf[192] = {0};
+                    int off = 0;
+                    for (size_t i = 0; i < bytes.size() && i < 64; ++i)
+                        off += snprintf(hexBuf + off, sizeof(hexBuf) - off, "%02X ", bytes[i]);
+                    WL_INFO_TAG("HW", "serial [frame#{}] send {}B: {}", fi, bytes.size(), hexBuf);
+                }
             }
         }
         return;
@@ -404,11 +393,13 @@ void HardwareInterface::SendActuatorData(const ActuatorConfig& data) {
     if (m_Socket == INVALID_SOCKET) return;
 
     auto allFrames = SerializeActuatorData(m_CurrentActuatorData);
-    if (allFrames.empty()) return;
+    if (allFrames.empty()) {
+        return;
+    }
 
     // 逐帧发送
-    static int s_SendCount = 0;
-    for (const auto& bytes : allFrames) {
+    for (size_t fi = 0; fi < allFrames.size(); ++fi) {
+        const auto& bytes = allFrames[fi];
         if (bytes.empty()) continue;
 
         int sent = SOCKET_ERROR;
@@ -439,13 +430,20 @@ void HardwareInterface::SendActuatorData(const ActuatorConfig& data) {
             }
         }
 
-        // 每 100 帧打印一次 hex dump（≈每秒1次 @100Hz）
-        if (++s_SendCount % 100 == 0 && sent > 0) {
-            char hexBuf[192] = {0};
-            int off = 0;
-            for (size_t i = 0; i < bytes.size() && i < 64; ++i)
-                off += snprintf(hexBuf + off, sizeof(hexBuf) - off, "%02X ", bytes[i]);
-            WL_INFO_TAG("HW", "send #{} {}B: {}", s_SendCount, bytes.size(), hexBuf);
+        // 按帧索引计时，每帧类型每秒最多输出一条日志
+        {
+            auto now = std::chrono::steady_clock::now();
+            auto& last = m_LastSendLogTime[fi];
+            if (sent > 0 && (last.time_since_epoch().count() == 0 ||
+                std::chrono::duration_cast<std::chrono::seconds>(now - last).count() >= 1)) {
+                last = now;
+                char hexBuf[192] = {0};
+                int off = 0;
+                for (size_t i = 0; i < bytes.size() && i < 64; ++i)
+                    off += snprintf(hexBuf + off, sizeof(hexBuf) - off, "%02X ", bytes[i]);
+                WL_INFO_TAG("HW", "[{}][{}] [frame#{}] send {}B: {}", m_ConnName,
+                    m_TransportType == 1 ? "TCP" : "UDP", fi, bytes.size(), hexBuf);
+            }
         }
     }
 #endif
@@ -466,18 +464,30 @@ std::vector<std::vector<uint8_t>> HardwareInterface::SerializeActuatorData(const
 
 // ======== 安全关闭（线程安全） ========
 void HardwareInterface::Shutdown() {
-    std::lock_guard<std::mutex> lock(m_DataMutex);
-    m_IsConnected = false;
-#if defined(_WIN32) || defined(_WIN64)
-    if (m_Socket != INVALID_SOCKET) {
-        closesocket(m_Socket);
+    m_ShuttingDown = true;  // 先标记（无锁），让 InitSerial/Initialize 能感知
+
+    // 1. 持锁读取并清空句柄（与 Initialize/InitSerial 的 unlock→lock 窗口互斥）
+    SOCKET s;
+    HANDLE h;
+    {
+        std::lock_guard<std::mutex> lock(m_DataMutex);
+        s = m_Socket;
+        h = m_SerialHandle;
         m_Socket = INVALID_SOCKET;
+        m_SerialHandle = INVALID_HANDLE_VALUE;
+        m_IsConnected = false;
+    }
+
+    // 2. 释放锁后关闭 OS 资源（避免阻塞其他需要锁的线程）
+#if defined(_WIN32) || defined(_WIN64)
+    if (s != INVALID_SOCKET) {
+        shutdown(s, SD_BOTH);
+        closesocket(s);
         WL_INFO_TAG("HW", "Socket closed (shutdown)");
     }
-    if (m_SerialHandle != INVALID_HANDLE_VALUE) {
-        PurgeComm(m_SerialHandle, PURGE_RXCLEAR | PURGE_TXCLEAR);
-        CloseHandle(m_SerialHandle);
-        m_SerialHandle = INVALID_HANDLE_VALUE;
+    if (h != INVALID_HANDLE_VALUE) {
+        PurgeComm(h, PURGE_RXCLEAR | PURGE_TXCLEAR);
+        CloseHandle(h);
         WL_INFO_TAG("HW", "Serial port closed (shutdown)");
     }
 #endif
@@ -514,13 +524,12 @@ SensorData HardwareInterface::DeserializeSensorData(const std::vector<uint8_t>& 
     }
 
     // 解析失败：打印收到的数据 vs 期望的协议配置
-    static int s_FailCount = 0;
-    if (++s_FailCount % 50 == 0) {
+    if (++m_FailCount % 50 == 0) {
         char hexBuf[192] = {0};
         int off = 0;
         for (size_t i = 0; i < raw_data.size() && i < 64; ++i)
             off += snprintf(hexBuf + off, sizeof(hexBuf) - off, "%02X ", raw_data[i]);
-        WL_WARN_TAG("HW", "ParseSensorFrame FAIL #{} — {}B matches none of {} receive config(s)", s_FailCount, raw_data.size(), m_ReceiveCfgs.size());
+        WL_WARN_TAG("HW", "ParseSensorFrame FAIL #{} — {}B matches none of {} receive config(s)", m_FailCount, raw_data.size(), m_ReceiveCfgs.size());
         for (size_t ci = 0; ci < m_ReceiveCfgs.size(); ++ci) {
             const auto& rc = m_ReceiveCfgs[ci];
             WL_WARN_TAG("HW", "  cfg[{}]: header_size={} include_len={} cmd_bytes={} checksum={} tail_size={} fields={}",

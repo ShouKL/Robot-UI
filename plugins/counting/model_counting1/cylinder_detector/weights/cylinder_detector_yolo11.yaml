@@ -1,0 +1,12 @@
+type: yolo11
+name: cylinder_detector
+provider: Ultralytics
+display_name: Cylinder Detector
+
+model_path: D:\EV\检测数量\model_counting\cylinder_detector\weights\best.onnx
+
+iou_threshold: 0.45
+conf_threshold: 0.25
+
+classes:
+  - white_cylinder

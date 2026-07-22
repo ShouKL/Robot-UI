@@ -43,6 +43,12 @@ struct UIState
     // ---- 连接设置（.kernel 持久化） ----
     int  conn_retry_count = 6;           // 机器人连接重试总次数（1~20）
     int  camera_retry_count = 2;         // 摄像头连接重试次数（额外次数，不含初始）
+
+    // ---- 启用的插件列表（.kernel 持久化） ----
+    std::vector<std::string> enabled_plugins;
+
+    // ---- 通信节点配置（.kernel 持久化，记住发送帧 enable 状态等） ----
+    std::vector<RobotComm> comm_configs;
 };
 
 class ConfigSerializer

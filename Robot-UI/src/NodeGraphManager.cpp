@@ -1,5 +1,6 @@
 #include "NodeGraphManager.h"
 #include "FileManager.h"
+#include "RobotStatus.h"
 #include <functional>
 
 namespace ed = ax::NodeEditor;
@@ -170,6 +171,11 @@ void NodeGraphManager::SetGamepadMapperManager(GamepadMapperManager* g)
 {
     m_GamepadMgr = g;
     if (m_SelectedGraph) m_SelectedGraph->SetGamepadMapperManager(g);
+}
+
+void NodeGraphManager::SetRobotStatus(RobotStatus* rs)
+{
+    m_RobotStatus = rs;
 }
 
 void NodeGraphManager::SetShortcutManager(ShortcutManager* sm)
@@ -914,6 +920,7 @@ void NodeGraphManager::DrawNodeGraphEditor(NodeGraph& ng)
     if (canvasW < 100.0f) canvasW = 100.0f;
 
     // Play/Stop button — centered in canvas area only
+    // MUST be rendered BEFORE BeginDisabled() so the Stop button remains clickable
     {
         if (!ng.m_PlayIcon)  ng.m_PlayIcon  = std::make_shared<Walnut::Image>(FileManager::GetExeDir() + "..\\..\\..\\asset\\picture\\PlayButton.png");
         if (!ng.m_StopIcon)  ng.m_StopIcon  = std::make_shared<Walnut::Image>(FileManager::GetExeDir() + "..\\..\\..\\asset\\picture\\StopButton.png");
@@ -925,21 +932,30 @@ void NodeGraphManager::DrawNodeGraphEditor(NodeGraph& ng)
         ImGui::SetCursorPosX(btnCenterX - iconSize.x * 0.5f);
 
         if (icon->GetDescriptorSet()) {
-            if (ImGui::ImageButton((ImTextureID)icon->GetDescriptorSet(), iconSize))
+            if (ImGui::ImageButton((ImTextureID)icon->GetDescriptorSet(), iconSize)) {
                 ng.ToggleRunning();
+            }
         } else {
             const char* label = ng.m_IsRunning ? " Stop " : " Play ";
             ImVec4 col = ng.m_IsRunning ? ImVec4(0.7f, 0.15f, 0.15f, 1.0f) : ImVec4(0.15f, 0.6f, 0.15f, 1.0f);
             ImGui::PushStyleColor(ImGuiCol_Button, col);
             ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
-            if (ImGui::Button(label, ImVec2(iconSize.x * 2, 0))) ng.ToggleRunning();
+            if (ImGui::Button(label, ImVec2(iconSize.x * 2, 0))) {
+                ng.ToggleRunning();
+            }
             ImGui::PopStyleColor(2);
         }
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip(ng.m_IsRunning ? "Stop evaluation" : "Start evaluation");
     }
 
+    // Disable editing while running (after Play/Stop button so Stop remains clickable)
     ed::SetCurrentEditor(m_EditorCtx);
+    bool wasRunning = ng.m_IsRunning;
+    if (wasRunning) {
+        ImGui::BeginDisabled();
+        ed::EnableShortcuts(false);
+    }
 
     // -------- Pull data from managers --------
     std::vector<std::string> gamepadModeNames;
@@ -1884,7 +1900,11 @@ void NodeGraphManager::DrawNodeGraphEditor(NodeGraph& ng)
     ImGui::EndChild();  // ##RCol
     }
 
-    // Restore editor context so it doesn't leak into other windows.
+    // Restore editor context and editing state
+    if (wasRunning) {
+        ed::EnableShortcuts(true);
+        ImGui::EndDisabled();
+    }
     ed::SetCurrentEditor(nullptr);
 }
 

@@ -29,7 +29,6 @@ GamepadMapper::GamepadMapper()
         {ImVec2(857, 416), ImVec2(1250, 455), 30, "R_Stick_X",     "RS X", GLFW_GAMEPAD_AXIS_RIGHT_X,          true},
         {ImVec2(857, 416), ImVec2(1250, 515), 30, "R_Stick_Y",     "RS Y", GLFW_GAMEPAD_AXIS_RIGHT_Y,          true}
     };
-    memset(&m_LastState, 0, sizeof(GLFWgamepadstate));
 }
 
 GamepadMapper::~GamepadMapper() {}
@@ -56,7 +55,6 @@ GamepadMapper::GamepadMapper(const GamepadMapper& other)
     , m_PendingDeleteKeyId(other.m_PendingDeleteKeyId)
     , m_Keys(other.m_Keys)
     , m_RawKeyValues(other.m_RawKeyValues)
-    , m_LastState(other.m_LastState)
 {
     strncpy_s(name, other.name, sizeof(name) - 1);
     strncpy_s(m_RenameBuffer, other.m_RenameBuffer, sizeof(m_RenameBuffer) - 1);
@@ -92,7 +90,6 @@ GamepadMapper& GamepadMapper::operator=(const GamepadMapper& other)
     m_PendingDeleteKeyId = other.m_PendingDeleteKeyId;
     m_Keys = other.m_Keys;
     m_RawKeyValues = other.m_RawKeyValues;
-    m_LastState = other.m_LastState;
 
     return *this;
 }
@@ -191,8 +188,13 @@ void GamepadMapper::BindKey()
             if (mapping.is_analog != key.is_axis)
                 continue;
 
-            float rawVal = m_RawKeyValues[key.name];
-            float val = CalcActivation(key, rawVal);
+            float rawVal;
+            float val;
+            {
+                std::lock_guard<std::mutex> lock(m_RawKeyValuesMutex);
+                rawVal = m_RawKeyValues[key.name];
+            }
+            val = CalcActivation(key, rawVal);
             if (val < k_BindThreshold)
                 continue;
 
@@ -252,31 +254,6 @@ void GamepadMapper::RefreshBoundKeys()
     }
 }
 
-void GamepadMapper::BeginRename(int keyId, const std::string& keyName)
-{
-    m_Renaming = true;
-    m_RenamingKeyId = keyId;
-    strncpy_s(m_RenameBuffer, keyName.c_str(), sizeof(m_RenameBuffer) - 1);
-}
-
-void GamepadMapper::EndRename(bool confirmed)
-{
-    if (confirmed && m_RenameBuffer[0] != '\0')
-        RenameKey(m_RenamingKeyId, m_RenameBuffer);
-    m_Renaming = false;
-    m_RenamingKeyId = 0;
-    m_RenameBuffer[0] = '\0';
-}
-
-void GamepadMapper::ProcessPendingDeletes()
-{
-    if (m_PendingDeleteKeyId != 0)
-    {
-        RemoveKey(m_PendingDeleteKeyId);
-        m_PendingDeleteKeyId = 0;
-    }
-}
-
 float GamepadMapper::CalcRawValue(const KeyInfo& key, const GLFWgamepadstate& state)
 {
     if (!key.is_axis)
@@ -320,10 +297,10 @@ float GamepadMapper::GetKeyValue(const std::string& keyName)
         return m_RawKeyValues.at(keyName);
 
     // 别名映射
-    if (keyName == "LX")  return m_RawKeyValues["L_Stick_X"];
-    if (keyName == "LY")  return m_RawKeyValues["L_Stick_Y"];
-    if (keyName == "RX")  return m_RawKeyValues["R_Stick_X"];
-    if (keyName == "RY")  return m_RawKeyValues["R_Stick_Y"];
+    if (keyName == "LX") { auto it = m_RawKeyValues.find("L_Stick_X"); return (it != m_RawKeyValues.end()) ? it->second : 0.0f; }
+    if (keyName == "LY") { auto it = m_RawKeyValues.find("L_Stick_Y"); return (it != m_RawKeyValues.end()) ? it->second : 0.0f; }
+    if (keyName == "RX") { auto it = m_RawKeyValues.find("R_Stick_X"); return (it != m_RawKeyValues.end()) ? it->second : 0.0f; }
+    if (keyName == "RY") { auto it = m_RawKeyValues.find("R_Stick_Y"); return (it != m_RawKeyValues.end()) ? it->second : 0.0f; }
 
     return 0.0f;
 }
@@ -350,6 +327,8 @@ const std::vector<KeyInfo>& GamepadMapper::GetActivePhysicalKeys() const
 
 void GamepadMapper::UpdateRawJoystickState()
 {
+    std::lock_guard<std::mutex> lock(m_RawKeyValuesMutex);
+
     m_CustomPresent = false;
 
     int count;
@@ -422,6 +401,18 @@ void GamepadMapper::UpdateAllKeyValues()
         for (auto& key : m_Keys)
             m_RawKeyValues[key.name] = CalcRawValue(key, state);
     }
+    else
+    {
+        // 无手柄连接时，补默认值避免扳机轴为 0 导致 CalcActivation 返回 0.5（表现为误亮）
+        for (auto& key : m_Keys)
+        {
+            if (key.glfw_id == GLFW_GAMEPAD_AXIS_LEFT_TRIGGER ||
+                key.glfw_id == GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER)
+                m_RawKeyValues[key.name] = -1.0f;  // 扳机默认松开
+            else
+                m_RawKeyValues[key.name] = 0.0f;
+        }
+    }
 
     if (m_CustomPresent)
     {
@@ -433,9 +424,24 @@ void GamepadMapper::UpdateAllKeyValues()
     }
 }
 
-float GamepadMapper::GetRawKeyValue(const std::string& name) const
+// ============================================================================
+// 补充方法（GamepadMapperManager 需要）
+// ============================================================================
+
+void GamepadMapper::ProcessPendingDeletes()
+{
+    if (m_PendingDeleteKeyId != 0)
+    {
+        RemoveKey(m_PendingDeleteKeyId);
+        m_PendingDeleteKeyId = 0;
+    }
+}
+
+float GamepadMapper::GetRawKeyValue(const std::string& keyName) const
 {
     std::lock_guard<std::mutex> lock(m_RawKeyValuesMutex);
-    auto it = m_RawKeyValues.find(name);
-    return (it != m_RawKeyValues.end()) ? it->second : 0.0f;
+    auto it = m_RawKeyValues.find(keyName);
+    if (it != m_RawKeyValues.end())
+        return it->second;
+    return 0.0f;
 }
