@@ -1,71 +1,61 @@
-[18:04:56] [info] APP: [APP] Robot UI application created
-[18:04:56] [info] APP: [APP] Robot UI initializing...
-[18:04:56] [info] APP: [COMP] Item added: Item_1 (id=1)
-[18:04:56] [info] APP: [GAMEPAD] Item added: Item_1 (id=1)
-[18:04:56] [info] APP: [GSTREAMER] Initializing GStreamer...
-[18:04:56] [info] APP: [GSTREAMER] Calling gst_init_check...
-[18:04:56] [info] APP: [GSTREAMER] GStreamer initialized successfully
-[18:04:56] [info] APP: [COMM] component added: Item_1 (id=1)
-[18:04:56] [info] APP: [APP] RobotSettingPanel created
-[18:04:56] [info] APP: [ROBOT_STATUS] RobotStatus created (multi-connection mode, with headless graph evaluator)
-[18:04:56] [info] APP: [MONITOR_WALL] MonitorWall created
-[18:04:56] [info] APP: [PLUGIN] Plugin directory: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\plugins
-[18:04:56] [info] APP: [PLUGIN] Python: python.exe
-[18:04:56] [info] APP: [PLUGIN] Ready
-[18:04:56] [info] APP: [ROBOT_STATUS] Selected item set to: Item_1
-[18:04:56] [info] APP: [ROBOT_STATUS] No graph for item 'Item_1' + gamepad 'Item_1', cleared
-[18:04:56] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_1
-[18:04:56] [info] APP: [PLUGIN] Loaded: counting
-[18:04:56] [info] APP: [PLUGIN] Loaded: explorer
-[18:04:56] [info] APP: [PLUGIN] Loaded: hellocpp
-[18:04:56] [info] APP: [PLUGIN] Loaded: statemonitor
-[18:04:56] [info] APP: [PLUGIN] Scan: 4 plugins
-[18:04:56] [info] APP: [PLUGIN] Scan done: 4 plugins
-[18:04:56] [info] APP: [APP] Plugin system initialized
-[18:04:56] [info] APP: [APP] ImPlot context created
-[18:04:56] [info] APP: [COMM] Loaded 2 comm configs
-[18:04:56] [info] APP: [APP] Kernel loaded: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\bin\Dist-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
-[18:04:56] [info] APP: [APP] Loading component: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\demo.rbt
-[18:04:56] [info] APP: [component] Loading component: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\demo.rbt
-[18:04:56] [info] APP: [APP] Robot config loaded: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\demo.rbt
-[18:04:56] [info] APP: [COMM] Loaded 2 comm configs
-[18:04:56] [info] APP: [ROBOT_STATUS] Selected item set to: Cemera
-[18:04:56] [info] APP: [ROBOT_STATUS] No graph for item 'Cemera' + gamepad 'XBOX', cleared
-[18:04:56] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
-[18:04:56] [info] APP: [APP] Gamepad thread started
-[18:04:56] [info] APP: [APP] Robot UI initialized successfully
-[18:04:56] [info] APP: [GAMEPAD] Gamepad routine started
-[18:04:56] [info] APP: [CONFIG] Saved BASE: ls=0, ng=0
-[18:04:56] [info] APP: [CONFIG] RobotSetting editing started
-[18:04:56] [info] APP: [PLUGIN] Plugin 'statemonitor' loaded
-[18:04:56] [info] APP: [PLUGIN] All dependencies already installed
-[18:04:56] [info] APP: [PLUGIN] Plugin 'explorer' loaded
-[18:04:56] [info] APP: [PLUGIN] Plugin 'counting' loaded
-[18:04:56] [info] APP: [PLUGIN] [init] Checking model files...
-[18:04:56] [info] APP: [PLUGIN] [loading_models] Loading YOLO models...
-[18:04:56] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #0 (ROV-XBOX)
-[18:04:56] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[18:04:56] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
-[18:04:56] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
-[18:04:56] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
-[18:04:56] [info] APP: [ROBOT_STATUS] Derived 2 ActiveComm(s) from NodeGraph #0 comm_refs
-[18:04:56] [info] APP: [ROBOT_STATUS] Synced 2 connections from graph comm_refs (linked=0)
-[18:04:56] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #0 (ROV-XBOX)
-[18:05:00] [info] APP: [ROBOT_STATUS] Linking Beyond (192.168.0.233) [max 5 attempts]...
-[18:05:00] [info] APP: [HW] UDP bound to :1100 -> 192.168.0.233:2200
-[18:05:00] [info] APP: [ROBOT_STATUS] Link SUCCESS: Beyond (192.168.0.233)
-[18:05:00] [info] APP: [HW] [Beyond][UDP] [frame#0] send 34B: FA AF 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 CD CC 4C 3F 73 FB BF 
-[18:05:00] [info] APP: [ROBOT_STATUS] Linking Camera (192.168.0.38) [max 5 attempts]...
-[18:05:00] [info] APP: [HW] UDP bound to :1000 -> 192.168.0.38:37260
-[18:05:00] [info] APP: [ROBOT_STATUS] Link SUCCESS: Camera (192.168.0.38)
-[18:05:00] [info] APP: [HW] [Camera][UDP] [frame#0] send 12B: 55 66 01 04 00 00 00 0E FA 00 4F E7 
-[18:05:01] [info] APP: [HW] [Beyond][UDP] [frame#0] send 34B: FA AF 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 CD CC 4C 3F 73 FB BF 
-[18:05:01] [info] APP: [HW] [Camera][UDP] [frame#0] send 12B: 55 66 01 04 00 00 00 0E FA 00 4F E7 
-[18:05:01] [info] APP: [APP] Robot UI shutting down...
-[18:05:01] [info] APP: [ROBOT_STATUS] Unlinking Beyond (192.168.0.233)
-[18:05:01] [info] APP: [HW] Socket closed (shutdown)
-[18:05:01] [info] APP: [ROBOT_STATUS] Unlinking Camera (192.168.0.38)
-[18:05:01] [info] APP: [HW] Socket closed (shutdown)
-[18:05:01] [info] APP: [APP] Kernel saved: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\bin\Dist-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
-[18:05:01] [info] APP: [GAMEPAD] Gamepad routine stopped
-[18:05:01] [info] APP: [APP] Gamepad thread joined
+[19:07:44] [info] APP: [APP] Robot UI application created
+[19:07:44] [info] APP: [APP] Robot UI initializing...
+[19:07:44] [info] APP: [COMP] Item added: Item_1 (id=1)
+[19:07:44] [info] APP: [GAMEPAD] Item added: Item_1 (id=1)
+[19:07:44] [info] APP: [GSTREAMER] Initializing GStreamer...
+[19:07:44] [info] APP: [GSTREAMER] Calling gst_init_check...
+[19:07:44] [info] APP: [GSTREAMER] GStreamer initialized successfully
+[19:07:44] [info] APP: [COMM] component added: Item_1 (id=1)
+[19:07:44] [info] APP: [APP] RobotSettingPanel created
+[19:07:44] [info] APP: [ROBOT_STATUS] RobotStatus created (multi-connection mode, with headless graph evaluator)
+[19:07:44] [info] APP: [MONITOR_WALL] MonitorWall created
+[19:07:44] [info] APP: [PLUGIN] Plugin directory: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\plugins
+[19:07:44] [info] APP: [PLUGIN] Python: python.exe
+[19:07:44] [info] APP: [PLUGIN] Ready
+[19:07:44] [info] APP: [ROBOT_STATUS] Selected item set to: Item_1
+[19:07:44] [info] APP: [ROBOT_STATUS] No graph for item 'Item_1' + gamepad 'Item_1', cleared
+[19:07:44] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_1
+[19:07:44] [info] APP: [PLUGIN] Loaded: counting
+[19:07:44] [info] APP: [PLUGIN] Loaded: explorer
+[19:07:44] [info] APP: [PLUGIN] Loaded: hellocpp
+[19:07:44] [info] APP: [PLUGIN] Loaded: statemonitor
+[19:07:44] [info] APP: [PLUGIN] Scan: 4 plugins
+[19:07:44] [info] APP: [PLUGIN] Scan done: 4 plugins
+[19:07:44] [info] APP: [APP] Plugin system initialized
+[19:07:44] [info] APP: [APP] ImPlot context created
+[19:07:44] [info] APP: [COMM] Loaded 2 comm configs
+[19:07:44] [info] APP: [APP] Kernel loaded: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\bin\Dist-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
+[19:07:44] [info] APP: [APP] Loading component: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\demo.rbt
+[19:07:44] [info] APP: [component] Loading component: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\demo.rbt
+[19:07:44] [info] APP: [APP] Robot config loaded: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\demo.rbt
+[19:07:44] [info] APP: [COMM] Loaded 2 comm configs
+[19:07:44] [info] APP: [ROBOT_STATUS] Selected item set to: Cemera
+[19:07:44] [info] APP: [ROBOT_STATUS] No graph for item 'Cemera' + gamepad 'XBOX', cleared
+[19:07:44] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[19:07:44] [info] APP: [APP] Gamepad thread started
+[19:07:44] [info] APP: [APP] Robot UI initialized successfully
+[19:07:44] [info] APP: [GAMEPAD] Gamepad routine started
+[19:07:44] [info] APP: [CONFIG] Saved BASE: ls=0, ng=0
+[19:07:44] [info] APP: [CONFIG] RobotSetting editing started
+[19:07:45] [info] APP: [PLUGIN] All dependencies already installed
+[19:07:45] [info] APP: [PLUGIN] Plugin 'statemonitor' loaded
+[19:07:45] [info] APP: [PLUGIN] Plugin 'explorer' loaded
+[19:07:45] [info] APP: [PLUGIN] Plugin 'counting' loaded
+[19:07:45] [info] APP: [PLUGIN] [init] Checking model files...
+[19:07:45] [info] APP: [PLUGIN] [loading_models] Loading YOLO models...
+[19:07:45] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #0 (ROV-XBOX)
+[19:07:45] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[19:07:45] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[19:07:45] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[19:07:45] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[19:07:45] [info] APP: [ROBOT_STATUS] Derived 2 ActiveComm(s) from NodeGraph #0 comm_refs
+[19:07:45] [info] APP: [ROBOT_STATUS] Synced 2 connections from graph comm_refs (linked=0)
+[19:07:45] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #0 (ROV-XBOX)
+[19:07:49] [info] APP: [PLUGIN] Enabling: counting
+[19:07:49] [info] APP: [PLUGIN] Enabled: counting
+[19:07:49] [info] APP: [PLUGIN] Plugin 'counting' enabled
+[19:07:53] [info] APP: [PLUGIN] [models_ready] Models loaded
+[19:07:59] [info] APP: [APP] Robot UI shutting down...
+[19:07:59] [info] APP: [APP] Kernel saved: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\bin\Dist-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
+[19:07:59] [info] APP: [GAMEPAD] Gamepad routine stopped
+[19:07:59] [info] APP: [APP] Gamepad thread joined

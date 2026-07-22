@@ -9,6 +9,9 @@ bin-int/
 *.vcxproj.filters
 *.slnx
 
+# Python environment (dependencies should not be versioned)
+plugins/counting/python/
+
 # Python cache
 __pycache__/
 *.pyc
