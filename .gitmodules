@@ -2,7 +2,6 @@
 	path = Walnut
 	url = https://github.com/ShouKL/Walnut.git
 	branch = Walnut-for-Robot-UI
-	
 [submodule "vendor/imgui-node-editor"]
 	path = vendor/imgui-node-editor
 	url = https://github.com/thedmd/imgui-node-editor.git
@@ -13,3 +12,6 @@
 [submodule "vendor/ImTerm"]
 	path = vendor/ImTerm
 	url = https://github.com/Organic-Code/ImTerm.git
+[submodule "vendor/jsonrpcpp"]
+	path = vendor/jsonrpcpp
+	url = https://github.com/badaix/jsonrpcpp
