@@ -31,7 +31,7 @@ robot_ui_kernel:
     conn_retry_count: 5
     camera_retry_count: 2
     enabled_plugins:
-      - counting
+      []
     robot_comm:
       nodes:
         - id: 1

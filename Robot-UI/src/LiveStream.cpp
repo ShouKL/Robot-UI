@@ -202,7 +202,10 @@ static std::string BuildRTSPSrcProperties(const LiveStream& stream) {
         ss << " buffer-mode=" << (int)stream.bufferMode;
     if (stream.dropOnLatency)
         ss << " drop-on-latency=true";
-    if (stream.timeout != 5000000)
+    // UDP: 不设超时，避免 rtspsrc 因暂时丢包触发 EOS 导致管线断开
+    if (stream.protocol == TransportProto::UDP)
+        ss << " timeout=0";
+    else if (stream.timeout != 5000000)
         ss << " timeout=" << stream.timeout;
     if (stream.udpBufferSize > 0)
         ss << " udp-buffer-size=" << stream.udpBufferSize;
@@ -351,7 +354,12 @@ bool LiveStream::Open() {
         return false;
     }
 
-    // 等待最多 2.5s（rtspsrc 超时由 timeout 属性控制）
+    // UDP: 不等待 bus 消息，管线推入 PLAYING 即算成功
+    if (protocol == TransportProto::UDP) {
+        return true;
+    }
+
+    // TCP: 等待 bus 消息确认（最多 2.5s）
     {
         GstBus* bus;
         {
@@ -372,14 +380,32 @@ bool LiveStream::Open() {
                 if (debug) g_free(debug);
                 gst_message_unref(msg);
                 gst_object_unref(bus);
-                Close();
+                {
+                    std::lock_guard<std::mutex> lock(m_pipeMutex);
+                    if (m_pipeline) {
+                        GstElement* s = gst_bin_get_by_name(GST_BIN(m_pipeline), "mysink");
+                        if (s) { g_signal_handlers_disconnect_by_data(s, this); gst_object_unref(s); }
+                        gst_element_set_state(m_pipeline, GST_STATE_NULL);
+                        gst_object_unref(m_pipeline);
+                        m_pipeline = nullptr;
+                    }
+                }
                 return false;
             }
             if (GST_MESSAGE_TYPE(msg) == GST_MESSAGE_EOS) {
                 m_lastErrorMsg = "Unexpected end of stream during connect";
                 gst_message_unref(msg);
                 gst_object_unref(bus);
-                Close();
+                {
+                    std::lock_guard<std::mutex> lock(m_pipeMutex);
+                    if (m_pipeline) {
+                        GstElement* s = gst_bin_get_by_name(GST_BIN(m_pipeline), "mysink");
+                        if (s) { g_signal_handlers_disconnect_by_data(s, this); gst_object_unref(s); }
+                        gst_element_set_state(m_pipeline, GST_STATE_NULL);
+                        gst_object_unref(m_pipeline);
+                        m_pipeline = nullptr;
+                    }
+                }
                 return false;
             }
             if (GST_MESSAGE_SRC(msg) == GST_OBJECT(m_pipeline)) {
@@ -398,7 +424,16 @@ bool LiveStream::Open() {
 
     // 超时无结果
     WL_ERROR_TAG("LIVESTREAM", "Connect timeout (no response within 2.5s)");
-    Close();
+    {
+        std::lock_guard<std::mutex> lock(m_pipeMutex);
+        if (m_pipeline) {
+            GstElement* s = gst_bin_get_by_name(GST_BIN(m_pipeline), "mysink");
+            if (s) { g_signal_handlers_disconnect_by_data(s, this); gst_object_unref(s); }
+            gst_element_set_state(m_pipeline, GST_STATE_NULL);
+            gst_object_unref(m_pipeline);
+            m_pipeline = nullptr;
+        }
+    }
     m_lastErrorMsg = "Connection timeout — no response from camera";
     return false;
 }
@@ -406,11 +441,22 @@ bool LiveStream::Open() {
 void LiveStream::TryOpen(int maxRetries, int intervalMs) {
     if (m_destroying.load(std::memory_order_relaxed)) return;
 
+    if (isStreaming || IsConnecting()) return;
+
+    // UDP 是无连接协议，不走重连机制，直接同步打开
+    if (protocol == TransportProto::UDP) {
+        WL_INFO_TAG("LIVESTREAM", "UDP: opening stream directly (no retry)...");
+        if (Open()) {
+            isStreaming = true;
+        }
+        return;
+    }
+
     // 递增 generation：旧后台线程检测到不匹配后自行退出
     int myGen = ++m_connectGeneration;
     m_connecting = true;
     m_connectTotal = maxRetries + 1;
-    m_connectAttempt = 0;  // 后台线程第一轮自增到 1，UI 逐帧读取
+    m_connectAttempt = 0;
     m_connectingStart = std::chrono::steady_clock::now();
 
     std::string capturedIp(ip);
@@ -422,13 +468,14 @@ void LiveStream::TryOpen(int maxRetries, int intervalMs) {
 
     std::thread([this, totalAttempts, intervalMs, myGen, capturedIp, capturedPort]() {
         for (int attempt = 1; attempt <= totalAttempts; ++attempt) {
-            // 被更新的 TryOpen 取代 → 静默退出
+            // 被取代 / 销毁 / 用户取消 → 静默退出
             if (m_connectGeneration.load(std::memory_order_relaxed) != myGen ||
-                m_destroying.load(std::memory_order_relaxed)) {
+                m_destroying.load(std::memory_order_relaxed) ||
+                !m_connecting.load(std::memory_order_relaxed)) {
                 return;
             }
 
-            m_connectAttempt = attempt;  // UI 逐帧读取显示 "Connecting... (2/4)"
+            m_connectAttempt = attempt;
             WL_INFO_TAG("LIVESTREAM", "  Attempt {} of {}...", attempt, totalAttempts);
 
             bool ok = Open();
@@ -438,7 +485,7 @@ void LiveStream::TryOpen(int maxRetries, int intervalMs) {
             }
 
             if (ok) {
-                WL_INFO_TAG("LIVESTREAM", "  Attempt {} of {} OK (pipeline started)", attempt, totalAttempts);
+                WL_INFO_TAG("LIVESTREAM", "  Attempt {} of {} OK", attempt, totalAttempts);
                 isStreaming = true;
                 auto elapsed = std::chrono::steady_clock::now() - m_connectingStart;
                 if (elapsed < std::chrono::milliseconds(300))
@@ -446,13 +493,6 @@ void LiveStream::TryOpen(int maxRetries, int intervalMs) {
                 m_connecting = false;
                 m_connectAttempt = 0;
                 return;
-            }
-
-            // Open() 在失败路径内部调用了 Close()→CancelConnect()，
-            // 此时 m_connecting 和 m_connectAttempt 已被置零，需要恢复
-            if (attempt < totalAttempts) {
-                m_connecting = true;
-                m_connectAttempt = attempt;
             }
 
             WL_ERROR_TAG("LIVESTREAM", "  Attempt {} of {} FAILED: {}", attempt, totalAttempts,
@@ -536,39 +576,46 @@ void LiveStream::CloseInternal(GstClockTime timeout) {
 }
 
 void LiveStream::Update() {
-    // 非阻塞轮询总线，捕获运行时错误
-    GstBus* bus = nullptr;
-    {
-        std::lock_guard<std::mutex> lock(m_pipeMutex);
-        if (!m_pipeline) return;
-        bus = gst_pipeline_get_bus(GST_PIPELINE(m_pipeline));
-    }
-    GstMessage* msg = gst_bus_pop_filtered(bus,
-        (GstMessageType)(GST_MESSAGE_ERROR | GST_MESSAGE_EOS));
-    if (msg) {
-        if (GST_MESSAGE_TYPE(msg) == GST_MESSAGE_ERROR) {
-            GError* err = nullptr;
-            gchar* debug = nullptr;
-            gst_message_parse_error(msg, &err, &debug);
-            WL_ERROR_TAG("LIVESTREAM", "Runtime error: {} (debug: {})",
-                         err ? err->message : "unknown", debug ? debug : "none");
-            m_lastErrorMsg = err ? err->message : "Unknown error";
-            if (err) g_error_free(err);
-            if (debug) g_free(debug);
+    // UDP: 无连接协议，不做任何错误检测，只管收帧
+    if (protocol != TransportProto::UDP) {
+        GstBus* bus = nullptr;
+        {
+            std::lock_guard<std::mutex> lock(m_pipeMutex);
+            if (!m_pipeline) return;
+            bus = gst_pipeline_get_bus(GST_PIPELINE(m_pipeline));
         }
-        if (GST_MESSAGE_TYPE(msg) == GST_MESSAGE_EOS) {
-            WL_INFO_TAG("LIVESTREAM", "End of stream");
+        GstMessage* msg = gst_bus_pop_filtered(bus,
+            (GstMessageType)(GST_MESSAGE_ERROR | GST_MESSAGE_EOS));
+        if (msg) {
+            if (GST_MESSAGE_TYPE(msg) == GST_MESSAGE_ERROR) {
+                GError* err = nullptr;
+                gchar* debug = nullptr;
+                gst_message_parse_error(msg, &err, &debug);
+                WL_ERROR_TAG("LIVESTREAM", "Runtime error: {} (debug: {})",
+                             err ? err->message : "unknown", debug ? debug : "none");
+                m_lastErrorMsg = err ? err->message : "Unknown error";
+                if (err) g_error_free(err);
+                if (debug) g_free(debug);
+                gst_message_unref(msg);
+                isStreaming = false;
+                m_hasError = true;
+            }
+            else if (GST_MESSAGE_TYPE(msg) == GST_MESSAGE_EOS) {
+                WL_INFO_TAG("LIVESTREAM", "End of stream");
+                gst_message_unref(msg);
+                isStreaming = false;
+                m_hasError = true;
+            } else {
+                gst_message_unref(msg);
+            }
         }
-        // 检测到运行时错误 — 仅标记，不阻塞 UI（Update 在 UI 线程）
-        gst_message_unref(msg);
-        isStreaming = false;
-        m_hasError = true;  // 标记错误，让下一帧 Close 在安全时机执行
-    }
-    gst_object_unref(bus);
+        gst_object_unref(bus);
 
-    // 如果有待处理的错误关闭请求，在锁外执行（Close 现在 100ms 快速拆卸）
-    if (m_hasError.exchange(false))
-        Close();
+        if (m_hasError.exchange(false))
+            Close();
+    }
+
+    // 下面继续帧采集（UDP / TCP 共用）
 
     int w, h;
     {

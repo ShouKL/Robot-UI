@@ -1,61 +1,152 @@
-[19:07:44] [info] APP: [APP] Robot UI application created
-[19:07:44] [info] APP: [APP] Robot UI initializing...
-[19:07:44] [info] APP: [COMP] Item added: Item_1 (id=1)
-[19:07:44] [info] APP: [GAMEPAD] Item added: Item_1 (id=1)
-[19:07:44] [info] APP: [GSTREAMER] Initializing GStreamer...
-[19:07:44] [info] APP: [GSTREAMER] Calling gst_init_check...
-[19:07:44] [info] APP: [GSTREAMER] GStreamer initialized successfully
-[19:07:44] [info] APP: [COMM] component added: Item_1 (id=1)
-[19:07:44] [info] APP: [APP] RobotSettingPanel created
-[19:07:44] [info] APP: [ROBOT_STATUS] RobotStatus created (multi-connection mode, with headless graph evaluator)
-[19:07:44] [info] APP: [MONITOR_WALL] MonitorWall created
-[19:07:44] [info] APP: [PLUGIN] Plugin directory: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\plugins
-[19:07:44] [info] APP: [PLUGIN] Python: python.exe
-[19:07:44] [info] APP: [PLUGIN] Ready
-[19:07:44] [info] APP: [ROBOT_STATUS] Selected item set to: Item_1
-[19:07:44] [info] APP: [ROBOT_STATUS] No graph for item 'Item_1' + gamepad 'Item_1', cleared
-[19:07:44] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_1
-[19:07:44] [info] APP: [PLUGIN] Loaded: counting
-[19:07:44] [info] APP: [PLUGIN] Loaded: explorer
-[19:07:44] [info] APP: [PLUGIN] Loaded: hellocpp
-[19:07:44] [info] APP: [PLUGIN] Loaded: statemonitor
-[19:07:44] [info] APP: [PLUGIN] Scan: 4 plugins
-[19:07:44] [info] APP: [PLUGIN] Scan done: 4 plugins
-[19:07:44] [info] APP: [APP] Plugin system initialized
-[19:07:44] [info] APP: [APP] ImPlot context created
-[19:07:44] [info] APP: [COMM] Loaded 2 comm configs
-[19:07:44] [info] APP: [APP] Kernel loaded: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\bin\Dist-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
-[19:07:44] [info] APP: [APP] Loading component: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\demo.rbt
-[19:07:44] [info] APP: [component] Loading component: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\demo.rbt
-[19:07:44] [info] APP: [APP] Robot config loaded: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\demo.rbt
-[19:07:44] [info] APP: [COMM] Loaded 2 comm configs
-[19:07:44] [info] APP: [ROBOT_STATUS] Selected item set to: Cemera
-[19:07:44] [info] APP: [ROBOT_STATUS] No graph for item 'Cemera' + gamepad 'XBOX', cleared
-[19:07:44] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
-[19:07:44] [info] APP: [APP] Gamepad thread started
-[19:07:44] [info] APP: [APP] Robot UI initialized successfully
-[19:07:44] [info] APP: [GAMEPAD] Gamepad routine started
-[19:07:44] [info] APP: [CONFIG] Saved BASE: ls=0, ng=0
-[19:07:44] [info] APP: [CONFIG] RobotSetting editing started
-[19:07:45] [info] APP: [PLUGIN] All dependencies already installed
-[19:07:45] [info] APP: [PLUGIN] Plugin 'statemonitor' loaded
-[19:07:45] [info] APP: [PLUGIN] Plugin 'explorer' loaded
-[19:07:45] [info] APP: [PLUGIN] Plugin 'counting' loaded
-[19:07:45] [info] APP: [PLUGIN] [init] Checking model files...
-[19:07:45] [info] APP: [PLUGIN] [loading_models] Loading YOLO models...
-[19:07:45] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #0 (ROV-XBOX)
-[19:07:45] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
-[19:07:45] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
-[19:07:45] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
-[19:07:45] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
-[19:07:45] [info] APP: [ROBOT_STATUS] Derived 2 ActiveComm(s) from NodeGraph #0 comm_refs
-[19:07:45] [info] APP: [ROBOT_STATUS] Synced 2 connections from graph comm_refs (linked=0)
-[19:07:45] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #0 (ROV-XBOX)
-[19:07:49] [info] APP: [PLUGIN] Enabling: counting
-[19:07:49] [info] APP: [PLUGIN] Enabled: counting
-[19:07:49] [info] APP: [PLUGIN] Plugin 'counting' enabled
-[19:07:53] [info] APP: [PLUGIN] [models_ready] Models loaded
-[19:07:59] [info] APP: [APP] Robot UI shutting down...
-[19:07:59] [info] APP: [APP] Kernel saved: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\bin\Dist-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
-[19:07:59] [info] APP: [GAMEPAD] Gamepad routine stopped
-[19:07:59] [info] APP: [APP] Gamepad thread joined
+[23:31:46] [info] APP: [APP] Robot UI application created
+[23:31:46] [info] APP: [APP] Robot UI initializing...
+[23:31:46] [info] APP: [COMP] Item added: Item_1 (id=1)
+[23:31:46] [info] APP: [GAMEPAD] Item added: Item_1 (id=1)
+[23:31:46] [info] APP: [GSTREAMER] Initializing GStreamer...
+[23:31:46] [info] APP: [GSTREAMER] Calling gst_init_check...
+[23:31:46] [info] APP: [GSTREAMER] GStreamer initialized successfully
+[23:31:46] [info] APP: [COMM] component added: Item_1 (id=1)
+[23:31:46] [info] APP: [APP] RobotSettingPanel created
+[23:31:46] [info] APP: [ROBOT_STATUS] RobotStatus created (multi-connection mode, with headless graph evaluator)
+[23:31:46] [info] APP: [MONITOR_WALL] MonitorWall created
+[23:31:46] [info] APP: [PLUGIN] Plugin directory: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\plugins
+[23:31:46] [info] APP: [PLUGIN] Python: python.exe
+[23:31:46] [info] APP: [PLUGIN] Ready
+[23:31:46] [info] APP: [ROBOT_STATUS] Selected item set to: Item_1
+[23:31:46] [info] APP: [ROBOT_STATUS] No graph for item 'Item_1' + gamepad 'Item_1', cleared
+[23:31:46] [info] APP: [ROBOT_STATUS] Active gamepad set to: Item_1
+[23:31:46] [info] APP: [PLUGIN] Loaded: counting
+[23:31:46] [info] APP: [PLUGIN] Loaded: explorer
+[23:31:46] [info] APP: [PLUGIN] Loaded: hellocpp
+[23:31:46] [info] APP: [PLUGIN] Loaded: statemonitor
+[23:31:46] [info] APP: [PLUGIN] Scan: 4 plugins
+[23:31:46] [info] APP: [PLUGIN] Scan done: 4 plugins
+[23:31:46] [info] APP: [APP] Plugin system initialized
+[23:31:46] [info] APP: [APP] ImPlot context created
+[23:31:46] [info] APP: [COMM] Loaded 2 comm configs
+[23:31:46] [info] APP: [APP] Kernel loaded: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\bin\Dist-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
+[23:31:46] [info] APP: [APP] Loading component: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\demo.rbt
+[23:31:46] [info] APP: [component] Loading component: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\demo.rbt
+[23:31:46] [info] APP: [APP] Robot config loaded: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\asset\file\demo.rbt
+[23:31:46] [info] APP: [COMM] Loaded 2 comm configs
+[23:31:46] [info] APP: [ROBOT_STATUS] Selected item set to: Cemera
+[23:31:46] [info] APP: [ROBOT_STATUS] No graph for item 'Cemera' + gamepad 'XBOX', cleared
+[23:31:46] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:31:46] [info] APP: [APP] Gamepad thread started
+[23:31:46] [info] APP: [APP] Robot UI initialized successfully
+[23:31:46] [info] APP: [GAMEPAD] Gamepad routine started
+[23:31:46] [info] APP: [CONFIG] Saved BASE: ls=0, ng=0
+[23:31:46] [info] APP: [CONFIG] RobotSetting editing started
+[23:31:46] [info] APP: [PLUGIN] All dependencies already installed
+[23:31:46] [info] APP: [PLUGIN] Plugin 'counting' loaded
+[23:31:46] [info] APP: [PLUGIN] [init] Checking model files...
+[23:31:46] [info] APP: [PLUGIN] [loading_models] Loading YOLO models...
+[23:31:46] [info] APP: [PLUGIN] Plugin 'statemonitor' loaded
+[23:31:46] [info] APP: [PLUGIN] Plugin 'explorer' loaded
+[23:31:47] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #0 (ROV-XBOX)
+[23:31:47] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:31:47] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:31:47] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:31:47] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:31:47] [info] APP: [ROBOT_STATUS] Derived 2 ActiveComm(s) from NodeGraph #0 comm_refs
+[23:31:47] [info] APP: [ROBOT_STATUS] Synced 2 connections from graph comm_refs (linked=0)
+[23:31:47] [info] APP: [ROBOT_STATUS] Synced graph from active NodeGraph #0 (ROV-XBOX)
+[23:31:57] [info] APP: [CONFIG] Applying RobotSetting...
+[23:31:57] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:31:57] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:31:57] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:31:57] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:31:57] [info] APP: [ROBOT_STATUS] Derived 2 ActiveComm(s) from NodeGraph #0 comm_refs
+[23:31:57] [info] APP: [CONFIG] Restored BASE: ls=0, ng=0
+[23:31:58] [info] APP: [CONFIG] Saved BASE: ls=0, ng=0
+[23:31:58] [info] APP: [CONFIG] RobotSetting editing started
+[23:32:12] [info] APP: [CONFIG] Applying RobotSetting...
+[23:32:12] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:32:12] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:32:12] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:32:12] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:32:12] [info] APP: [ROBOT_STATUS] Derived 2 ActiveComm(s) from NodeGraph #0 comm_refs
+[23:32:12] [info] APP: [CONFIG] Restored BASE: ls=0, ng=0
+[23:32:12] [info] APP: [CONFIG] Saved BASE: ls=0, ng=0
+[23:32:12] [info] APP: [CONFIG] RobotSetting editing started
+[23:32:16] [info] APP: [LIVESTREAM] UDP: opening stream directly (no retry)...
+[23:32:24] [info] APP: [CONFIG] Applying RobotSetting...
+[23:32:24] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:32:24] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:32:24] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:32:24] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:32:24] [info] APP: [ROBOT_STATUS] Derived 2 ActiveComm(s) from NodeGraph #0 comm_refs
+[23:32:24] [info] APP: [CONFIG] Restored BASE: ls=0, ng=0
+[23:32:24] [info] APP: [CONFIG] Saved BASE: ls=0, ng=0
+[23:32:24] [info] APP: [CONFIG] RobotSetting editing started
+[23:32:25] [info] APP: [LIVESTREAM] Connecting to rtsp://192.168.0.38:8554 (max 3 attempts)...
+[23:32:25] [info] APP: [LIVESTREAM]   Attempt 1 of 3...
+[23:32:25] [error] APP: [LIVESTREAM] Connect timeout (no response within 2.5s)
+[23:32:25] [error] APP: [LIVESTREAM]   Attempt 1 of 3 FAILED: Connection timeout — no response from camera
+[23:32:26] [info] APP: [LIVESTREAM]   Attempt 2 of 3...
+[23:32:26] [error] APP: [LIVESTREAM] Connect timeout (no response within 2.5s)
+[23:32:26] [error] APP: [LIVESTREAM]   Attempt 2 of 3 FAILED: Connection timeout — no response from camera
+[23:32:27] [info] APP: [LIVESTREAM]   Attempt 3 of 3...
+[23:32:27] [error] APP: [LIVESTREAM] Connect timeout (no response within 2.5s)
+[23:32:27] [error] APP: [LIVESTREAM]   Attempt 3 of 3 FAILED: Connection timeout — no response from camera
+[23:32:27] [error] APP: [LIVESTREAM] All 3 attempts failed.
+[23:32:54] [info] APP: [LIVESTREAM] Connecting to rtsp://192.168.0.38:8554 (max 3 attempts)...
+[23:32:54] [info] APP: [LIVESTREAM]   Attempt 1 of 3...
+[23:32:54] [error] APP: [LIVESTREAM] Connect timeout (no response within 2.5s)
+[23:32:54] [error] APP: [LIVESTREAM]   Attempt 1 of 3 FAILED: Connection timeout — no response from camera
+[23:32:55] [info] APP: [LIVESTREAM]   Attempt 2 of 3...
+[23:32:55] [error] APP: [LIVESTREAM] Connect timeout (no response within 2.5s)
+[23:32:55] [error] APP: [LIVESTREAM]   Attempt 2 of 3 FAILED: Connection timeout — no response from camera
+[23:32:57] [info] APP: [LIVESTREAM] Connecting to rtsp://0.0.0.0:0 (max 3 attempts)...
+[23:32:57] [info] APP: [LIVESTREAM]   Attempt 1 of 3...
+[23:32:57] [error] APP: [LIVESTREAM] Connect timeout (no response within 2.5s)
+[23:32:57] [error] APP: [LIVESTREAM]   Attempt 1 of 3 FAILED: Connection timeout — no response from camera
+[23:32:58] [info] APP: [LIVESTREAM]   Attempt 2 of 3...
+[23:32:58] [error] APP: [LIVESTREAM] Connect timeout (no response within 2.5s)
+[23:32:58] [error] APP: [LIVESTREAM]   Attempt 2 of 3 FAILED: Connection timeout — no response from camera
+[23:33:07] [info] APP: [CONFIG] Applying RobotSetting...
+[23:33:07] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:33:07] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:33:07] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:33:07] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:33:07] [info] APP: [ROBOT_STATUS] Derived 2 ActiveComm(s) from NodeGraph #0 comm_refs
+[23:33:07] [info] APP: [CONFIG] Restored BASE: ls=0, ng=0
+[23:33:07] [info] APP: [CONFIG] Saved BASE: ls=0, ng=0
+[23:33:07] [info] APP: [CONFIG] RobotSetting editing started
+[23:33:12] [info] APP: [LIVESTREAM] UDP: opening stream directly (no retry)...
+[23:33:50] [info] APP: [CONFIG] Applying RobotSetting...
+[23:33:50] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:33:50] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:33:50] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:33:50] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:33:50] [info] APP: [ROBOT_STATUS] Derived 2 ActiveComm(s) from NodeGraph #0 comm_refs
+[23:33:50] [info] APP: [CONFIG] Restored BASE: ls=0, ng=0
+[23:33:50] [info] APP: [CONFIG] Saved BASE: ls=0, ng=0
+[23:33:50] [info] APP: [CONFIG] RobotSetting editing started
+[23:34:06] [info] APP: [CONFIG] Applying RobotSetting...
+[23:34:06] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:34:06] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:34:06] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:34:06] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:34:06] [info] APP: [ROBOT_STATUS] Derived 2 ActiveComm(s) from NodeGraph #0 comm_refs
+[23:34:06] [info] APP: [CONFIG] Restored BASE: ls=0, ng=0
+[23:34:06] [info] APP: [CONFIG] Saved BASE: ls=0, ng=0
+[23:34:06] [info] APP: [CONFIG] RobotSetting editing started
+[23:34:09] [info] APP: [LIVESTREAM] UDP: opening stream directly (no retry)...
+[23:34:15] [info] APP: [LIVESTREAM] UDP: opening stream directly (no retry)...
+[23:34:36] [info] APP: [CONFIG] Applying RobotSetting...
+[23:34:36] [info] APP: [ROBOT_STATUS] Selected item set to: ROV
+[23:34:36] [info] APP: [ROBOT_STATUS] Derived ActiveMode 'ROV' from NodeGraph #0
+[23:34:36] [info] APP: [ROBOT_STATUS] Active gamepad set to: XBOX
+[23:34:36] [info] APP: [ROBOT_STATUS] Derived ActiveGamepad 'XBOX' from NodeGraph #0
+[23:34:36] [info] APP: [ROBOT_STATUS] Derived 2 ActiveComm(s) from NodeGraph #0 comm_refs
+[23:34:36] [info] APP: [CONFIG] Restored BASE: ls=0, ng=0
+[23:34:36] [info] APP: [CONFIG] Saved BASE: ls=0, ng=0
+[23:34:36] [info] APP: [CONFIG] RobotSetting editing started
+[23:34:40] [info] APP: [LIVESTREAM] UDP: opening stream directly (no retry)...
+[23:34:44] [info] APP: [LIVESTREAM] UDP: opening stream directly (no retry)...
+[23:34:57] [info] APP: [LIVESTREAM] UDP: opening stream directly (no retry)...
+[23:35:02] [info] APP: [APP] Robot UI shutting down...
+[23:35:02] [info] APP: [APP] Kernel saved: C:\Users\29164\Desktop\Robot-UI\Robot-UI-master\bin\Dist-windows-x86_64\Robot-UI\..\..\..\asset\file\default.kernel
+[23:35:02] [info] APP: [GAMEPAD] Gamepad routine stopped
+[23:35:02] [info] APP: [APP] Gamepad thread joined
