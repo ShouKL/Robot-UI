@@ -649,11 +649,28 @@ bool RobotStatus::LinkConnection(int index)
     conn.state->attempt = 0;
     conn.state->maxAttempts = totalAttempts;
 
-    // 后台线程执行连接，不阻塞 UI
     auto hw = conn.hw;
     auto cfg = conn.config;
     auto st  = conn.state;
     auto mgr = m_RobotCommManager;
+
+    // UDP: 无连接协议，直接同步打开，不建线程不重试
+    if (cfg.transport_type == 0) {
+        lock.unlock();
+        bool ok = hw->Initialize(cfg.host_ip, cfg.remote_port, cfg.local_port, cfg.transport_type);
+        lock.lock();
+        if (ok) {
+            hw->SetProtocolConfig(cfg.protocol_send);
+            hw->SetProtocolReceiveConfig(cfg.protocol_receive);
+            hw->SetName(cfg.name);
+            st->isLinked = true;
+            WL_INFO_TAG("ROBOT_STATUS", "Link SUCCESS: {} ({})", cfg.name, cfg.host_ip);
+        }
+        st->isConnecting = false;
+        return ok;
+    }
+
+    // TCP/Serial: 后台线程执行连接，不阻塞 UI
     auto t = std::make_shared<std::thread>([hw, cfg, st, totalAttempts, mgr, this]() {
         for (int attempt = 1; attempt <= totalAttempts; ++attempt) {
             if (!st->isConnecting.load() || m_ShuttingDown.load()) return;

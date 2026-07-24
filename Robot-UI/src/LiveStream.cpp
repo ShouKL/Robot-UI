@@ -359,19 +359,45 @@ bool LiveStream::Open() {
         return true;
     }
 
-    // TCP: 等待 bus 消息确认（最多 2.5s）
+    // TCP: 循环等待 bus 消息直到确认成功或失败（最多 5s）
     {
         GstBus* bus;
         {
             std::lock_guard<std::mutex> lock(m_pipeMutex);
             bus = gst_pipeline_get_bus(GST_PIPELINE(m_pipeline));
         }
-        GstMessage* msg = gst_bus_timed_pop_filtered(
-            bus, 2500 * GST_MSECOND,
-            (GstMessageType)(GST_MESSAGE_ERROR | GST_MESSAGE_STATE_CHANGED | GST_MESSAGE_EOS));
 
-        if (msg) {
-            if (GST_MESSAGE_TYPE(msg) == GST_MESSAGE_ERROR) {
+        GstClockTime deadline = gst_clock_get_time(gst_system_clock_obtain()) + 5 * GST_SECOND;
+
+        while (true) {
+            GstClockTime remain = deadline - gst_clock_get_time(gst_system_clock_obtain());
+            if (remain < 0) remain = 0;
+
+            GstMessage* msg = gst_bus_timed_pop_filtered(
+                bus, remain,
+                (GstMessageType)(GST_MESSAGE_ERROR | GST_MESSAGE_STATE_CHANGED | GST_MESSAGE_EOS));
+
+            if (!msg) {
+                // 超时
+                WL_ERROR_TAG("LIVESTREAM", "Connect timeout (no PLAYING within 5s)");
+                gst_object_unref(bus);
+                {
+                    std::lock_guard<std::mutex> lock(m_pipeMutex);
+                    if (m_pipeline) {
+                        GstElement* s = gst_bin_get_by_name(GST_BIN(m_pipeline), "mysink");
+                        if (s) { g_signal_handlers_disconnect_by_data(s, this); gst_object_unref(s); }
+                        gst_element_set_state(m_pipeline, GST_STATE_NULL);
+                        gst_object_unref(m_pipeline);
+                        m_pipeline = nullptr;
+                    }
+                }
+                m_image.reset();
+                m_lastErrorMsg = "Connection timeout — no response from camera";
+                return false;
+            }
+
+            switch (GST_MESSAGE_TYPE(msg)) {
+            case GST_MESSAGE_ERROR: {
                 GError* err = nullptr;
                 gchar* debug = nullptr;
                 gst_message_parse_error(msg, &err, &debug);
@@ -390,9 +416,10 @@ bool LiveStream::Open() {
                         m_pipeline = nullptr;
                     }
                 }
+                m_image.reset();
                 return false;
             }
-            if (GST_MESSAGE_TYPE(msg) == GST_MESSAGE_EOS) {
+            case GST_MESSAGE_EOS:
                 m_lastErrorMsg = "Unexpected end of stream during connect";
                 gst_message_unref(msg);
                 gst_object_unref(bus);
@@ -406,36 +433,26 @@ bool LiveStream::Open() {
                         m_pipeline = nullptr;
                     }
                 }
+                m_image.reset();
                 return false;
-            }
-            if (GST_MESSAGE_SRC(msg) == GST_OBJECT(m_pipeline)) {
-                GstState oldState, newState, pendingState;
-                gst_message_parse_state_changed(msg, &oldState, &newState, &pendingState);
-                if (newState == GST_STATE_PLAYING) {
-                    gst_message_unref(msg);
-                    gst_object_unref(bus);
-                    return true;
+            case GST_MESSAGE_STATE_CHANGED:
+                if (GST_MESSAGE_SRC(msg) == GST_OBJECT(m_pipeline)) {
+                    GstState oldState, newState, pendingState;
+                    gst_message_parse_state_changed(msg, &oldState, &newState, &pendingState);
+                    if (newState == GST_STATE_PLAYING) {
+                        gst_message_unref(msg);
+                        gst_object_unref(bus);
+                        return true;
+                    }
                 }
+                gst_message_unref(msg);
+                continue;  // PAUSED 等中间状态 → 继续等
+            default:
+                gst_message_unref(msg);
+                continue;
             }
-            gst_message_unref(msg);
-        }
-        gst_object_unref(bus);
-    }
-
-    // 超时无结果
-    WL_ERROR_TAG("LIVESTREAM", "Connect timeout (no response within 2.5s)");
-    {
-        std::lock_guard<std::mutex> lock(m_pipeMutex);
-        if (m_pipeline) {
-            GstElement* s = gst_bin_get_by_name(GST_BIN(m_pipeline), "mysink");
-            if (s) { g_signal_handlers_disconnect_by_data(s, this); gst_object_unref(s); }
-            gst_element_set_state(m_pipeline, GST_STATE_NULL);
-            gst_object_unref(m_pipeline);
-            m_pipeline = nullptr;
         }
     }
-    m_lastErrorMsg = "Connection timeout — no response from camera";
-    return false;
 }
 
 void LiveStream::TryOpen(int maxRetries, int intervalMs) {
@@ -551,7 +568,7 @@ void LiveStream::Close() {
 }
 
 void LiveStream::CancelConnect() {
-    m_connecting = false;  // 通知 ProcessPendingConnect 停止
+    m_connecting = false;
     m_connectAttempt = 0;
 }
 
