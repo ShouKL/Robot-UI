@@ -20,12 +20,12 @@ robot_ui_kernel:
     gamepad_active_mode: 0
     node_left_side_width: 200
     node_right_side_width: 200
-    robot_path: ..\..\..\asset\file\demo.rbt
+    robot_path: ..\..\..\..\ÄÚ²â°æ\asset\file\C2.rbt
     robot_dirty: false
     recent_files:
+      - ..\..\..\..\Robot-UI-2.0.0-windows-x86_64\asset\file\beyond.rbt
       - ..\..\..\asset\file\demo.rbt
       - ..\..\..\asset\file\default.rbt
-      - ..\..\..\..\ÄÚ²â°æ\asset\file\C2.rbt
     screenshot_scope: 5
     screenshot_path: ""
     conn_retry_count: 5
@@ -644,6 +644,16 @@ robot_ui_kernel:
               tail:
                 []
               fields:
+                - name: raw
+                  path: ""
+                  encoding: 0
+                  group: ""
+                  visible: true
+                  fix: false
+                  fix_value: 0
+                  raw_data:
+                    - 0
+                    - 0
                 - name: pitch
                   path: brushlessmotor.Pitch.target_position
                   encoding: 3

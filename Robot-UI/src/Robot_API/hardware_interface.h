@@ -83,8 +83,10 @@ private:
     std::vector<std::vector<uint8_t>> SerializeActuatorData(const ActuatorConfig& data);
     SensorData DeserializeSensorData(const std::vector<uint8_t>& raw_data);
 
-    // Per-instance log timers (按时间间隔输出发送日志，key=帧索引)
+    // Per-instance log timers (按时间间隔输出日志)
     std::map<size_t, std::chrono::steady_clock::time_point> m_LastSendLogTime;
+    std::chrono::steady_clock::time_point m_LastRecvLogTime;   // recv hex log throttle
+    int m_RecvLogSkipCount = 0;                                // skipped recv frames since last log
     int m_RecvOkCount    = 0;
     int m_IdleCount      = 0;
     int m_FailCount      = 0;

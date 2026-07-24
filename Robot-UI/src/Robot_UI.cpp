@@ -212,6 +212,12 @@ Robot_UI_Layer::~Robot_UI_Layer()
 
 void Robot_UI_Layer::LoadRobotFile(const std::string& path)
 {
+    // ---- Stop gamepad thread to prevent race condition with manager data reset ----
+    bool wasRunning = m_GamepadThread.joinable();
+    m_Running = false;
+    if (m_GamepadThread.joinable())
+        m_GamepadThread.join();
+
     auto* liveStreamMgr = m_RobotSettingPanel->GetLiveStreamManager();
 
     std::vector<LiveStream> streams;
@@ -237,6 +243,13 @@ void Robot_UI_Layer::LoadRobotFile(const std::string& path)
         WL_INFO_TAG("APP", "Robot config not found or invalid: {} ({})", path, error);
         // 文件无法打开则从最近列表中移除
         m_FileManager->RemoveRecentFile(path);
+        // Restart gamepad thread only if it was running before
+        if (wasRunning) {
+            m_Running = true;
+            try {
+                m_GamepadThread = std::thread(&Robot_UI_Layer::GamepadRoutine, this);
+            } catch (...) {}
+        }
         return;
     }
 
@@ -291,6 +304,19 @@ void Robot_UI_Layer::LoadRobotFile(const std::string& path)
     else if (m_RobotSettingPanel)
     {
         m_RobotSettingPanel->GetNodeGraph()->SetGraphMap(graphMap);
+    }
+
+    // ---- Restart gamepad thread after all data is loaded (only if it was running) ----
+    if (wasRunning) {
+        m_Running = true;
+        try {
+            m_GamepadThread = std::thread(&Robot_UI_Layer::GamepadRoutine, this);
+            WL_INFO_TAG("APP", "Gamepad thread restarted after file load");
+        } catch (const std::exception& e) {
+            WL_ERROR_TAG("APP", "Failed to restart gamepad thread: {}", e.what());
+        } catch (...) {
+            WL_ERROR_TAG("APP", "Failed to restart gamepad thread: unknown error");
+        }
     }
 }
 
@@ -454,6 +480,12 @@ void Robot_UI_Layer::SaveKernelFile(const std::string& path)
 
 void Robot_UI_Layer::FileNew()
 {
+    // ---- Stop gamepad thread to prevent race condition with manager data reset ----
+    bool wasRunning = m_GamepadThread.joinable();
+    m_Running = false;
+    if (m_GamepadThread.joinable())
+        m_GamepadThread.join();
+
     // 断开所有连接
     if (m_RobotStatus) m_RobotStatus->UnlinkAll();
 
@@ -493,6 +525,14 @@ void Robot_UI_Layer::FileNew()
             m_RobotStatus->SetActiveGamepad(gpMapper);
             m_RobotStatus->LoadGraph(gpMapper->name);
         }
+    }
+
+    // ---- Restart gamepad thread after all data is reset (only if it was running) ----
+    if (wasRunning) {
+        m_Running = true;
+        try {
+            m_GamepadThread = std::thread(&Robot_UI_Layer::GamepadRoutine, this);
+        } catch (...) {}
     }
 
     WL_INFO_TAG("APP", "New file created");

@@ -223,6 +223,7 @@ void NodeGraphManager::LoadItems(const std::vector<NodeGraph>& items)
     auto kvSnapshot = m_SelectedGraph ? m_SelectedGraph->GetKeyValuesSnapshot() : std::map<std::string, float>{};
     int oldSelectedIdx = m_SelectedIndex;
     m_Items.clear();
+    m_SelectedGraph = nullptr;  // prevent dangling pointer during item reconstruction
     for (const auto& src : items) {
         auto graph = std::make_unique<NodeGraph>();
         graph->id = src.id;
@@ -256,6 +257,7 @@ void NodeGraphManager::LoadItems(const std::vector<NodeGraph>& items)
 void NodeGraphManager::ResetToDefault()
 {
     m_Items.clear();
+    m_SelectedGraph = nullptr;  // prevent dangling pointer
     m_SelectedIndex = 0;
     AddItem();
     if (!m_Items.empty()) {

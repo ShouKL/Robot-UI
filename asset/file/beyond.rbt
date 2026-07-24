@@ -1,0 +1,1070 @@
+robot_ui_config:
+  version: 1
+  robot:
+    items:
+      - name: ROV
+        has_temperature: true
+        has_humidity: false
+        has_depth: true
+        brushless_motors:
+          - id: 0
+            name: LeftFront
+            target_speed: 0
+            target_speed_enc: 0
+            target_position: 0
+            target_position_enc: 0
+            np_mid: 2921.0300000000002
+            np_mid_enc: 0
+            np_ini: 2717.21
+            np_ini_enc: 0
+            pp_ini: 3066.6199999999999
+            pp_ini_enc: 0
+            pp_mid: 3212.21
+            pp_mid_enc: 0
+            nt_end: -931.91999999999996
+            nt_end_enc: 0
+            nt_mid: -137.16999999999999
+            nt_mid_enc: 0
+            pt_mid: 165.37
+            pt_mid_enc: 0
+            pt_end: 1329.8900000000001
+            pt_end_enc: 0
+            pwm_min: 2600
+            pwm_max: 3400
+          - id: 4
+            name: LeftRear
+            target_speed: 0
+            target_speed_enc: 0
+            target_position: 0
+            target_position_enc: 0
+            np_mid: 2921.0300000000002
+            np_mid_enc: 0
+            np_ini: 2717.21
+            np_ini_enc: 0
+            pp_ini: 3066.6199999999999
+            pp_ini_enc: 0
+            pp_mid: 3212.21
+            pp_mid_enc: 0
+            nt_end: -931.91999999999996
+            nt_end_enc: 0
+            nt_mid: -137.16999999999999
+            nt_mid_enc: 0
+            pt_mid: 165.37
+            pt_mid_enc: 0
+            pt_end: 1329.8900000000001
+            pt_end_enc: 0
+            pwm_min: 2600
+            pwm_max: 3400
+          - id: 1
+            name: RightFront
+            target_speed: 0
+            target_speed_enc: 0
+            target_position: 0
+            target_position_enc: 0
+            np_mid: 2921.0300000000002
+            np_mid_enc: 0
+            np_ini: 2717.21
+            np_ini_enc: 0
+            pp_ini: 3066.6199999999999
+            pp_ini_enc: 0
+            pp_mid: 3212.21
+            pp_mid_enc: 0
+            nt_end: -931.91999999999996
+            nt_end_enc: 0
+            nt_mid: -137.16999999999999
+            nt_mid_enc: 0
+            pt_mid: 165.37
+            pt_mid_enc: 0
+            pt_end: 1329.8900000000001
+            pt_end_enc: 0
+            pwm_min: 2600
+            pwm_max: 3400
+          - id: 5
+            name: RightRear
+            target_speed: 0
+            target_speed_enc: 0
+            target_position: 0
+            target_position_enc: 0
+            np_mid: 2921.0300000000002
+            np_mid_enc: 0
+            np_ini: 2717.21
+            np_ini_enc: 0
+            pp_ini: 3066.6199999999999
+            pp_ini_enc: 0
+            pp_mid: 3212.21
+            pp_mid_enc: 0
+            nt_end: -931.91999999999996
+            nt_end_enc: 0
+            nt_mid: -137.16999999999999
+            nt_mid_enc: 0
+            pt_mid: 165.37
+            pt_mid_enc: 0
+            pt_end: 1329.8900000000001
+            pt_end_enc: 0
+            pwm_min: 2600
+            pwm_max: 3400
+          - id: 2
+            name: LeftVertical
+            target_speed: 0
+            target_speed_enc: 0
+            target_position: 0
+            target_position_enc: 0
+            np_mid: 2921.0300000000002
+            np_mid_enc: 0
+            np_ini: 2717.21
+            np_ini_enc: 0
+            pp_ini: 3066.6199999999999
+            pp_ini_enc: 0
+            pp_mid: 3212.21
+            pp_mid_enc: 0
+            nt_end: -931.91999999999996
+            nt_end_enc: 0
+            nt_mid: -137.16999999999999
+            nt_mid_enc: 0
+            pt_mid: 165.37
+            pt_mid_enc: 0
+            pt_end: 1329.8900000000001
+            pt_end_enc: 0
+            pwm_min: 2600
+            pwm_max: 3400
+          - id: 3
+            name: RightVertical
+            target_speed: 0
+            target_speed_enc: 0
+            target_position: 0
+            target_position_enc: 0
+            np_mid: 2921.0300000000002
+            np_mid_enc: 0
+            np_ini: 2717.21
+            np_ini_enc: 0
+            pp_ini: 3066.6199999999999
+            pp_ini_enc: 0
+            pp_mid: 3212.21
+            pp_mid_enc: 0
+            nt_end: -931.91999999999996
+            nt_end_enc: 0
+            nt_mid: -137.16999999999999
+            nt_mid_enc: 0
+            pt_mid: 165.37
+            pt_mid_enc: 0
+            pt_end: 1329.8900000000001
+            pt_end_enc: 0
+            pwm_min: 2600
+            pwm_max: 3400
+        servos:
+          - id: 0
+            name: Servo
+            angle: 0
+            angle_enc: 0
+        gpio_pins:
+          []
+        motions:
+          - name: Motion
+            x: 0
+            x_enc: 0
+            y: 0
+            y_enc: 0
+            z: 0
+            z_enc: 0
+            rx: 0
+            rx_enc: 0
+            ry: 0
+            ry_enc: 0
+            rz: 0
+            rz_enc: 0
+      - name: Cemera
+        has_temperature: false
+        has_humidity: false
+        has_depth: false
+        brushless_motors:
+          - id: 1
+            name: Pitch
+            target_speed: 0
+            target_speed_enc: 0
+            target_position: 0
+            target_position_enc: 0
+            np_mid: 0
+            np_mid_enc: 0
+            np_ini: 0
+            np_ini_enc: 0
+            pp_ini: 0
+            pp_ini_enc: 0
+            pp_mid: 0
+            pp_mid_enc: 0
+            nt_end: 0
+            nt_end_enc: 0
+            nt_mid: 0
+            nt_mid_enc: 0
+            pt_mid: 0
+            pt_mid_enc: 0
+            pt_end: 0
+            pt_end_enc: 0
+            pwm_min: 0
+            pwm_max: 0
+        servos:
+          []
+        gpio_pins:
+          []
+        motions:
+          []
+    active_mode: 1
+  gamepad:
+    items:
+      - name: XBOX
+        gamepad_type: 0
+        keys:
+          - key_id: 1
+            key_name: A
+            analog: false
+          - key_id: 2
+            key_name: B
+            analog: false
+          - key_id: 3
+            key_name: X
+            analog: false
+          - key_id: 4
+            key_name: Y
+            analog: false
+          - key_id: 5
+            key_name: LS
+            analog: false
+          - key_id: 6
+            key_name: RS
+            analog: false
+          - key_id: 7
+            key_name: UP
+            analog: false
+          - key_id: 8
+            key_name: DOWN
+            analog: false
+          - key_id: 9
+            key_name: LEFT
+            analog: false
+          - key_id: 10
+            key_name: RIGHT
+            analog: false
+          - key_id: 11
+            key_name: LB
+            analog: false
+          - key_id: 12
+            key_name: RB
+            analog: false
+          - key_id: 13
+            key_name: VIEW
+            analog: false
+          - key_id: 14
+            key_name: LT
+            analog: true
+          - key_id: 15
+            key_name: RT
+            analog: true
+          - key_id: 16
+            key_name: LSX
+            analog: true
+          - key_id: 17
+            key_name: LSY
+            analog: true
+          - key_id: 18
+            key_name: RSX
+            analog: true
+          - key_id: 19
+            key_name: MENU
+            analog: false
+          - key_id: 20
+            key_name: RSY
+            analog: true
+        mappings:
+          - key_id: 1
+            key_name: A
+            key: Button_A
+            analog: false
+          - key_id: 2
+            key_name: B
+            key: Button_B
+            analog: false
+          - key_id: 3
+            key_name: X
+            key: Button_X
+            analog: false
+          - key_id: 4
+            key_name: Y
+            key: Button_Y
+            analog: false
+          - key_id: 5
+            key_name: LS
+            key: L_Stick_Click
+            analog: false
+          - key_id: 6
+            key_name: RS
+            key: R_Stick_Click
+            analog: false
+          - key_id: 7
+            key_name: UP
+            key: DPad_Up
+            analog: false
+          - key_id: 8
+            key_name: DOWN
+            key: DPad_Down
+            analog: false
+          - key_id: 9
+            key_name: LEFT
+            key: DPad_Left
+            analog: false
+          - key_id: 10
+            key_name: RIGHT
+            key: DPad_Right
+            analog: false
+          - key_id: 11
+            key_name: LB
+            key: LB
+            analog: false
+          - key_id: 12
+            key_name: RB
+            key: RB
+            analog: false
+          - key_id: 13
+            key_name: VIEW
+            key: Button_View
+            analog: false
+          - key_id: 14
+            key_name: LT
+            key: LT
+            analog: true
+          - key_id: 15
+            key_name: RT
+            key: RT
+            analog: true
+          - key_id: 16
+            key_name: LSX
+            key: L_Stick_X
+            analog: true
+          - key_id: 17
+            key_name: LSY
+            key: L_Stick_Y
+            analog: true
+          - key_id: 18
+            key_name: RSX
+            key: R_Stick_X
+            analog: true
+          - key_id: 19
+            key_name: MENU
+            key: Button_Menu
+            analog: false
+          - key_id: 20
+            key_name: RSY
+            key: R_Stick_Y
+            analog: true
+      - name: Item_2
+        gamepad_type: 0
+        keys:
+          []
+        mappings:
+          []
+    active_mode: 0
+  streams:
+    - id: 1
+      is_streaming: false
+      is_selected: true
+      name: Beyond
+      ip: 192.168.0.38
+      user: ""
+      pass: ""
+      port: 8554
+      brand: 2
+      channel: 1
+      codec: 1
+      stream_type: 0
+      protocol: 0
+      custom_path: /main.264
+      latency: 0
+      udp_buffer_size: 0
+      timeout: 0
+      drop_on_latency: true
+      ntp_sync: false
+      buffer_mode: 0
+      decoder: 2
+      cpu_threads: 0
+      sync_to_clock: false
+      max_buffers: 0
+      low_latency_mode: true
+      use_bgra: false
+      auto_hardware_fallback: true
+    - id: 2
+      is_streaming: false
+      is_selected: false
+      name: Item_2
+      ip: 0.0.0.0
+      user: ""
+      pass: ""
+      port: 0
+      brand: 2
+      channel: 1
+      codec: 0
+      stream_type: 0
+      protocol: 0
+      custom_path: ""
+      latency: 0
+      udp_buffer_size: 0
+      timeout: 5000000
+      drop_on_latency: true
+      ntp_sync: false
+      buffer_mode: 0
+      decoder: 0
+      cpu_threads: 0
+      sync_to_clock: false
+      max_buffers: 0
+      low_latency_mode: true
+      use_bgra: false
+      auto_hardware_fallback: true
+  thrust_curve_editor:
+    pwm_min: 0
+    pwm_max: 0
+    default_pwm: 500
+    np_mid: 0
+    np_ini: 500
+    pp_ini: 500
+    pp_mid: 0
+    nt_end: 0
+    nt_mid: 0
+    pt_mid: 0
+    pt_end: 0
+  robot_comm:
+    nodes:
+      - id: 1
+        is_selected: false
+        is_linked: false
+        name: Beyond
+        host_ip: 192.168.0.233
+        remote_port: 2200
+        local_port: 1100
+        transport_type: 0
+        send_freq_hz: 100
+        retry_count: 6
+        active_component_idx: 0
+        com_port: (no COM ports)
+        baud_rate: 115200
+        data_bits: 3
+        stop_bits: 0
+        parity: 0
+        protocol_send:
+          - name: Motion
+            command_byte:
+              - 1
+            enabled: true
+            include_length: false
+            checksum: 2
+            big_endian: false
+            checksum_range: 0
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: X
+                path: motions.0.x
+                encoding: 0
+                group: Motion
+                visible: true
+                fix: false
+                fix_value: 0
+              - name: Y
+                path: motions.0.y
+                encoding: 0
+                group: Motion
+                visible: true
+                fix: false
+                fix_value: 0
+              - name: Z
+                path: motions.0.z
+                encoding: 0
+                group: Motion
+                visible: true
+                fix: false
+                fix_value: 0
+              - name: RX
+                path: motions.0.rx
+                encoding: 0
+                group: Motion
+                visible: true
+                fix: false
+                fix_value: 0
+              - name: RY
+                path: motions.0.ry
+                encoding: 0
+                group: Motion
+                visible: true
+                fix: false
+                fix_value: 0
+              - name: RZ
+                path: motions.0.rz
+                encoding: 0
+                group: Motion
+                visible: true
+                fix: false
+                fix_value: 0
+              - name: Angle
+                path: servo.Servo.angle
+                encoding: 0
+                group: Servo
+                visible: true
+                fix: false
+                fix_value: 0
+          - name: LeftFront
+            command_byte:
+              - 2
+            enabled: false
+            include_length: false
+            checksum: 2
+            big_endian: false
+            checksum_range: 0
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: ID
+                path: brushlessmotor.LeftFront.id
+                encoding: 0
+                group: LeftFront
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: np_mid
+                path: brushlessmotor.LeftFront.curve.np_mid
+                encoding: 0
+                group: LeftFront
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: np_ini
+                path: brushlessmotor.LeftFront.curve.np_ini
+                encoding: 0
+                group: LeftFront
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pp_ini
+                path: brushlessmotor.LeftFront.curve.pp_ini
+                encoding: 0
+                group: LeftFront
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pp_mid
+                path: brushlessmotor.LeftFront.curve.pp_mid
+                encoding: 0
+                group: LeftFront
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: nt_end
+                path: brushlessmotor.LeftFront.curve.nt_end
+                encoding: 0
+                group: LeftFront
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: nt_mid
+                path: brushlessmotor.LeftFront.curve.nt_mid
+                encoding: 0
+                group: LeftFront
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pt_mid
+                path: brushlessmotor.LeftFront.curve.pt_mid
+                encoding: 0
+                group: LeftFront
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pt_end
+                path: brushlessmotor.LeftFront.curve.pt_end
+                encoding: 0
+                group: LeftFront
+                visible: false
+                fix: true
+                fix_value: 0
+          - name: RightFront
+            command_byte:
+              - 2
+            enabled: false
+            include_length: false
+            checksum: 2
+            big_endian: false
+            checksum_range: 0
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: ID
+                path: brushlessmotor.RightFront.id
+                encoding: 6
+                group: RightFront
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: np_mid
+                path: brushlessmotor.RightFront.curve.np_mid
+                encoding: 0
+                group: RightFront
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: np_ini
+                path: brushlessmotor.RightFront.curve.np_ini
+                encoding: 0
+                group: RightFront
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pp_ini
+                path: brushlessmotor.RightFront.curve.pp_ini
+                encoding: 0
+                group: RightFront
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pp_mid
+                path: brushlessmotor.RightFront.curve.pp_mid
+                encoding: 0
+                group: RightFront
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: nt_end
+                path: brushlessmotor.RightFront.curve.nt_end
+                encoding: 0
+                group: RightFront
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: nt_mid
+                path: brushlessmotor.RightFront.curve.nt_mid
+                encoding: 0
+                group: RightFront
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pt_mid
+                path: brushlessmotor.RightFront.curve.pt_mid
+                encoding: 0
+                group: RightFront
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pt_end
+                path: brushlessmotor.RightFront.curve.pt_end
+                encoding: 0
+                group: RightFront
+                visible: false
+                fix: true
+                fix_value: 0
+          - name: LeftVertical
+            command_byte:
+              - 2
+            enabled: false
+            include_length: false
+            checksum: 2
+            big_endian: false
+            checksum_range: 0
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: ID
+                path: brushlessmotor.LeftVertical.id
+                encoding: 6
+                group: LeftVertical
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: np_mid
+                path: brushlessmotor.LeftVertical.curve.np_mid
+                encoding: 0
+                group: LeftVertical
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: np_ini
+                path: brushlessmotor.LeftVertical.curve.np_ini
+                encoding: 0
+                group: LeftVertical
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pp_ini
+                path: brushlessmotor.LeftVertical.curve.pp_ini
+                encoding: 0
+                group: LeftVertical
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pp_mid
+                path: brushlessmotor.LeftVertical.curve.pp_mid
+                encoding: 0
+                group: LeftVertical
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: nt_end
+                path: brushlessmotor.LeftVertical.curve.nt_end
+                encoding: 0
+                group: LeftVertical
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: nt_mid
+                path: brushlessmotor.LeftVertical.curve.nt_mid
+                encoding: 0
+                group: LeftVertical
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pt_mid
+                path: brushlessmotor.LeftVertical.curve.pt_mid
+                encoding: 0
+                group: LeftVertical
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pt_end
+                path: brushlessmotor.LeftVertical.curve.pt_end
+                encoding: 0
+                group: LeftVertical
+                visible: false
+                fix: true
+                fix_value: 0
+          - name: RightVertical
+            command_byte:
+              - 2
+            enabled: false
+            include_length: false
+            checksum: 2
+            big_endian: false
+            checksum_range: 0
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: ID
+                path: brushlessmotor.RightVertical.id
+                encoding: 6
+                group: RightVertical
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: np_mid
+                path: brushlessmotor.RightVertical.curve.np_mid
+                encoding: 0
+                group: RightVertical
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: np_ini
+                path: brushlessmotor.RightVertical.curve.np_ini
+                encoding: 0
+                group: RightVertical
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pp_ini
+                path: brushlessmotor.RightVertical.curve.pp_ini
+                encoding: 0
+                group: RightVertical
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pp_mid
+                path: brushlessmotor.RightVertical.curve.pp_mid
+                encoding: 0
+                group: RightVertical
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: nt_end
+                path: brushlessmotor.RightVertical.curve.nt_end
+                encoding: 0
+                group: RightVertical
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: nt_mid
+                path: brushlessmotor.RightVertical.curve.nt_mid
+                encoding: 0
+                group: RightVertical
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pt_mid
+                path: brushlessmotor.RightVertical.curve.pt_mid
+                encoding: 0
+                group: RightVertical
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pt_end
+                path: brushlessmotor.RightVertical.curve.pt_end
+                encoding: 0
+                group: RightVertical
+                visible: false
+                fix: true
+                fix_value: 0
+          - name: LeftRear
+            command_byte:
+              - 2
+            enabled: false
+            include_length: false
+            checksum: 2
+            big_endian: false
+            checksum_range: 0
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: ID
+                path: brushlessmotor.LeftRear.id
+                encoding: 6
+                group: LeftRear
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: np_mid
+                path: brushlessmotor.LeftRear.curve.np_mid
+                encoding: 0
+                group: LeftRear
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: np_ini
+                path: brushlessmotor.LeftRear.curve.np_ini
+                encoding: 0
+                group: LeftRear
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pp_ini
+                path: brushlessmotor.LeftRear.curve.pp_ini
+                encoding: 0
+                group: LeftRear
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pp_mid
+                path: brushlessmotor.LeftRear.curve.pp_mid
+                encoding: 0
+                group: LeftRear
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: nt_end
+                path: brushlessmotor.LeftRear.curve.nt_end
+                encoding: 0
+                group: LeftRear
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: nt_mid
+                path: brushlessmotor.LeftRear.curve.nt_mid
+                encoding: 0
+                group: LeftRear
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pt_mid
+                path: brushlessmotor.LeftRear.curve.pt_mid
+                encoding: 0
+                group: LeftRear
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pt_end
+                path: brushlessmotor.LeftRear.curve.pt_end
+                encoding: 0
+                group: LeftRear
+                visible: false
+                fix: true
+                fix_value: 0
+          - name: RightRear
+            command_byte:
+              - 2
+            enabled: false
+            include_length: false
+            checksum: 2
+            big_endian: false
+            checksum_range: 0
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: ID
+                path: brushlessmotor.RightRear.id
+                encoding: 6
+                group: RightRear
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: np_mid
+                path: brushlessmotor.RightRear.curve.np_mid
+                encoding: 0
+                group: RightRear
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: np_ini
+                path: brushlessmotor.RightRear.curve.np_ini
+                encoding: 0
+                group: RightRear
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pp_ini
+                path: brushlessmotor.RightRear.curve.pp_ini
+                encoding: 0
+                group: RightRear
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pp_mid
+                path: brushlessmotor.RightRear.curve.pp_mid
+                encoding: 0
+                group: RightRear
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: nt_end
+                path: brushlessmotor.RightRear.curve.nt_end
+                encoding: 0
+                group: RightRear
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: nt_mid
+                path: brushlessmotor.RightRear.curve.nt_mid
+                encoding: 0
+                group: RightRear
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pt_mid
+                path: brushlessmotor.RightRear.curve.pt_mid
+                encoding: 0
+                group: RightRear
+                visible: false
+                fix: true
+                fix_value: 0
+              - name: pt_end
+                path: brushlessmotor.RightRear.curve.pt_end
+                encoding: 0
+                group: RightRear
+                visible: false
+                fix: true
+                fix_value: 0
+        protocol_receive:
+          - name: Sensor
+            command_byte:
+              - 3
+            include_length: false
+            checksum: 2
+            big_endian: false
+            checksum_range: 0
+            header:
+              - 250
+              - 175
+            tail:
+              - 251
+              - 191
+            fields:
+              - name: Depth
+                path: depth.value
+                encoding: 0
+                group: Sensor
+                visible: true
+              - name: Temperature
+                path: temperature.value
+                encoding: 0
+                group: Sensor
+                visible: true
+      - id: 2
+        is_selected: true
+        is_linked: false
+        name: Camera
+        host_ip: 192.168.0.38
+        remote_port: 37260
+        local_port: 1000
+        transport_type: 0
+        send_freq_hz: 100
+        retry_count: 6
+        active_component_idx: 1
+        com_port: COM1
+        baud_rate: 115200
+        data_bits: 3
+        stop_bits: 0
+        parity: 0
+        protocol_send:
+          - name: Position
+            command_byte:
+              - 14
+            enabled: true
+            include_length: false
+            checksum: 4
+            big_endian: false
+            checksum_range: 3
+            header:
+              - 85
+              - 102
+              - 1
+              - 4
+              - 0
+              - 0
+              - 0
+            tail:
+              []
+            fields:
+              - name: raw
+                path: ""
+                encoding: 0
+                group: ""
+                visible: true
+                fix: false
+                fix_value: 0
+                raw_data:
+                  - 0
+                  - 0
+              - name: pitch
+                path: brushlessmotor.Pitch.target_position
+                encoding: 3
+                group: Camera
+                visible: true
+                fix: false
+                fix_value: 0
+        protocol_receive:
+          []
+  graph_items:
+    - id: 1
+      name: ROV-XBOX
+      is_selected: true
+      editor_yaml: "nodes:\n  - id: 215\n    type: 44\n    value: -1.52590219e-05\n    key_name: LSY\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: -644\n    pos_y: 673\n  - id: 217\n    type: 44\n    value: 1.52590219e-05\n    key_name: RSX\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: -628\n    pos_y: 1201\n  - id: 218\n    type: 44\n    value: -1.52590219e-05\n    key_name: RSY\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 347\n    pos_y: 677\n  - id: 220\n    type: 44\n    value: 1.52590219e-05\n    key_name: LSX\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 373\n    pos_y: 1158\n  - id: 226\n    type: 46\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: motions.0.rz\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      []\n    pos_x: 1051\n    pos_y: 1243\n  - id: 228\n    type: 46\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: motions.0.z\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      []\n    pos_x: 1051\n    pos_y: 795\n  - id: 230\n    type: 46\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: motions.0.y\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      []\n    pos_x: 76\n    pos_y: 1287\n  - id: 232\n    type: 46\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: motions.0.x\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      []\n    pos_x: 60\n    pos_y: 727\n  - id: 238\n    type: 46\n    value: 0.800000012\n    key_name: \"\"\n    op_mode: 0\n    output_target: servo.Servo.angle\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      []\n    pos_x: -4\n    pos_y: 143\n  - id: 240\n    type: 44\n    value: 0\n    key_name: LB\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 1\n    pos_x: -628\n    pos_y: -39\n  - id: 242\n    type: 44\n    value: 0\n    key_name: LT\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 1\n    pos_x: -628\n    pos_y: 105\n  - id: 244\n    type: 44\n    value: 0\n    key_name: RT\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 1\n    pos_x: -628\n    pos_y: 249\n  - id: 248\n    type: 44\n    value: 0\n    key_name: RB\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 1\n    pos_x: -628\n    pos_y: 393\n  - id: 253\n    type: 39\n    value: 2\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: 0\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 2\n    output_types:\n      - 0\n    pos_x: 842\n    pos_y: 133\n  - id: 280\n    type: 47\n    value: 1500\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      - 6000\n      - 3000\n      - 1500\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 2\n    output_types:\n      - 0\n    pos_x: -436\n    pos_y: 775\n  - id: 281\n    type: 38\n    value: 2\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: 0\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 2\n    pos_x: -644\n    pos_y: 865\n  - id: 284\n    type: 0\n    value: 0\n    key_name: \"\"\n    op_mode: 2\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: -124\n    pos_y: 705\n  - id: 290\n    type: 38\n    value: 2\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: 0\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 2\n    pos_x: -628\n    pos_y: 1393\n  - id: 291\n    type: 47\n    value: 1250\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      - 5000\n      - 2500\n      - 1250\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 2\n    output_types:\n      - 0\n    pos_x: -419\n    pos_y: 1319\n  - id: 294\n    type: 0\n    value: 0\n    key_name: \"\"\n    op_mode: 2\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: -116\n    pos_y: 1269\n  - id: 302\n    type: 38\n    value: 2\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: 0\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 2\n    pos_x: 347\n    pos_y: 853\n  - id: 303\n    type: 0\n    value: 0\n    key_name: \"\"\n    op_mode: 2\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: 859\n    pos_y: 761\n  - id: 307\n    type: 47\n    value: 1500\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      - 6000\n      - 3000\n      - 1500\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 2\n    output_types:\n      - 0\n    pos_x: 556\n    pos_y: 795\n  - id: 314\n    type: 0\n    value: 0\n    key_name: \"\"\n    op_mode: 2\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: 875\n    pos_y: 1209\n  - id: 315\n    type: 38\n    value: 2\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: 0\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 2\n    pos_x: 363\n    pos_y: 1317\n  - id: 317\n    type: 47\n    value: 250\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      - 1000\n      - 500\n      - 250\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 2\n    output_types:\n      - 0\n    pos_x: 572\n    pos_y: 1275\n  - id: 324\n    type: 12\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0.100000001\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: -332\n    pos_y: 596\n  - id: 327\n    type: 12\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0.100000001\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: -428\n    pos_y: 1127\n  - id: 330\n    type: 12\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0.100000001\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: 553\n    pos_y: 615\n  - id: 333\n    type: 12\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0.100000001\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: 579\n    pos_y: 1099\n  - id: 336\n    type: 44\n    value: 0\n    key_name: A\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 1\n    pos_x: 236\n    pos_y: 37\n  - id: 339\n    type: 44\n    value: 0\n    key_name: B\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 1\n    pos_x: 236\n    pos_y: 165\n  - id: 343\n    type: 44\n    value: 0\n    key_name: Y\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 1\n    pos_x: 236\n    pos_y: 293\n  - id: 406\n    type: 44\n    value: 0\n    key_name: UP\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 1058\n    pos_y: 20\n  - id: 407\n    type: 44\n    value: 0\n    key_name: DOWN\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 1058\n    pos_y: 276\n  - id: 425\n    type: 46\n    value: 250\n    key_name: \"\"\n    op_mode: 0\n    output_target: brushlessmotor.Pitch.target_position\n    comm_index: 1\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      []\n    pos_x: 1682\n    pos_y: 137\n  - id: 427\n    type: 49\n    value: 0.800000012\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 4\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      - 0.56\n      - 0.68\n      - 0.8\n      - 0.89\n      - 4\n      - 5\n      - 6\n      - 7\n    state_f:\n      - 0.800000012\n      - 3\n      - 0\n      - 0\n    input_types:\n      - 1\n      - 1\n      - 1\n      - 1\n      - 0\n      - 0\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: -239\n    pos_y: 17\n  - id: 441\n    type: 20\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 1\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 1\n    pos_x: -422\n    pos_y: -133\n  - id: 442\n    type: 20\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 1\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 1\n    pos_x: -422\n    pos_y: 41\n  - id: 445\n    type: 20\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 1\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 1\n    pos_x: -422\n    pos_y: 217\n  - id: 448\n    type: 20\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 1\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 1\n    pos_x: -422\n    pos_y: 393\n  - id: 459\n    type: 49\n    value: 2\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 3\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      - 0\n      - 1\n      - 2\n      - 3\n      - 4\n      - 5\n      - 6\n      - 7\n    state_f:\n      - 2\n      - 2\n      - 0\n      - 0\n    input_types:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: 616\n    pos_y: 63\n  - id: 461\n    type: 20\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 1\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 1\n    pos_x: 436\n    pos_y: -25\n  - id: 464\n    type: 20\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 1\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 1\n    pos_x: 436\n    pos_y: 149\n  - id: 467\n    type: 20\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 1\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 1\n    pos_x: 436\n    pos_y: 325\n  - id: 477\n    type: 44\n    value: 0\n    key_name: LEFT\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 1058\n    pos_y: 147\n  - id: 478\n    type: 49\n    value: 250\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 3\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      - 600\n      - 0\n      - -250\n      - 3\n      - 4\n      - 5\n      - 6\n      - 7\n    state_f:\n      - 250\n      - 2\n      - 0\n      - 0\n    input_types:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    output_types:\n      - 0\n    pos_x: 1438\n    pos_y: 43\n  - id: 488\n    type: 20\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 1\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 1\n    pos_x: 1258\n    pos_y: -59\n  - id: 491\n    type: 20\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 1\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 1\n    pos_x: 1258\n    pos_y: 117\n  - id: 494\n    type: 20\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 1\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 1\n    pos_x: 1258\n    pos_y: 291\n  - id: 504\n    type: 44\n    value: 0\n    key_name: VIEW\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: 1333\n    pos_y: 1017\n  - id: 505\n    type: 48\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    shortcut_action: 11\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: 1717\n    pos_y: 1003\n  - id: 508\n    type: 20\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 1\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 1\n    pos_x: 1539\n    pos_y: 985\n  - id: 513\n    type: 44\n    value: 0\n    key_name: MENU\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      []\n    output_types:\n      - 0\n    pos_x: -92\n    pos_y: -597\n  - id: 515\n    type: 48\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    shortcut_send_index: 4\n    shortcut_send_mode: 0\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: 147\n    pos_y: -511\n  - id: 518\n    type: 48\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    shortcut_send_index: 5\n    shortcut_send_mode: 0\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: 147\n    pos_y: -351\n  - id: 521\n    type: 48\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    shortcut_send_index: 6\n    shortcut_send_mode: 0\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: 147\n    pos_y: -191\n  - id: 524\n    type: 48\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    shortcut_send_index: 3\n    shortcut_send_mode: 0\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: 147\n    pos_y: -671\n  - id: 527\n    type: 48\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    shortcut_send_index: 2\n    shortcut_send_mode: 0\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: 147\n    pos_y: -835\n  - id: 530\n    type: 48\n    value: 0\n    key_name: \"\"\n    op_mode: 0\n    output_target: \"\"\n    comm_index: 0\n    global_var_id: -1\n    shortcut_send_index: 1\n    shortcut_send_mode: 0\n    param:\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n      - 0\n    mode_labels:\n      []\n    state_f:\n      - 0\n      - 0\n      - 0\n      - 0\n    input_types:\n      - 0\n    output_types:\n      - 0\n    pos_x: 147\n    pos_y: -991\nlinks:\n  - id: 283\n    from_node: 281\n    from_pin: 0\n    to_node: 280\n    to_pin: 0\n  - id: 288\n    from_node: 280\n    from_pin: 0\n    to_node: 284\n    to_pin: 1\n  - id: 289\n    from_node: 284\n    from_pin: 0\n    to_node: 232\n    to_pin: 0\n  - id: 299\n    from_node: 291\n    from_pin: 0\n    to_node: 294\n    to_pin: 1\n  - id: 300\n    from_node: 290\n    from_pin: 0\n    to_node: 291\n    to_pin: 0\n  - id: 301\n    from_node: 294\n    from_pin: 0\n    to_node: 230\n    to_pin: 0\n  - id: 310\n    from_node: 302\n    from_pin: 0\n    to_node: 307\n    to_pin: 0\n  - id: 311\n    from_node: 307\n    from_pin: 0\n    to_node: 303\n    to_pin: 1\n  - id: 313\n    from_node: 303\n    from_pin: 0\n    to_node: 228\n    to_pin: 0\n  - id: 320\n    from_node: 315\n    from_pin: 0\n    to_node: 317\n    to_pin: 0\n  - id: 322\n    from_node: 317\n    from_pin: 0\n    to_node: 314\n    to_pin: 1\n  - id: 323\n    from_node: 314\n    from_pin: 0\n    to_node: 226\n    to_pin: 0\n  - id: 325\n    from_node: 215\n    from_pin: 0\n    to_node: 324\n    to_pin: 0\n  - id: 326\n    from_node: 324\n    from_pin: 0\n    to_node: 284\n    to_pin: 0\n  - id: 328\n    from_node: 217\n    from_pin: 0\n    to_node: 327\n    to_pin: 0\n  - id: 329\n    from_node: 327\n    from_pin: 0\n    to_node: 294\n    to_pin: 0\n  - id: 331\n    from_node: 218\n    from_pin: 0\n    to_node: 330\n    to_pin: 0\n  - id: 332\n    from_node: 330\n    from_pin: 0\n    to_node: 303\n    to_pin: 0\n  - id: 334\n    from_node: 220\n    from_pin: 0\n    to_node: 333\n    to_pin: 0\n  - id: 335\n    from_node: 333\n    from_pin: 0\n    to_node: 314\n    to_pin: 0\n  - id: 440\n    from_node: 427\n    from_pin: 0\n    to_node: 238\n    to_pin: 0\n  - id: 451\n    from_node: 240\n    from_pin: 0\n    to_node: 441\n    to_pin: 0\n  - id: 452\n    from_node: 441\n    from_pin: 0\n    to_node: 427\n    to_pin: 0\n  - id: 453\n    from_node: 242\n    from_pin: 0\n    to_node: 442\n    to_pin: 0\n  - id: 454\n    from_node: 442\n    from_pin: 0\n    to_node: 427\n    to_pin: 1\n  - id: 455\n    from_node: 244\n    from_pin: 0\n    to_node: 445\n    to_pin: 0\n  - id: 456\n    from_node: 445\n    from_pin: 0\n    to_node: 427\n    to_pin: 2\n  - id: 457\n    from_node: 248\n    from_pin: 0\n    to_node: 448\n    to_pin: 0\n  - id: 458\n    from_node: 448\n    from_pin: 0\n    to_node: 427\n    to_pin: 3\n  - id: 470\n    from_node: 336\n    from_pin: 0\n    to_node: 461\n    to_pin: 0\n  - id: 471\n    from_node: 461\n    from_pin: 0\n    to_node: 459\n    to_pin: 0\n  - id: 472\n    from_node: 339\n    from_pin: 0\n    to_node: 464\n    to_pin: 0\n  - id: 473\n    from_node: 464\n    from_pin: 0\n    to_node: 459\n    to_pin: 1\n  - id: 474\n    from_node: 343\n    from_pin: 0\n    to_node: 467\n    to_pin: 0\n  - id: 475\n    from_node: 467\n    from_pin: 0\n    to_node: 459\n    to_pin: 2\n  - id: 476\n    from_node: 459\n    from_pin: 0\n    to_node: 253\n    to_pin: 0\n  - id: 497\n    from_node: 477\n    from_pin: 0\n    to_node: 491\n    to_pin: 0\n  - id: 498\n    from_node: 406\n    from_pin: 0\n    to_node: 488\n    to_pin: 0\n  - id: 499\n    from_node: 407\n    from_pin: 0\n    to_node: 494\n    to_pin: 0\n  - id: 500\n    from_node: 488\n    from_pin: 0\n    to_node: 478\n    to_pin: 0\n  - id: 501\n    from_node: 491\n    from_pin: 0\n    to_node: 478\n    to_pin: 1\n  - id: 502\n    from_node: 494\n    from_pin: 0\n    to_node: 478\n    to_pin: 2\n  - id: 503\n    from_node: 478\n    from_pin: 0\n    to_node: 425\n    to_pin: 0\n  - id: 511\n    from_node: 504\n    from_pin: 0\n    to_node: 508\n    to_pin: 0\n  - id: 512\n    from_node: 508\n    from_pin: 0\n    to_node: 505\n    to_pin: 0\n  - id: 540\n    from_node: 513\n    from_pin: 0\n    to_node: 530\n    to_pin: 0\n  - id: 541\n    from_node: 513\n    from_pin: 0\n    to_node: 527\n    to_pin: 0\n  - id: 542\n    from_node: 513\n    from_pin: 0\n    to_node: 524\n    to_pin: 0\n  - id: 543\n    from_node: 513\n    from_pin: 0\n    to_node: 515\n    to_pin: 0\n  - id: 544\n    from_node: 513\n    from_pin: 0\n    to_node: 518\n    to_pin: 0\n  - id: 545\n    from_node: 513\n    from_pin: 0\n    to_node: 521\n    to_pin: 0\nglobals:\n  - id: 0\n    name: mode\n    value: 2\n    type: 3\n    visible: true\n    enum_labels:\n      - Fast\n      - Medium\n      - Low\nactive_robot_mode: ROV\nactive_gamepad_mode: XBOX\ncomm_refs:\n  - 0\n  - 1"
+    - id: 2
+      name: Item_2
+      is_selected: false
+      editor_yaml: "nodes:\n  []\nlinks:\n  []\nglobals:\n  []\nactive_robot_mode: Item_2\nactive_gamepad_mode: Item_2\ncomm_refs:\n  []"

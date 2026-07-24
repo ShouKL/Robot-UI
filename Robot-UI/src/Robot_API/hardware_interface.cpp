@@ -306,14 +306,28 @@ SensorData HardwareInterface::GetSensorData() {
         if (parsed.is_valid)
             m_CurrentSensorData = parsed;
 
-        // 每条接收都输出数据帧
+        // 每条接收都输出数据帧（~1 Hz 节流）
         ++m_RecvOkCount;
         {
-            char hexBuf[192] = {0};
-            int off = 0;
-            for (int i = 0; i < bytesRead && i < 64; ++i)
-                off += snprintf(hexBuf + off, sizeof(hexBuf) - off, "%02X ", (unsigned char)buffer[i]);
-            WL_INFO_TAG("HW", "[{}][{}] recv #{} {}B valid={}: {}", m_ConnName, m_TransportType == 1 ? "TCP" : "UDP", m_RecvOkCount, bytesRead, parsed.is_valid ? 1 : 0, hexBuf);
+            auto now = std::chrono::steady_clock::now();
+            if (m_LastRecvLogTime.time_since_epoch().count() == 0 ||
+                std::chrono::duration_cast<std::chrono::seconds>(now - m_LastRecvLogTime).count() >= 1) {
+                if (m_RecvLogSkipCount > 0) {
+                    WL_INFO_TAG("HW", "[{}][{}] recv ... {} frames skipped", m_ConnName,
+                        m_TransportType == 1 ? "TCP" : "UDP", m_RecvLogSkipCount);
+                    m_RecvLogSkipCount = 0;
+                }
+                m_LastRecvLogTime = now;
+                char hexBuf[192] = {0};
+                int off = 0;
+                for (int i = 0; i < bytesRead && i < 64; ++i)
+                    off += snprintf(hexBuf + off, sizeof(hexBuf) - off, "%02X ", (unsigned char)buffer[i]);
+                WL_INFO_TAG("HW", "[{}][{}] recv #{} {}B valid={}: {}", m_ConnName,
+                    m_TransportType == 1 ? "TCP" : "UDP", m_RecvOkCount, bytesRead,
+                    parsed.is_valid ? 1 : 0, hexBuf);
+            } else {
+                ++m_RecvLogSkipCount;
+            }
         }
     }
     else if (bytesRead == 0) {
